@@ -1,5 +1,5 @@
 {
-  "version": "0.3.1",
+  "version": "0.3.2",
   "approved_on": "2026-09-09",
   "status": "Approved operating design; live runner not implemented",
   "profiles": [
@@ -400,18 +400,26 @@
     "Do not send every tiny job to the primary developer pool. Muse/Luna remain eligible bounded support workers.",
     "High consequence can require stronger review even for a small edit. Model choice never removes acceptance gates.",
     "Verify effective model and effort at dispatch. Newly configured Grok/Opus combinations are not yet claimed smoke-tested; no unapproved substitution.",
-    "House exclusivity takes precedence over parallelism preferences: Sol high or higher and Astra any effort reserve Codex; Opus high or higher and Fable 5.1 any effort reserve Claude.",
-    "New-product brainstorming may use Fable 5.1 medium or Astra medium. Both reserve their entire house while active; prefer another eligible house or queue competing work.",
+    "House exclusivity has two scopes. Astra at any effort reserves Codex globally and Fable 5.1 at any effort reserves Claude globally. Sol high or higher reserves Codex only for assignments under the same delivery manager; Opus high or higher reserves Claude only for assignments under the same delivery manager.",
+    "New-product brainstorming may use Fable 5.1 medium or Astra medium. Both create global house reservations while active; prefer another eligible house or queue competing work.",
     "Fable model authorization does not permit paid usage credits or extra spending. Verify included allowance before any headless request."
   ],
   "house_exclusivity": {
-    "scope": "All Interchange-managed active assignments in the same house across projects, including manager, leads, workers and reviewers",
-    "triggers": [
+    "global_scope": "All visible Interchange-managed active assignments in the same house across delivery managers, deliveries, projects and roles",
+    "delivery_manager_scope": "All active assignments owned or supervised by the same delivery manager, across that manager's deliveries, projects and roles",
+    "global_triggers": [
       {
         "house": "claude",
         "model": "claude-fable-5-1",
         "effort": "any"
       },
+      {
+        "house": "codex",
+        "model": "gpt-6-astra",
+        "effort": "any"
+      }
+    ],
+    "delivery_manager_triggers": [
       {
         "house": "codex",
         "model": "gpt-5.6-sol",
@@ -421,11 +429,6 @@
         "house": "claude",
         "model_family": "opus",
         "effort_at_or_above": "high"
-      },
-      {
-        "house": "codex",
-        "model": "gpt-6-astra",
-        "effort": "any"
       }
     ],
     "effort_order": [
@@ -438,10 +441,10 @@
       "max",
       "ultra"
     ],
-    "rule": "If either a new or existing active assignment triggers exclusivity, no other assignment may overlap in that house. Higher levels only where model/tool supported and separately approved.",
+    "rule": "A global trigger prevents every other visible Interchange-managed assignment from overlapping in that house. A delivery-manager trigger prevents same-house overlap only among assignments owned or supervised by that delivery manager; separately managed deliveries may still use the house. Check new and existing assignments symmetrically. Higher levels apply only where model/tool supported and separately approved.",
     "conflict_action": "Prefer an eligible other house; otherwise queue. Do not silently lower effort, kill other sessions, or widen permissions.",
     "release": "Release only after attempt stops or is explicitly suspended with no remaining computation and supervisor ownership preserved; an open idle transcript alone is not an active assignment.",
-    "manager_effect": "An active Astra or Sol-high manager reserves Codex; an Opus-high manager reserves Claude. No implicit exemption for same-house subagents or review.",
+    "manager_effect": "An active Astra manager reserves Codex globally. An active Sol-high manager reserves Codex within its own managed work. An active Opus-high manager reserves Claude within its own managed work. No implicit exemption for same-scope subagents or review.",
     "outside_activity": "Check visible external activity without controlling it; user sessions outside Interchange cannot be reliably locked by skill text. Disclose unknown occupancy.",
     "status": "Instruction policy only; cross-process reservation enforcement awaits live runner"
   }

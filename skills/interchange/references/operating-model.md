@@ -21,7 +21,8 @@ Use local deterministic status checks and return compact changes to the manager;
 model-driven polling incurs another inference turn even when nothing changed.
 Worker inference is separate from manager waiting. Record observed usage rather
 than estimating token consumption from elapsed waiting time. Existing deadlines
-and continuation ownership still apply; waiting does not release exclusivity.
+and continuation ownership still apply; waiting does not release the applicable
+global or delivery-manager reservation.
 
 Select lead strength by ambiguity, consequence and coupling. Defined contracts and routine coordination suit Terra xhigh; difficult integration within defined architecture may use Terra max. Moderate design decisions suit Sol medium; high consequence or coupling suits Sol high. Unresolved architecture crossing workstreams suits Astra medium. These are initial routing hypotheses, calibrated through actual reviewed work. Size alone is not a risk measure.
 

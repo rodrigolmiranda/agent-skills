@@ -27,18 +27,20 @@ flowchart TD
   M -->|Demanding but well-defined| T[Terra max]
   N & O & P & Q & T --> R[Quality eligibility, then accepted-result speed, available pool and context continuity]
   R --> U{Same-house exclusivity conflict?}
-  X[Codex: Sol high+ or any Astra. Claude: Opus high+ or any Fable 5.1] -.-> U
+  X[Global: any Astra in Codex, any Fable 5.1 in Claude] -.-> U
+  Y[Same delivery manager only: Sol high+ in Codex, Opus high+ in Claude] -.-> U
   U -->|Yes| V[Eligible other house or queue]
   U -->|No| S[Exact profile and tool permissions verified before dispatch]
 ```
 
 Pools are starting preferences, not model rankings. Read [development routing instructions](../skills/interchange/references/routing.md) for task boundaries and escalation. Grok uses Grok CLI only; Claude development uses Opus. Worker model choice grants no delegation or merge authority.
 
-Policy 0.3.1 allows Sol high and Opus 5 high as alternative delivery managers, with Astra medium
+Policy 0.3.2 allows Sol high and Opus 5 high as alternative delivery managers, with Astra medium
 remaining the default. Product brainstorming uses Fable 5.1 medium or Astra medium.
-Sol high-or-higher and any Astra reserve Codex; Opus high-or-higher and any
-Fable 5.1 reserve Claude. Only medium is currently approved for Fable.
-This includes the active delivery manager. Fable needs confirmed
+Any Astra reserves Codex globally and any Fable 5.1 reserves Claude globally.
+Sol high-or-higher and Opus high-or-higher reserve their houses only for work
+under the same delivery manager. Only medium is currently approved for Fable.
+Fable needs confirmed
 included-plan eligibility under the no-extra-spending rule.
 
 ## Monitoring and completion

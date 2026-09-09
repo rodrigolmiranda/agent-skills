@@ -1,11 +1,12 @@
 # Development routing instructions
 
-Owner revision 2026-09-09; configured profile IDs and evidence status are in `policy.json` version 0.3.1. These are initial preferred pools, not benchmark rankings or interchangeable capability claims.
+Owner revision 2026-09-09; configured profile IDs and evidence status are in `policy.json` version 0.3.2. These are initial preferred pools, not benchmark rankings or interchangeable capability claims.
 
 Delivery manager: Astra medium by default; Sol high and Opus 5 high are approved
 alternatives. A matching conversation may use its manager profile without a new
-override. Astra and Sol high reserve Codex; Opus high reserves Claude, including
-during supervised waits. Cross-house manager transport still needs verification.
+override. Astra reserves Codex globally. Sol high reserves Codex only within work
+under the same delivery manager. Opus high has that same manager-scoped effect in
+Claude. Cross-house manager transport still needs verification.
 
 ## Active houses and profiles
 
@@ -21,14 +22,18 @@ pool. Fable's exact runtime identity and included-plan eligibility remain unveri
 
 ## House exclusivity
 
-Sol high or higher reserves Codex. Opus high or higher reserves Claude. Astra at
-any effort reserves Codex. Fable 5.1 at any effort reserves Claude (currently
-approved only at medium). While such an assignment is active, no other
-Interchange-managed activity may run in that house, across projects and roles.
-This includes the active manager and native subagents; no implicit exception.
+Astra at any effort reserves Codex globally. Fable 5.1 at any effort reserves
+Claude globally (currently approved only at medium). Global covers all visible
+Interchange-managed delivery managers, deliveries, projects and roles.
 
-The check is symmetric: an exclusive job must wait for existing same-house jobs,
-and a new ordinary job must wait behind an exclusive reservation. Prefer another
+Sol high or higher reserves Codex only within assignments owned or supervised by
+the same delivery manager. Opus high or higher applies the same manager-scoped
+reservation to Claude. Another delivery manager may use that house concurrently,
+subject to any global reservation. Managers, leads, workers and reviewers have no
+implicit exemption inside the applicable scope.
+
+The check is symmetric: an exclusive job must wait for existing conflicting jobs,
+and a new ordinary job must wait behind an applicable reservation. Prefer another
 eligible house; otherwise queue. Do not lower effort, change the approved roster,
 kill user work or expand spending to avoid the queue. Higher effort means only
 levels supported by that model and already approved for the role; the rule grants
@@ -37,9 +42,10 @@ no new model/effort permission.
 Release reservation after the attempt stops, or explicit suspension confirms no
 remaining computation and preserves supervision/continuation ownership. Merely
 waiting for a tool or posting a checkpoint does not release an active assignment.
-An idle saved transcript is not itself a reservation. An active Astra or Sol-high manager
-therefore sends parallel workers to other houses. It cannot launch a parallel
-Codex developer unless its own active assignment is properly suspended or ended.
+An idle saved transcript is not itself a reservation. An active Astra manager
+therefore sends all parallel Codex work to other houses. A Sol-high manager sends
+its own parallel Codex work elsewhere, while an independent delivery manager may
+still use Codex if no global reservation applies.
 
 Fable medium cannot run alongside any other active Claude assignment. External user
 sessions may be invisible; disclose uncertain occupancy rather than claim a

@@ -16,13 +16,16 @@ Use the primary conversation as delivery manager. Resolve product ambiguity and 
 
 ## Delegate
 
-Apply `policy.json` house exclusivity before dispatch: Sol high or higher reserves
-Codex; Opus high or higher reserves Claude; Astra at any effort reserves Codex;
-Fable 5.1 at any effort reserves Claude (currently approved only at medium).
-No other active assignment in that house may overlap, including managers, leads,
-native subagents and reviewers. Prefer another eligible house or queue the work.
-Check both directions: an exclusive job must also wait for existing same-house
-jobs. Do not silently reduce effort or stop user sessions. Read the precise
+Apply `policy.json` house exclusivity before dispatch. Astra at any effort reserves
+Codex globally; Fable 5.1 at any effort reserves Claude globally (currently
+approved only at medium). Global means across visible Interchange-managed delivery
+managers, projects and roles. Sol high or higher reserves Codex only within work
+owned or supervised by the same delivery manager; Opus high or higher does the
+same for Claude. Separately managed deliveries may use those houses concurrently.
+Managers, leads, workers and reviewers have no exemption inside the applicable
+scope. Prefer another eligible house or queue the work. Check both directions:
+an exclusive job must also wait for conflicting active jobs. Do not silently
+reduce effort or stop user sessions. Read the precise
 scope/release rules in [routing.md](references/routing.md). This is not yet a
 mechanically enforced cross-process lock.
 
