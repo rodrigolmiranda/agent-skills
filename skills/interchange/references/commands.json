@@ -217,6 +217,6 @@
       "reasoning_effort",
       "fork_turns"
     ],
-    "rule": "Use exact selected profile model/effort, fork_turns none with complete bounded context. Check current tool availability; fixed-role defaults may conflict with approved efforts. Do not claim changing the active manager model through this call. Check house exclusivity before dispatch; active Astra reserves Codex including native subagents."
+    "rule": "Use exact selected profile model/effort, fork_turns none with complete bounded context. Check current tool availability; fixed-role defaults may conflict with approved efforts. Do not claim changing the active manager model through this call. Check house exclusivity before dispatch; an active Astra or Sol-high manager reserves Codex including native subagents."
   }
 }

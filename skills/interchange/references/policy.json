@@ -1,8 +1,26 @@
 {
-  "version": "0.3.0",
+  "version": "0.3.1",
   "approved_on": "2026-09-09",
   "status": "Approved operating design; live runner not implemented",
   "profiles": [
+    {
+      "id": "dm-opus-high",
+      "house": "claude",
+      "model": "claude-opus-5",
+      "effort": "high",
+      "role": "delivery manager: approved alternative with explicit handover when switching houses",
+      "delegation": true,
+      "evidence": "Model and effort documented; exact runtime and cross-house manager dispatch unverified"
+    },
+    {
+      "id": "dm-sol-high",
+      "house": "codex",
+      "model": "gpt-5.6-sol",
+      "effort": "high",
+      "role": "delivery manager: approved alternative when starting with Sol high",
+      "delegation": true,
+      "evidence": "Supported by current tool metadata; manager routing uncalibrated"
+    },
     {
       "id": "dm-astra-medium",
       "house": "codex",
@@ -235,7 +253,7 @@
     {
       "task": "Cross-workstream planning and decisions",
       "first": "dm-astra-medium",
-      "fallback": "Owner decision if approved roster unavailable",
+      "fallback": "dm-sol-high or dm-opus-high; use directly when already in that configuration; verify transport and handover for house switches",
       "reason": "Manager receives compact exceptions and evidence, not raw logs"
     },
     {
@@ -423,7 +441,7 @@
     "rule": "If either a new or existing active assignment triggers exclusivity, no other assignment may overlap in that house. Higher levels only where model/tool supported and separately approved.",
     "conflict_action": "Prefer an eligible other house; otherwise queue. Do not silently lower effort, kill other sessions, or widen permissions.",
     "release": "Release only after attempt stops or is explicitly suspended with no remaining computation and supervisor ownership preserved; an open idle transcript alone is not an active assignment.",
-    "manager_effect": "An active Astra manager reserves Codex too. No implicit exemption for native Codex subagents or review.",
+    "manager_effect": "An active Astra or Sol-high manager reserves Codex; an Opus-high manager reserves Claude. No implicit exemption for same-house subagents or review.",
     "outside_activity": "Check visible external activity without controlling it; user sessions outside Interchange cannot be reliably locked by skill text. Disclose unknown occupancy.",
     "status": "Instruction policy only; cross-process reservation enforcement awaits live runner"
   }

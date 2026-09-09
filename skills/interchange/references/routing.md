@@ -1,6 +1,11 @@
 # Development routing instructions
 
-Owner revision 2026-09-09; configured profile IDs and evidence status are in `policy.json` version 0.3.0. These are initial preferred pools, not benchmark rankings or interchangeable capability claims.
+Owner revision 2026-09-09; configured profile IDs and evidence status are in `policy.json` version 0.3.1. These are initial preferred pools, not benchmark rankings or interchangeable capability claims.
+
+Delivery manager: Astra medium by default; Sol high and Opus 5 high are approved
+alternatives. A matching conversation may use its manager profile without a new
+override. Astra and Sol high reserve Codex; Opus high reserves Claude, including
+during supervised waits. Cross-house manager transport still needs verification.
 
 ## Active houses and profiles
 
@@ -32,7 +37,7 @@ no new model/effort permission.
 Release reservation after the attempt stops, or explicit suspension confirms no
 remaining computation and preserves supervision/continuation ownership. Merely
 waiting for a tool or posting a checkpoint does not release an active assignment.
-An idle saved transcript is not itself a reservation. An active Astra manager
+An idle saved transcript is not itself a reservation. An active Astra or Sol-high manager
 therefore sends parallel workers to other houses. It cannot launch a parallel
 Codex developer unless its own active assignment is properly suspended or ended.
 

@@ -5,7 +5,7 @@ description: Coordinate governed delivery across Codex subagents and external Cl
 
 # Interchange
 
-Use the primary conversation as delivery manager. Resolve product ambiguity and cross-workstream dependencies here; delegate coherent owned outcomes. Default personal manager profile: Astra medium. This package is an initial skill and protocol implementation, not an operational process supervisor. Never claim monitoring, cancellation or automatic callbacks are active without testing the actual transport.
+Use the primary conversation as delivery manager. Resolve product ambiguity and cross-workstream dependencies here; delegate coherent owned outcomes. Default personal manager profile: Astra medium; Sol high and Opus 5 high are approved alternatives with no additional profile override needed. Verify the active model/effort; loading the skill does not switch it. For manager handover and transport prerequisites, read [operating-model.md](references/operating-model.md). This package is an initial skill and protocol implementation, not an operational process supervisor. Never claim monitoring, cancellation or automatic callbacks are active without testing the actual transport.
 
 ## Start
 

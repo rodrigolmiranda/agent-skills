@@ -4,7 +4,24 @@ Approved by Rodrigo on 2026-09-09. Configured values live in `policy.json`; spre
 
 ## Team and task size
 
-Delivery manager owns outcome, dependencies, lead selection and final accountability. Add leads for independently manageable workstreams, including workstreams spanning several repositories. Do not equate one repository with one lead or one model with one role. Manager spends its context on decisions, exception summaries and integration evidence.
+Delivery manager owns outcome, dependencies, lead selection and final accountability. Astra medium is the default; Sol high and Opus 5 high are approved alternatives, including when the conversation starts with that configuration. Add leads for independently manageable workstreams, including workstreams spanning several repositories. Do not equate one repository with one lead or one model with one role. Manager spends its context on decisions, exception summaries and integration evidence.
+
+One manager owns a delivery at a time. Before switching managers, checkpoint the
+approved outcome, governance revision, decisions, assignments, session/process
+IDs, worktrees/branches, evidence, blockers and deadlines. Transfer supervision
+explicitly and reconcile active workers before any replacement dispatch. Confirm
+the incoming house can load these instructions and start, resume, monitor and
+interrupt the intended workers; Codex-native tools are not automatically available
+in Claude. An approved Opus manager profile is not proof of working transport.
+Unavailable Codex quota also makes the Codex-review approval-bypass route
+unavailable until its required evidence can be obtained.
+
+During waits, prefer supported completion events or bounded blocking tool waits.
+Use local deterministic status checks and return compact changes to the manager;
+model-driven polling incurs another inference turn even when nothing changed.
+Worker inference is separate from manager waiting. Record observed usage rather
+than estimating token consumption from elapsed waiting time. Existing deadlines
+and continuation ownership still apply; waiting does not release exclusivity.
 
 Select lead strength by ambiguity, consequence and coupling. Defined contracts and routine coordination suit Terra xhigh; difficult integration within defined architecture may use Terra max. Moderate design decisions suit Sol medium; high consequence or coupling suits Sol high. Unresolved architecture crossing workstreams suits Astra medium. These are initial routing hypotheses, calibrated through actual reviewed work. Size alone is not a risk measure.
 

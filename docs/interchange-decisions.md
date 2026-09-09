@@ -8,7 +8,7 @@ Approved configuration: [policy.json](../skills/interchange/references/policy.js
 flowchart TD
   A[Approved outcome] --> B{One direct lookup?}
   B -->|Yes| C[Use local search or tool]
-  B -->|No| D[Delivery manager: Astra medium]
+  B -->|No| D[Delivery manager: Astra medium default, Sol high or Opus 5 high]
   D --> E[Partition coherent workstreams and dependencies]
   D -->|New product brainstorming| W[Fable 5.1 medium or Astra medium]
   W --> R
@@ -34,7 +34,8 @@ flowchart TD
 
 Pools are starting preferences, not model rankings. Read [development routing instructions](../skills/interchange/references/routing.md) for task boundaries and escalation. Grok uses Grok CLI only; Claude development uses Opus. Worker model choice grants no delegation or merge authority.
 
-Policy 0.3.0 adds product brainstorming with Fable 5.1 medium or Astra medium.
+Policy 0.3.1 allows Sol high and Opus 5 high as alternative delivery managers, with Astra medium
+remaining the default. Product brainstorming uses Fable 5.1 medium or Astra medium.
 Sol high-or-higher and any Astra reserve Codex; Opus high-or-higher and any
 Fable 5.1 reserve Claude. Only medium is currently approved for Fable.
 This includes the active delivery manager. Fable needs confirmed
