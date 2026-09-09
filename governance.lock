@@ -1,0 +1,23 @@
+{
+  "source_repository": "https://github.com/marvinamiranda/MarvinaMiranda.git",
+  "source_root_key": "governance",
+  "version": "4.0.0",
+  "source_commit": null,
+  "source_state": "uncommitted owner-approved working standard",
+  "adopted_on": "2026-09-09",
+  "mode": "local-checkout-with-content-digests",
+  "deviations": [
+    "Interchange personal routing and retention profile in GOV-0020 and Agent Delivery records; source not yet an immutable published release"
+  ],
+  "files": {
+    "01 - Governance/Portfolio Standard/PORTFOLIO-STANDARD.md": "65ee98eb0d45c5bb7b42f84a71a933bb0d447196ee662a2f80f62941fad226fd",
+    "01 - Governance/Portfolio Standard/GOV-0013-principles.md": "ec4000c387ce52772a13bb26a78faa9e383accd6cc84a12623e988abb9fed8e6",
+    "01 - Governance/Portfolio Standard/GOV-0016-improvement-loop.md": "96fc84dd1edb89a0b2c3e61037b6fa36b53d14fa163ec8546b1a5a15b7478a72",
+    "01 - Governance/Portfolio Standard/GOV-0020-multi-session-orchestration.md": "f721e7e306300b67ed153490890bac1e3310ba5b20c6224d7e2bbbfec999c4cd",
+    "01 - Governance/Portfolio Standard/REG-03-delivery-method.md": "8bff47efe7c306d6ff47695f8bd73aca2705a83004d6fa2fca410881cc7fa489",
+    "01 - Governance/Portfolio Standard/GOV-0014-project-bootstrap.md": "a158801ece18d02861767521658591acb3636bd42cee828a5cbcf9579b393038",
+    "01 - Governance/Portfolio Standard/GOV-0018-product-discovery.md": "41ba2c3b5e0b781593bd29b3a245b014c77f30996759b6f00fed382921c6535f",
+    "01 - Governance/Portfolio Standard/REG-02-coding-governance.md": "31106fd15adfc484908a03df571a056fe35cf94f5bb5851130dc7850c0be9311",
+    "01 - Governance/Portfolio Standard/GOV-CHANGELOG.md": "67e1a4438d3f1b5effb183d1eed174eb46f1695e6b1fc307c0467ce6cbdeb90a"
+  }
+}

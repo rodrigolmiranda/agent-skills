@@ -1,0 +1,222 @@
+{
+  "schema_version": 2,
+  "status": "Explicit argument templates; Muse previous smoke-tested; new Grok/Opus profiles require runtime confirmation; live dispatch adapter not implemented",
+  "substitution": "Build subprocess argv arrays. Replace each placeholder as one literal argument. Never join into shell code.",
+  "profiles": {
+    "worker-muse-xhigh": {
+      "start": [
+        "opencode",
+        "run",
+        "--dir",
+        "{worktree}",
+        "--model",
+        "opencode-go/muse-spark-1.3-contributor",
+        "--variant",
+        "xhigh",
+        "--format",
+        "json",
+        "{prompt}"
+      ],
+      "resume": [
+        "opencode",
+        "run",
+        "--dir",
+        "{worktree}",
+        "--session",
+        "{session_id}",
+        "--model",
+        "opencode-go/muse-spark-1.3-contributor",
+        "--variant",
+        "xhigh",
+        "--format",
+        "json",
+        "{prompt}"
+      ],
+      "mode": "Prompt was read-only; CLI permissions are not a sandbox. Verify scoped tool policy before writes."
+    },
+    "worker-opus-medium": {
+      "start": [
+        "claude",
+        "--model",
+        "claude-opus-5",
+        "--effort",
+        "medium",
+        "--tools",
+        "",
+        "--strict-mcp-config",
+        "--output-format",
+        "json",
+        "-p",
+        "{prompt}"
+      ],
+      "resume": [
+        "claude",
+        "--resume",
+        "{session_id}",
+        "--model",
+        "claude-opus-5",
+        "--effort",
+        "medium",
+        "--tools",
+        "",
+        "--strict-mcp-config",
+        "--output-format",
+        "json",
+        "-p",
+        "{prompt}"
+      ],
+      "cwd": "{worktree}",
+      "mode": "No-tools connectivity template only. Do not use as builder command; builder needs approved scoped tools. No fallback-model or opusplan; verify effective model/effort.",
+      "evidence": "CLI flags and full model ID documented; exact combination not yet run"
+    },
+    "worker-opus-high": {
+      "start": [
+        "claude",
+        "--model",
+        "claude-opus-5",
+        "--effort",
+        "high",
+        "--tools",
+        "",
+        "--strict-mcp-config",
+        "--output-format",
+        "json",
+        "-p",
+        "{prompt}"
+      ],
+      "resume": [
+        "claude",
+        "--resume",
+        "{session_id}",
+        "--model",
+        "claude-opus-5",
+        "--effort",
+        "high",
+        "--tools",
+        "",
+        "--strict-mcp-config",
+        "--output-format",
+        "json",
+        "-p",
+        "{prompt}"
+      ],
+      "cwd": "{worktree}",
+      "mode": "No-tools connectivity template only. Do not use as builder command; builder needs approved scoped tools. No fallback-model or opusplan; verify effective model/effort.",
+      "evidence": "CLI flags and full model ID documented; exact combination not yet run"
+    },
+    "worker-grok-high": {
+      "start": [
+        "grok",
+        "--cwd",
+        "{worktree}",
+        "--model",
+        "grok-4.6",
+        "--reasoning-effort",
+        "high",
+        "--no-subagents",
+        "--output-format",
+        "streaming-json",
+        "-p",
+        "{prompt}"
+      ],
+      "resume": [
+        "grok",
+        "--resume",
+        "{session_id}",
+        "--cwd",
+        "{worktree}",
+        "--model",
+        "grok-4.6",
+        "--reasoning-effort",
+        "high",
+        "--no-subagents",
+        "--output-format",
+        "streaming-json",
+        "-p",
+        "{prompt}"
+      ],
+      "mode": "Use bounded read-only prompt for initial validation; scoped builder permissions remain a separate preflight. No always-approve flag.",
+      "evidence": "grok models lists grok-4.6; effort flag documented; exact combination not yet run"
+    },
+    "worker-grok-xhigh": {
+      "start": [
+        "grok",
+        "--cwd",
+        "{worktree}",
+        "--model",
+        "grok-4.6",
+        "--reasoning-effort",
+        "xhigh",
+        "--no-subagents",
+        "--output-format",
+        "streaming-json",
+        "-p",
+        "{prompt}"
+      ],
+      "resume": [
+        "grok",
+        "--resume",
+        "{session_id}",
+        "--cwd",
+        "{worktree}",
+        "--model",
+        "grok-4.6",
+        "--reasoning-effort",
+        "xhigh",
+        "--no-subagents",
+        "--output-format",
+        "streaming-json",
+        "-p",
+        "{prompt}"
+      ],
+      "mode": "Use bounded read-only prompt for initial validation; scoped builder permissions remain a separate preflight. No always-approve flag.",
+      "evidence": "grok models lists grok-4.6; effort flag documented; exact combination not yet run"
+    },
+    "brainstorm-fable-medium": {
+      "start": [
+        "claude",
+        "--model",
+        "claude-fable-5-1",
+        "--effort",
+        "medium",
+        "--tools",
+        "",
+        "--strict-mcp-config",
+        "--output-format",
+        "json",
+        "-p",
+        "{prompt}"
+      ],
+      "resume": [
+        "claude",
+        "--resume",
+        "{session_id}",
+        "--model",
+        "claude-fable-5-1",
+        "--effort",
+        "medium",
+        "--tools",
+        "",
+        "--strict-mcp-config",
+        "--output-format",
+        "json",
+        "-p",
+        "{prompt}"
+      ],
+      "cwd": "{worktree}",
+      "mode": "Brainstorming only, no tools. Verify exact model/effort, supported client and included-plan billing BEFORE launch; headless Fable may charge credits without a consent prompt.",
+      "evidence": "Official configuration supports model and medium; no live invocation performed"
+    }
+  },
+  "native_codex": {
+    "dispatch": "collaboration.spawn_agent",
+    "fields": [
+      "task_name",
+      "message",
+      "model",
+      "reasoning_effort",
+      "fork_turns"
+    ],
+    "rule": "Use exact selected profile model/effort, fork_turns none with complete bounded context. Check current tool availability; fixed-role defaults may conflict with approved efforts. Do not claim changing the active manager model through this call. Check house exclusivity before dispatch; active Astra reserves Codex including native subagents."
+  }
+}

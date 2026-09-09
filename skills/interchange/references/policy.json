@@ -1,0 +1,430 @@
+{
+  "version": "0.3.0",
+  "approved_on": "2026-09-09",
+  "status": "Approved operating design; live runner not implemented",
+  "profiles": [
+    {
+      "id": "dm-astra-medium",
+      "house": "codex",
+      "model": "gpt-6-astra",
+      "effort": "medium",
+      "role": "delivery manager",
+      "delegation": true,
+      "evidence": "Supported by current tool metadata; routing uncalibrated"
+    },
+    {
+      "id": "lead-astra-medium",
+      "house": "codex",
+      "model": "gpt-6-astra",
+      "effort": "medium",
+      "role": "lead: high ambiguity or cross-workstream architecture",
+      "delegation": true,
+      "evidence": "Supported by current tool metadata; routing uncalibrated"
+    },
+    {
+      "id": "lead-sol-medium",
+      "house": "codex",
+      "model": "gpt-5.6-sol",
+      "effort": "medium",
+      "role": "lead: bounded architecture and moderate coupling",
+      "delegation": true,
+      "evidence": "Supported by current tool metadata; routing uncalibrated"
+    },
+    {
+      "id": "lead-sol-high",
+      "house": "codex",
+      "model": "gpt-5.6-sol",
+      "effort": "high",
+      "role": "lead: consequential design and risk",
+      "delegation": true,
+      "evidence": "Supported by current tool metadata; routing uncalibrated"
+    },
+    {
+      "id": "lead-terra-xhigh",
+      "house": "codex",
+      "model": "gpt-5.6-terra",
+      "effort": "xhigh",
+      "role": "lead: defined contracts and bounded workstream",
+      "delegation": true,
+      "evidence": "Supported by current tool metadata; routing uncalibrated"
+    },
+    {
+      "id": "lead-terra-max",
+      "house": "codex",
+      "model": "gpt-5.6-terra",
+      "effort": "max",
+      "role": "lead: defined architecture with difficult integration",
+      "delegation": true,
+      "evidence": "Supported by current tool metadata; routing uncalibrated"
+    },
+    {
+      "id": "worker-luna-xhigh",
+      "house": "codex",
+      "model": "gpt-5.6-luna",
+      "effort": "xhigh",
+      "role": "bounded leaf exploration or explicit small change",
+      "delegation": false,
+      "evidence": "Supported; lower effort forbidden by owner"
+    },
+    {
+      "id": "worker-luna-max",
+      "house": "codex",
+      "model": "gpt-5.6-luna",
+      "effort": "max",
+      "role": "bounded leaf with denser evidence",
+      "delegation": false,
+      "evidence": "Supported; lower effort forbidden by owner"
+    },
+    {
+      "id": "worker-terra-xhigh",
+      "house": "codex",
+      "model": "gpt-5.6-terra",
+      "effort": "xhigh",
+      "role": "bounded builder or independent verifier",
+      "delegation": false,
+      "evidence": "Supported; role assignment separate from model"
+    },
+    {
+      "id": "worker-muse-xhigh",
+      "house": "opencode",
+      "model": "opencode-go/muse-spark-1.3-contributor",
+      "effort": "xhigh",
+      "role": "preferred initial cheap leaf candidate",
+      "delegation": false,
+      "evidence": "CLI send/resume/recall smoke-tested; quality advantage is owner hypothesis",
+      "pool": "Go"
+    },
+    {
+      "id": "worker-grok-high",
+      "house": "grok",
+      "model": "grok-4.6",
+      "effort": "high",
+      "role": "primary low/mid complexity developer",
+      "delegation": false,
+      "evidence": "grok models lists grok-4.6; effort flags documented; exact profile smoke test pending"
+    },
+    {
+      "id": "worker-grok-xhigh",
+      "house": "grok",
+      "model": "grok-4.6",
+      "effort": "xhigh",
+      "role": "primary upper-mid complexity developer",
+      "delegation": false,
+      "evidence": "grok models lists grok-4.6; effort flags documented; exact profile smoke test pending"
+    },
+    {
+      "id": "worker-opus-medium",
+      "house": "claude",
+      "model": "claude-opus-5",
+      "effort": "medium",
+      "role": "primary low/mid and upper-mid complexity developer",
+      "delegation": false,
+      "evidence": "Full model ID and effort documented; exact profile runtime identity and smoke test pending"
+    },
+    {
+      "id": "worker-opus-high",
+      "house": "claude",
+      "model": "claude-opus-5",
+      "effort": "high",
+      "role": "primary high complexity developer",
+      "delegation": false,
+      "evidence": "Full model ID and effort documented; exact profile runtime identity and smoke test pending"
+    },
+    {
+      "id": "worker-sol-medium",
+      "house": "codex",
+      "model": "gpt-5.6-sol",
+      "effort": "medium",
+      "role": "primary low/mid complexity developer",
+      "delegation": false,
+      "evidence": "Current tool metadata supports profile; task-class performance uncalibrated"
+    },
+    {
+      "id": "worker-sol-high",
+      "house": "codex",
+      "model": "gpt-5.6-sol",
+      "effort": "high",
+      "role": "primary high complexity developer",
+      "delegation": false,
+      "evidence": "Current tool metadata supports profile; task-class performance uncalibrated"
+    },
+    {
+      "id": "worker-terra-max",
+      "house": "codex",
+      "model": "gpt-5.6-terra",
+      "effort": "max",
+      "role": "demanding implementation with settled contracts and bounded scope",
+      "delegation": false,
+      "evidence": "Current tool metadata supports profile; effort is not a substitute for resolving ambiguity"
+    },
+    {
+      "id": "brainstorm-fable-medium",
+      "house": "claude",
+      "model": "claude-fable-5-1",
+      "effort": "medium",
+      "role": "new-product ideation and brainstorming",
+      "delegation": false,
+      "evidence": "Official model/effort documentation; exact runtime and included-plan eligibility not verified",
+      "spending_gate": "Do not dispatch if usage credits or extra paid usage would be charged; no inferred spending authorization"
+    },
+    {
+      "id": "brainstorm-astra-medium",
+      "house": "codex",
+      "model": "gpt-6-astra",
+      "effort": "medium",
+      "role": "new-product ideation and brainstorming",
+      "delegation": false,
+      "evidence": "Current tool metadata supports profile; no comparative ideation benchmark"
+    }
+  ],
+  "routing": [
+    {
+      "task": "New product idea and brainstorming",
+      "first": "brainstorm-fable-medium; brainstorm-astra-medium",
+      "fallback": "Eligible alternative respecting house exclusivity and no-extra-spend policy",
+      "reason": "Explore users, problem, options, assumptions and validation; does not authorize implementation"
+    },
+    {
+      "task": "One direct lookup",
+      "first": "Local search/tool",
+      "fallback": "Bounded explorer only if context merits it",
+      "reason": "Avoid dispatch and repeated context overhead"
+    },
+    {
+      "task": "Small bounded support task",
+      "first": "worker-muse-xhigh",
+      "fallback": "worker-luna-xhigh; worker-luna-max when evidence density warrants",
+      "reason": "Exploration, explicit small edits or test preparation; retain lower-cost leaf lane"
+    },
+    {
+      "task": "Low/mid complexity development",
+      "first": "worker-grok-high; worker-opus-medium; worker-terra-xhigh; worker-sol-medium",
+      "fallback": "Another eligible profile from this pool",
+      "reason": "Preferred pool, not fixed rank: clear acceptance, known patterns, bounded dependencies; choose fit then speed and available quota"
+    },
+    {
+      "task": "Upper-mid complexity development",
+      "first": "worker-grok-xhigh; worker-opus-medium",
+      "fallback": "worker-sol-high or worker-opus-high when ambiguity or consequence warrants escalation",
+      "reason": "Difficult implementation within settled architecture; two primary choices are not claimed equal in capability"
+    },
+    {
+      "task": "High complexity development",
+      "first": "worker-sol-high; worker-opus-high",
+      "fallback": "Lead/manager resolves architecture or scope before further execution",
+      "reason": "Substantial reasoning, sensitive boundaries or coupled contracts; keep mandatory independent risk review"
+    },
+    {
+      "task": "Demanding but well-defined implementation",
+      "first": "worker-terra-max",
+      "fallback": "High-complexity pool if evidence shows a reasoning blocker",
+      "reason": "Dense implementation or integration with exact contracts and tests; never assign to outlast a loop"
+    },
+    {
+      "task": "Workstream with fixed contracts",
+      "first": "lead-terra-xhigh",
+      "fallback": "lead-terra-max or lead-sol-medium",
+      "reason": "Lead authority is explicitly assigned; a worker on the same model remains a leaf"
+    },
+    {
+      "task": "Consequential architecture or high coupling",
+      "first": "lead-sol-high",
+      "fallback": "lead-astra-medium",
+      "reason": "Escalate ambiguity or consequence beyond owned workstream"
+    },
+    {
+      "task": "Cross-workstream planning and decisions",
+      "first": "dm-astra-medium",
+      "fallback": "Owner decision if approved roster unavailable",
+      "reason": "Manager receives compact exceptions and evidence, not raw logs"
+    },
+    {
+      "task": "Independent acceptance",
+      "first": "Separate qualified reviewer session",
+      "fallback": "Another eligible house; same house allowed with reason",
+      "reason": "Reviewer inspects actual head/artifacts and never fixes its own findings"
+    }
+  ],
+  "monitoring": [
+    {
+      "rule": "Completion",
+      "value": "Final parsed assistant JSON + task/attempt marker + exit 0",
+      "meaning": "Ready for review only; thinking, tools, quotes and stdout fragments cannot signal acceptance"
+    },
+    {
+      "rule": "First retrieval",
+      "value": "max(60, min(300, expected_seconds * 0.5)) seconds",
+      "meaning": "Local process reader may receive events immediately; no repeated model prompts"
+    },
+    {
+      "rule": "Later retrieval",
+      "value": "Previous interval * 1.5; minimum 60, maximum 300 seconds",
+      "meaning": "Completion or blocker events wake immediately; checks respect review/hard deadlines"
+    },
+    {
+      "rule": "Review deadline",
+      "value": "2 * expected_seconds",
+      "meaning": "Ask for evidence, blocker, remaining work and revised estimate once; no silent extension"
+    },
+    {
+      "rule": "Hard deadline",
+      "value": "3 * expected_seconds",
+      "meaning": "Interrupt; confirm termination and child-process state before replacing writer"
+    },
+    {
+      "rule": "Earlier review",
+      "value": "Repeated same failure without new evidence",
+      "meaning": "Output volume and unchanged activity never reset task elapsed time"
+    },
+    {
+      "rule": "Recovery limit",
+      "value": "2 unsuccessful attempts per blocker",
+      "meaning": "Then delivery manager; one bounded independent diagnosis before owner escalation"
+    },
+    {
+      "rule": "Adaptive calibration",
+      "value": "Comparable successful runs inform estimates; limits remain approved",
+      "meaning": "Weekly policy changes require owner approval; no automatic widening during runaway"
+    },
+    {
+      "rule": "Usage",
+      "value": "Parse available CLI usage mechanically; unknown when absent",
+      "meaning": "Store input/output/cache/reasoning separately; do not assume provider counters are additive"
+    }
+  ],
+  "governance": [
+    {
+      "rule": "Workspaces",
+      "policy": "Lead allocates one worktree per writable assignment per repository; one current writer; successors reuse after verified transfer"
+    },
+    {
+      "rule": "Shared context",
+      "policy": "Small universal rules + role/task-specific governing references at recorded revision; no mandatory full-vault read"
+    },
+    {
+      "rule": "Authority",
+      "policy": "MarvinaMiranda owns shared governance; adopted repo owns product meaning; GitHub owns live delivery state; code/tests own proof"
+    },
+    {
+      "rule": "Personal settings",
+      "policy": "Outside shared Git: account/pool bindings, local path map, budgets and session state; no embedded credentials"
+    },
+    {
+      "rule": "Spending",
+      "policy": "No extra purchases or automatic recharge; existing OpenCode Go allowance/balance may be used for Muse only"
+    },
+    {
+      "rule": "Communication",
+      "policy": "Caveman required for internal handovers with clarity exceptions; exact commands/evidence preserved; no guaranteed savings percentage"
+    },
+    {
+      "rule": "Merge",
+      "policy": "Only designated lead/delivery manager; exact test base; current SHA independently reviewed; all gates pass; reviewer approval normally required"
+    },
+    {
+      "rule": "Review bypass",
+      "policy": "Only required approval may be bypassed after passing independent Codex PR review and all other gates; record reason/SHA; no worker merge credentials"
+    },
+    {
+      "rule": "Other environments",
+      "policy": "uat/main, releases and separate deployment/security holds remain human-controlled"
+    },
+    {
+      "rule": "Feedback",
+      "policy": "Use GOV-0016 central LSN and GOV-0020 evaluation records; weekly evidence-based proposals require owner approval before changing policy"
+    },
+    {
+      "rule": "Foreground scope",
+      "policy": "Codex active coordinates; durable results retained on exit; unattended Codex wakeup not yet implemented"
+    },
+    {
+      "rule": "Packaging",
+      "policy": "agent-skills repository, skills/interchange package; Caveman bundled unchanged with pinned source and MIT licence"
+    }
+  ],
+  "recovery": [
+    {
+      "failure": "Network or CLI failure",
+      "action": "Check process, session and artifacts; resume same session first",
+      "escalation": "Transfer checkpoint to eligible house after original writer stopped"
+    },
+    {
+      "failure": "Quota exhausted",
+      "action": "Identify account and exact usage pool; preserve checkpoint",
+      "escalation": "Eligible available house without extra spending"
+    },
+    {
+      "failure": "Implementation loop",
+      "action": "Stop repeated approach; evidence-based lead diagnosis",
+      "escalation": "Different approved model/effort, then different house when justified"
+    },
+    {
+      "failure": "Cross-repo or repeated blocker",
+      "action": "War room with one incident lead and bounded investigators",
+      "escalation": "Delivery manager; owner for unresolved decision or permission"
+    },
+    {
+      "failure": "Marker missing or mismatched",
+      "action": "Treat run as incomplete; inspect stored final result and exit",
+      "escalation": "Recover session; never rerun writes blindly"
+    }
+  ],
+  "routing_basis": "Owner preferences with task-fit guardrails; provisional, not a comparative benchmark",
+  "selection_rules": [
+    "Only Codex, Grok CLI, Claude Code and OpenCode are active houses. Cursor removed from Interchange routing, not uninstalled.",
+    "Grok work uses Grok CLI only, model grok-4.6 with high or xhigh. No Cursor route.",
+    "Claude development uses claude-opus-5 medium or high. Sonnet and automatic fallback to it are excluded.",
+    "Treat task bands as routing preferences, not benchmark rankings. Assess ambiguity, consequence, coupling and implementation difficulty separately.",
+    "Within an eligible pool, use task-fit evidence first, then expected accepted-result latency and available account/pool quota. Pool order is not a ranking.",
+    "Use different houses for parallel independent jobs of similar nature when suitable; preserve cached context and session continuity when that is cheaper or faster.",
+    "More reasoning is not universally more intelligence or better value. Terra max handles difficult settled implementation, not unresolved product decisions.",
+    "No automatic repeated effort increases. Stop, diagnose or reassign under existing watchdog and recovery limits.",
+    "Do not send every tiny job to the primary developer pool. Muse/Luna remain eligible bounded support workers.",
+    "High consequence can require stronger review even for a small edit. Model choice never removes acceptance gates.",
+    "Verify effective model and effort at dispatch. Newly configured Grok/Opus combinations are not yet claimed smoke-tested; no unapproved substitution.",
+    "House exclusivity takes precedence over parallelism preferences: Sol high or higher and Astra any effort reserve Codex; Opus high or higher and Fable 5.1 any effort reserve Claude.",
+    "New-product brainstorming may use Fable 5.1 medium or Astra medium. Both reserve their entire house while active; prefer another eligible house or queue competing work.",
+    "Fable model authorization does not permit paid usage credits or extra spending. Verify included allowance before any headless request."
+  ],
+  "house_exclusivity": {
+    "scope": "All Interchange-managed active assignments in the same house across projects, including manager, leads, workers and reviewers",
+    "triggers": [
+      {
+        "house": "claude",
+        "model": "claude-fable-5-1",
+        "effort": "any"
+      },
+      {
+        "house": "codex",
+        "model": "gpt-5.6-sol",
+        "effort_at_or_above": "high"
+      },
+      {
+        "house": "claude",
+        "model_family": "opus",
+        "effort_at_or_above": "high"
+      },
+      {
+        "house": "codex",
+        "model": "gpt-6-astra",
+        "effort": "any"
+      }
+    ],
+    "effort_order": [
+      "none",
+      "minimal",
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max",
+      "ultra"
+    ],
+    "rule": "If either a new or existing active assignment triggers exclusivity, no other assignment may overlap in that house. Higher levels only where model/tool supported and separately approved.",
+    "conflict_action": "Prefer an eligible other house; otherwise queue. Do not silently lower effort, kill other sessions, or widen permissions.",
+    "release": "Release only after attempt stops or is explicitly suspended with no remaining computation and supervisor ownership preserved; an open idle transcript alone is not an active assignment.",
+    "manager_effect": "An active Astra manager reserves Codex too. No implicit exemption for native Codex subagents or review.",
+    "outside_activity": "Check visible external activity without controlling it; user sessions outside Interchange cannot be reliably locked by skill text. Disclose unknown occupancy.",
+    "status": "Instruction policy only; cross-process reservation enforcement awaits live runner"
+  }
+}
