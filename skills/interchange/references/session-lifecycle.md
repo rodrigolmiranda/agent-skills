@@ -37,7 +37,7 @@ States: active -> awaiting review -> retired, or active -> suspended when blocke
 
 Before retirement, persist result, actual session/model/effort, repo/base/head, changes, checks, reviewer findings, usage observations and unresolved carryovers. Ensure successors can continue from artifacts rather than chat. Completion marker or process exit is not acceptance.
 
-Stopping a worker requires checking its process and child processes, saving recoverable work and confirming termination before another writer takes over. A retired session's worktree is removable only after all of these are proven:
+Stopping a worker requires checking its process and child processes, saving recoverable work and confirming termination before another writer takes over. After an abnormal provider exit, also prove that no process command/current working directory references the worktree and no provider background-agent/task registry entry remains active. Parent exit alone never transfers ownership. Record the checks and time before assigning a successor. A retired session's worktree is removable only after all of these are proven:
 
 - No active process, writer, dependent agent or required local runtime uses it.
 - No uncommitted/untracked user work or unique unpreserved commits would be lost.
@@ -51,3 +51,9 @@ Use normal guarded removal; never force removal/reset/clean to achieve a tidy in
 Lead owns worker retirement and worktree cleanup decisions; manager owns lead turnover and milestone inventory. Weekly retro may flag orphaned/suspended resources and missing owners; it does not delete them automatically. Local housekeeping status is execution state, not a duplicate milestone plan.
 
 These are workflow rules for Interchange. Automatic session retirement, provider-specific deletion and safe worktree garbage collection are not implemented. This document does not perform or authorize a blanket deletion of existing sessions, worktrees or evidence.
+
+Ending the manager turn does not retire or safely suspend its workers. Before any
+manager exit, inventory every active handle. Continue bounded waits, transfer each
+one to another live supervisor, or stop it and preserve recovery state. On return
+after an unexpected exit, reconcile process/session/worktree state before any new
+dispatch so a silent worker cannot overlap a replacement writer.

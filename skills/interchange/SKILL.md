@@ -35,7 +35,8 @@ no-extra-spending preflight before any headless request.
 
 Give each assignment an ID, revision and unique attempt ID. Include outcome, acceptance, repo URL/ref/base, lead-allocated worktree, exclusive paths, read-only dependencies, fixed profile, governance references, allowed tools/actions, expected seconds, deadlines, stop/escalation conditions and return format. Leaf workers cannot delegate, merge, expand scope, weaken checks or invent contracts. For an ambiguity they cannot resolve inside the assignment, return evidence and the smallest question to the lead.
 
-Use [commands.json](references/commands.json) as argument-array templates and read each profile's evidence status: newly configured Grok/Opus combinations have not yet been smoke-tested. These are not a production runner. Do not substitute a shell-expanded string, use an unpinned default, or pass broader permissions merely to make a test succeed. Probe unsupported features and report unavailable metadata honestly. Native subagents may collaborate directly; external sessions return through a supervised transport. Resume a recorded session for follow-ups. Grok runs through Grok CLI only; Cursor is excluded. Claude development uses Opus medium/high; do not select Sonnet, opusplan or automatic fallback to Sonnet.
+Before external dispatch, read [runtime-adapters.md](references/runtime-adapters.md).
+Use [commands.json](references/commands.json) as argument-array templates and read each profile's evidence status: newly configured Grok/Opus combinations have not yet been smoke-tested. These are not a production runner. Preflight literal argv, complete packet access, exact permissions and negative denies; abort closed on an unmappable rule. Do not substitute a shell-expanded string, use an unpinned default, or pass broader permissions merely to make a test succeed. Native subagents may collaborate directly; external sessions return through a supervised transport. Resume only when retained context justifies its cost. Grok runs through Grok CLI only; Cursor is excluded. Claude development uses Opus medium/high; do not select Sonnet, opusplan or automatic fallback to Sonnet.
 
 ## Monitor and recover
 
@@ -45,13 +46,37 @@ concrete blocker or owner-requested pause. Never imply background continuation
 from a saved session or future-tense promise. Apply GOV-0020's continuation
 ownership rules; the current helper does not enforce automatic resumption.
 
+After dispatch, remain the live supervisor until every owned worker reaches a
+terminal state and its handback is collected, or another live supervisor accepts
+the complete checkpoint and handles. Keep the turn active with real bounded
+process/event waits. A timeout continues the wait loop; it is not a reason to end
+the turn. Never send a final response while a supervised worker is active. If the
+surface cannot retain the turn or wake reliably, disclose that before starting
+unattended work. Apply the recovery procedure in `runtime-adapters.md` after any
+loss of supervision.
+
 Before reusing, retiring or cleaning up a session/worktree, read [session-lifecycle.md](references/session-lifecycle.md). Session lifetime follows related assignments and delivery boundaries, not one session per repository or per checkbox. Retirement is separate from deleting artifacts.
 
 Use [completion.md](references/completion.md). The final token identifies the exact assignment and attempt; neither the token alone nor exit zero proves completion. Parse final assistant output separately from thinking, tool output and echoed prompts. Blocked/partial handbacks are terminal reports, not successes. Independent artifact verification is still required.
 
-Local event reading and timer checks need no LLM calls. Do not send periodic 'are you done?' prompts. Schedule first retrieval from task duration; use increasing bounded intervals afterward, with immediate event delivery for completion/blockers and exact watchdog deadlines. Request a reason once at the review deadline. Extensions need lead justification recorded before hard expiry; output cannot reset elapsed time. If the transport cannot interrupt, expose that limitation before starting a risky/long run.
+Local event reading and timer checks need no worker LLM calls. Drain raw provider
+streams outside manager context and surface compact lifecycle changes; raw stream
+replay can consume the manager's context even though waiting itself does not.
+Do not send periodic 'are you done?' prompts. Schedule first retrieval from task
+duration; use increasing bounded intervals afterward, with immediate event
+delivery for completion/blockers and exact watchdog deadlines. Request a reason
+once at the review deadline. Extensions need lead justification recorded before
+hard expiry; output cannot reset elapsed time. If the transport cannot interrupt
+or bound output, expose that limitation before starting a risky/long run.
 
 After interruption or lost connectivity, inspect process/session, git status and artifacts before retrying. Confirm the previous writer and child processes stopped before transferring ownership. Reuse its worktree and checkpoint. After two failed recovery attempts, escalate to manager; one bounded independent diagnosis, then owner when unresolved. Read [operating-model.md](references/operating-model.md) for the war-room record.
+
+After an abnormal external exit, parent termination alone is insufficient. Before
+writer transfer, verify the parent/descendant processes, every process holding or
+referencing the worktree, and the provider background-agent registry are all
+clear; then inspect worktree state and locks. Any uncertainty blocks a duplicate
+writer. For Claude, stop after two consecutive no-progress auto-compactions and
+retry from a fresh compact checkpoint rather than resume a thrashing context.
 
 ## Accept and improve
 

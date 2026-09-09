@@ -82,6 +82,34 @@ class CompletionClassificationTests(unittest.TestCase):
             "incomplete",
         )
 
+    def test_object_shaped_evidence_is_incomplete(self) -> None:
+        self.assertEqual(
+            classify_completion(
+                final_response(evidence={"tests": "pass"}),
+                0,
+                PACKET_ID,
+                ATTEMPT_ID,
+            ),
+            "incomplete",
+        )
+
+    def test_fenced_json_is_incomplete(self) -> None:
+        text = final_response()
+        json_text, marker = text.strip().splitlines()
+        fenced = f"```json\n{json_text}\n```\n{marker}"
+        self.assertEqual(
+            classify_completion(fenced, 0, PACKET_ID, ATTEMPT_ID),
+            "incomplete",
+        )
+
+    def test_backticked_marker_is_incomplete(self) -> None:
+        marker = completion_marker(PACKET_ID, ATTEMPT_ID)
+        text = final_response().replace(marker, f"`{marker}`")
+        self.assertEqual(
+            classify_completion(text, 0, PACKET_ID, ATTEMPT_ID),
+            "incomplete",
+        )
+
     def test_model_text_cannot_self_accept(self) -> None:
         text = final_response(result="accepted")
         self.assertEqual(

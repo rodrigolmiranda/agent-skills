@@ -1,9 +1,14 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "status": "Explicit argument templates; Muse previous smoke-tested; new Grok/Opus profiles require runtime confirmation; live dispatch adapter not implemented",
   "substitution": "Build subprocess argv arrays. Replace each placeholder as one literal argument. Never join into shell code.",
   "profiles": {
     "worker-muse-xhigh": {
+      "argument_order": "Place {prompt} before every variadic --file attachment; append each complete packet/coordination file as [--file, {attachment}] after the prompt.",
+      "attachment_suffix": [
+        "--file",
+        "{attachment}"
+      ],
       "start": [
         "opencode",
         "run",
@@ -32,7 +37,7 @@
         "json",
         "{prompt}"
       ],
-      "mode": "Prompt was read-only; CLI permissions are not a sandbox. Verify scoped tool policy before writes."
+      "mode": "Prompt before attachments. Attach the complete packet and every required external coordination file. Exit 0 with finish=tool-calls or no final response remains incomplete. CLI permissions are not a sandbox."
     },
     "worker-opus-medium": {
       "start": [
@@ -66,7 +71,7 @@
         "{prompt}"
       ],
       "cwd": "{worktree}",
-      "mode": "No-tools connectivity template only. Do not use as builder command; builder needs approved scoped tools. No fallback-model or opusplan; verify effective model/effort.",
+      "mode": "No-tools connectivity template only. Builder preflight generates exact command permissions; worker uses Edit/Write for authorized files and one approved shell command per call. No fallback-model or opusplan; verify effective model/effort.",
       "evidence": "CLI flags and full model ID documented; exact combination not yet run"
     },
     "worker-opus-high": {
@@ -101,7 +106,7 @@
         "{prompt}"
       ],
       "cwd": "{worktree}",
-      "mode": "No-tools connectivity template only. Do not use as builder command; builder needs approved scoped tools. No fallback-model or opusplan; verify effective model/effort.",
+      "mode": "No-tools connectivity template only. Builder preflight generates exact command permissions; worker uses Edit/Write for authorized files and one approved shell command per call. No fallback-model or opusplan; verify effective model/effort.",
       "evidence": "CLI flags and full model ID documented; exact combination not yet run"
     },
     "worker-grok-high": {
@@ -135,7 +140,7 @@
         "-p",
         "{prompt}"
       ],
-      "mode": "Use bounded read-only prompt for initial validation; scoped builder permissions remain a separate preflight. No always-approve flag.",
+      "mode": "Reviewer trial uses auto plus explicit mutation denies only after an actual negative permission test. Abort on unmappable tools. Drain streaming-json outside manager context; dontAsk is not a verified reviewer profile.",
       "evidence": "grok models lists grok-4.6; effort flag documented; exact combination not yet run"
     },
     "worker-grok-xhigh": {
@@ -169,7 +174,7 @@
         "-p",
         "{prompt}"
       ],
-      "mode": "Use bounded read-only prompt for initial validation; scoped builder permissions remain a separate preflight. No always-approve flag.",
+      "mode": "Reviewer trial uses auto plus explicit mutation denies only after an actual negative permission test. Abort on unmappable tools. Drain streaming-json outside manager context; dontAsk is not a verified reviewer profile.",
       "evidence": "grok models lists grok-4.6; effort flag documented; exact combination not yet run"
     },
     "brainstorm-fable-medium": {
@@ -218,5 +223,20 @@
       "fork_turns"
     ],
     "rule": "Use exact selected profile model/effort, fork_turns none with complete bounded context. Check current tool availability; fixed-role defaults may conflict with approved efforts. Do not claim changing the active manager model through this call. Before dispatch, check both scopes: Astra/Fable reserve their houses globally; Sol-high/Opus-high reserve their houses only under the same delivery manager, including same-scope subagents."
+  },
+  "adapter_contract": {
+    "reference": "runtime-adapters.md",
+    "output_schema": "final-response.schema.json",
+    "required_preflight": [
+      "literal argv and provider-specific argument order",
+      "complete packet and coordination-file access",
+      "requested and observed model/effort",
+      "exact required commands and shell composition",
+      "fail-closed tool mapping and negative deny test",
+      "finite wall-time and turn ceilings",
+      "registered process/session handles and next wait"
+    ],
+    "manager_output": "Lifecycle changes, usage, warnings, exit state and final assistant result only; raw streams stay in bounded local artifacts",
+    "terminal_requirement": "Final assistant response validated by schema and protocol marker; exit 0 or finish=tool-calls alone is insufficient"
   }
 }

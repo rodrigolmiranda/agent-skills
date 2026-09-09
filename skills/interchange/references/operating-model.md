@@ -24,6 +24,12 @@ than estimating token consumption from elapsed waiting time. Existing deadlines
 and continuation ownership still apply; waiting does not release the applicable
 global or delivery-manager reservation.
 
+The manager remains active until owned workers return terminal handbacks or a live
+supervisor accepts their handles. A wait timeout leads to another bounded wait,
+not a final response. Read [runtime-adapters.md](runtime-adapters.md) for provider
+transport, permission preflight, stream draining, lifecycle classification,
+watchdogs and owner concurrency exceptions.
+
 Select lead strength by ambiguity, consequence and coupling. Defined contracts and routine coordination suit Terra xhigh; difficult integration within defined architecture may use Terra max. Moderate design decisions suit Sol medium; high consequence or coupling suits Sol high. Unresolved architecture crossing workstreams suits Astra medium. These are initial routing hypotheses, calibrated through actual reviewed work. Size alone is not a risk measure.
 
 Workers receive the smallest coherent assignment whose result can be verified independently. Prefer local tools for one lookup; batch related exploration so builders reuse findings. Avoid tiny tasks that duplicate startup context. Spread similar eligible work across usage pools when this improves availability or time; same-house assignment is allowed with a reason. Independent review means independently inspected artifacts, not necessarily another vendor.

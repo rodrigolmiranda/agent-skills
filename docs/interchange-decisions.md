@@ -35,7 +35,7 @@ flowchart TD
 
 Pools are starting preferences, not model rankings. Read [development routing instructions](../skills/interchange/references/routing.md) for task boundaries and escalation. Grok uses Grok CLI only; Claude development uses Opus. Worker model choice grants no delegation or merge authority.
 
-Policy 0.3.2 allows Sol high and Opus 5 high as alternative delivery managers, with Astra medium
+Policy 0.4.0 allows Sol high and Opus 5 high as alternative delivery managers, with Astra medium
 remaining the default. Product brainstorming uses Fable 5.1 medium or Astra medium.
 Any Astra reserves Codex globally and any Fable 5.1 reserves Claude globally.
 Sol high-or-higher and Opus high-or-higher reserve their houses only for work
@@ -43,13 +43,19 @@ under the same delivery manager. Only medium is currently approved for Fable.
 Fable needs confirmed
 included-plan eligibility under the no-extra-spending rule.
 
+This revision also requires the manager to retain live supervision while workers
+run, machine-owned provider output, fail-closed permission preflight, complete
+packet transport, finite watchdogs and verified ownership transfer after abnormal
+provider exits. Claude stops after two consecutive no-progress auto-compactions.
+
 ## Monitoring and completion
 
 ```mermaid
 flowchart TD
-  A[Lead allocates assignment, attempt and worktree] --> B[Runner starts fixed profile]
-  B --> C[Read local events; no repeated model prompts]
-  C --> D{Final assistant response and process exit?}
+  A[Lead allocates assignment, attempt and worktree] --> B[Preflight packet, permissions, budgets and handles]
+  B --> C[Adapter starts fixed profile and drains raw stream]
+  C --> O[Manager retains live supervision with bounded waits]
+  O --> D{Final assistant response and process exit?}
   D -->|Yes| E{Exit zero, valid JSON, matching final marker?}
   E -->|No| F[Failed or incomplete: inspect before retry]
   E -->|Yes| G{Reported result}
@@ -58,9 +64,9 @@ flowchart TD
   I --> J[Accepted only after evidence passes]
   D -->|No| K{Deadline or repeated failure?}
   K -->|Below review deadline| L[Adaptive bounded retrieval interval]
-  L --> C
+  L --> O
   K -->|Review at 2x estimate| M[Request reason and progress evidence once]
-  M --> C
+  M --> O
   K -->|Hard limit at 3x estimate| N[Interrupt and verify child processes stopped]
   N --> H
 ```

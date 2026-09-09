@@ -179,14 +179,65 @@ routing.getRange(`A${selectionStartRow}:A${selectionEndRow}`).format.wrapText = 
 routing.getRange(`A${selectionStartRow}:D${selectionEndRow}`).format.rowHeight = 42;
 addBodyBorders(routing, `A${selectionStartRow}:D${selectionEndRow}`);
 
+// Monitoring: refresh policy rows and retain the existing three-column layout.
+monitoring.unmergeCells("A8:C60");
+monitoring.getRange("A8:C60").clear({ applyTo: "all" });
+const monitoringEndRow = 7 + policy.monitoring.length;
+monitoring.getRange(`A8:C${monitoringEndRow}`).values = policy.monitoring.map((item) => [
+  item.rule,
+  item.value,
+  item.meaning,
+]);
+monitoring.getRange(`A8:C${monitoringEndRow}`).format.font = { name: font, size: 10, color: colors.text };
+monitoring.getRange(`A8:C${monitoringEndRow}`).format.verticalAlignment = "center";
+monitoring.getRange(`A8:C${monitoringEndRow}`).format.wrapText = true;
+monitoring.getRange(`A8:C${monitoringEndRow}`).format.rowHeight = 50;
+addBodyBorders(monitoring, `A8:C${monitoringEndRow}`);
+
+// Governance and recovery: rebuild both policy-backed sections in place.
+governance.unmergeCells("A8:C80");
+governance.getRange("A8:C80").clear({ applyTo: "all" });
+const governanceEndRow = 7 + policy.governance.length;
+governance.getRange(`A8:B${governanceEndRow}`).values = policy.governance.map((item) => [
+  item.rule,
+  item.policy,
+]);
+governance.getRange(`A8:B${governanceEndRow}`).format.font = { name: font, size: 10, color: colors.text };
+governance.getRange(`A8:B${governanceEndRow}`).format.verticalAlignment = "center";
+governance.getRange(`A8:B${governanceEndRow}`).format.wrapText = true;
+governance.getRange(`A8:B${governanceEndRow}`).format.rowHeight = 48;
+addBodyBorders(governance, `A8:B${governanceEndRow}`);
+
+const recoveryTitleRow = governanceEndRow + 3;
+const recoveryHeaderRow = recoveryTitleRow + 1;
+const recoveryStartRow = recoveryHeaderRow + 1;
+const recoveryEndRow = recoveryHeaderRow + policy.recovery.length;
+addSection(governance, `A${recoveryTitleRow}`, "Recovery playbook", "C");
+governance.getRange(`A${recoveryHeaderRow}:C${recoveryHeaderRow}`).values = [[
+  "Failure",
+  "First action",
+  "Escalation",
+]];
+addHeader(governance, `A${recoveryHeaderRow}:C${recoveryHeaderRow}`);
+governance.getRange(`A${recoveryStartRow}:C${recoveryEndRow}`).values = policy.recovery.map((item) => [
+  item.failure,
+  item.action,
+  item.escalation,
+]);
+governance.getRange(`A${recoveryStartRow}:C${recoveryEndRow}`).format.font = { name: font, size: 10, color: colors.text };
+governance.getRange(`A${recoveryStartRow}:C${recoveryEndRow}`).format.verticalAlignment = "center";
+governance.getRange(`A${recoveryStartRow}:C${recoveryEndRow}`).format.wrapText = true;
+governance.getRange(`A${recoveryStartRow}:C${recoveryEndRow}`).format.rowHeight = 56;
+addBodyBorders(governance, `A${recoveryStartRow}:C${recoveryEndRow}`);
+
 workbook.recalculate();
 
 const validation = {};
 for (const [sheetName, range] of [
   ["Profiles", `A1:I${profileEndRow}`],
   ["Routing", `A1:D${selectionEndRow}`],
-  ["Monitoring", "A1:C16"],
-  ["Governance & Recovery", "A1:C28"],
+  ["Monitoring", `A1:C${monitoringEndRow}`],
+  ["Governance & Recovery", `A1:C${recoveryEndRow}`],
 ]) {
   const inspected = await workbook.inspect({
     kind: "table",
@@ -209,8 +260,8 @@ await fs.mkdir(previewDir, { recursive: true });
 for (const [sheetName, range] of [
   ["Profiles", `A1:I${profileEndRow}`],
   ["Routing", `A1:D${selectionEndRow}`],
-  ["Monitoring", "A1:C16"],
-  ["Governance & Recovery", "A1:C28"],
+  ["Monitoring", `A1:C${monitoringEndRow}`],
+  ["Governance & Recovery", `A1:C${recoveryEndRow}`],
 ]) {
   const preview = await workbook.render({ sheetName, range, scale: 1.25, format: "png" });
   const name = sheetName.replace(/[^a-z0-9]+/gi, "_").toLowerCase();

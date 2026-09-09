@@ -1,6 +1,6 @@
 # Development routing instructions
 
-Owner revision 2026-09-09; configured profile IDs and evidence status are in `policy.json` version 0.3.2. These are initial preferred pools, not benchmark rankings or interchangeable capability claims.
+Owner revision 2026-09-09; configured profile IDs and evidence status are in `policy.json` version 0.4.0. These are initial preferred pools, not benchmark rankings or interchangeable capability claims.
 
 Delivery manager: Astra medium by default; Sol high and Opus 5 high are approved
 alternatives. A matching conversation may use its manager profile without a new

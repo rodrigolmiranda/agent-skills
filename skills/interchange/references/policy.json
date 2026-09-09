@@ -1,5 +1,5 @@
 {
-  "version": "0.3.2",
+  "version": "0.4.0",
   "approved_on": "2026-09-09",
   "status": "Approved operating design; live runner not implemented",
   "profiles": [
@@ -308,6 +308,26 @@
       "rule": "Usage",
       "value": "Parse available CLI usage mechanically; unknown when absent",
       "meaning": "Store input/output/cache/reasoning separately; do not assume provider counters are additive"
+    },
+    {
+      "rule": "Supervision ownership",
+      "value": "Manager turn remains active until terminal handback or explicit live-supervisor transfer",
+      "meaning": "A wait timeout, session ID or future promise is not a continuation mechanism"
+    },
+    {
+      "rule": "Output isolation",
+      "value": "Adapter drains provider streams outside manager context",
+      "meaning": "Manager receives lifecycle changes, final assistant result, usage, warnings and exit state only"
+    },
+    {
+      "rule": "Attempt ceilings",
+      "value": "Finite wall-time and turn ceilings; token/cost ceilings where timely counters exist",
+      "meaning": "Stop deterministic blockers; do not spend a ceiling rediscovering known failures"
+    },
+    {
+      "rule": "Claude compaction",
+      "value": "Stop after 2 consecutive auto-compactions without artifact, evidence or gate progress",
+      "meaning": "Classify autocompact_thrashing as context/transport failure; retry fresh and narrow, never resume that context"
     }
   ],
   "governance": [
@@ -353,7 +373,11 @@
     },
     {
       "rule": "Foreground scope",
-      "policy": "Codex active coordinates; durable results retained on exit; unattended Codex wakeup not yet implemented"
+      "policy": "Manager keeps a real bounded wait active while workers run; final response requires terminal handbacks or explicit live-supervisor transfer; unattended wakeup not yet implemented"
+    },
+    {
+      "rule": "Concurrency exception",
+      "policy": "Only owner may grant a time-bounded journalled exception after occupancy probe; name scope, assignments, isolation, expiry and revocation; no extra spend or overlapping writers"
     },
     {
       "rule": "Packaging",
@@ -385,6 +409,16 @@
       "failure": "Marker missing or mismatched",
       "action": "Treat run as incomplete; inspect stored final result and exit",
       "escalation": "Recover session; never rerun writes blindly"
+    },
+    {
+      "failure": "Claude autocompact thrashing",
+      "action": "After 2 consecutive no-progress auto-compactions, checkpoint and stop before a third",
+      "escalation": "Verify process tree, worktree holders and Claude background-agent registry; retry once with a fresh narrow packet and bounded larger context"
+    },
+    {
+      "failure": "Abnormal provider parent exit",
+      "action": "Retain writer ownership until parent/descendants, worktree command/CWD holders and provider background-agent registry are all clear",
+      "escalation": "Inspect worktree state and locks; transfer only after timestamped evidence, otherwise lead resolves"
     }
   ],
   "routing_basis": "Owner preferences with task-fit guardrails; provisional, not a comparative benchmark",
@@ -402,7 +436,20 @@
     "Verify effective model and effort at dispatch. Newly configured Grok/Opus combinations are not yet claimed smoke-tested; no unapproved substitution.",
     "House exclusivity has two scopes. Astra at any effort reserves Codex globally and Fable 5.1 at any effort reserves Claude globally. Sol high or higher reserves Codex only for assignments under the same delivery manager; Opus high or higher reserves Claude only for assignments under the same delivery manager.",
     "New-product brainstorming may use Fable 5.1 medium or Astra medium. Both create global house reservations while active; prefer another eligible house or queue competing work.",
-    "Fable model authorization does not permit paid usage credits or extra spending. Verify included allowance before any headless request."
+    "Fable model authorization does not permit paid usage credits or extra spending. Verify included allowance before any headless request.",
+    "The delivery manager keeps its turn active with a real bounded wait while workers run. It may finish only after terminal handbacks or explicit transfer to another live supervisor.",
+    "External provider streams are drained outside manager context. Retrieve compact lifecycle changes and the mechanically extracted final assistant result, not accumulated raw output.",
+    "A provider parent exit does not transfer writer ownership. Verify process tree, worktree command/CWD holders and provider background-agent registry before any replacement writer.",
+    "Stop Claude after two consecutive no-progress auto-compactions; checkpoint and use one fresh narrow retry rather than resuming the thrashing session.",
+    "Owner concurrency exceptions are finite and journalled after an occupancy probe; leads and managers cannot self-authorize them."
+  ],
+  "runtime_adapter_priorities": [
+    "Machine-owned output adapter",
+    "Fail-closed permission preflight",
+    "Complete assignment-packet transport",
+    "Wall-time, turn, token and cost watchdogs where observable",
+    "Accurate lifecycle classification",
+    "Governed owner concurrency exceptions"
   ],
   "house_exclusivity": {
     "global_scope": "All visible Interchange-managed active assignments in the same house across delivery managers, deliveries, projects and roles",
