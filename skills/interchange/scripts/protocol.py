@@ -7,11 +7,15 @@ watch, cancel, or merge anything.
 from __future__ import annotations
 
 import argparse
+from dataclasses import asdict
 import json
 import math
 from pathlib import Path
 import re
+import sys
 from typing import Any
+
+from pr_base_guard import validate_pr_base
 
 
 _RESULTS = frozenset({"ready_for_review", "blocked", "partial"})
@@ -193,7 +197,7 @@ def _result(status: str, protocol_valid: bool, reason: str) -> dict[str, Any]:
     }
 
 
-def main(argv: list[str] | None = None) -> int:
+def _completion_main(argv: list[str]) -> int:
     """Validate a final-response file; never dispatches work or merges."""
     parser = argparse.ArgumentParser(description="Validate an Interchange final response")
     parser.add_argument("final_response_file", type=Path)
@@ -215,6 +219,39 @@ def main(argv: list[str] | None = None) -> int:
         )
     print(json.dumps(validation, sort_keys=True))
     return 0
+
+
+def _pr_base_main(argv: list[str]) -> int:
+    """Run the adapter PR-base preflight and emit one JSON decision."""
+    parser = argparse.ArgumentParser(
+        prog="protocol.py pr-base",
+        description="Validate an Interchange packet before PR creation",
+    )
+    parser.add_argument("--packet-file", required=True, type=Path)
+    args = parser.parse_args(argv)
+
+    try:
+        packet = json.loads(args.packet_file.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        decision = {
+            "allowed": False,
+            "code": "packet_invalid",
+            "reason": "packet file must contain valid UTF-8 JSON",
+        }
+        print(json.dumps(decision, sort_keys=True))
+        return 1
+
+    decision = validate_pr_base(packet)
+    print(json.dumps(asdict(decision), sort_keys=True))
+    return 0 if decision.allowed else 1
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Dispatch the existing protocol validator or the PR-base preflight."""
+    arguments = list(sys.argv[1:] if argv is None else argv)
+    if arguments and arguments[0] == "pr-base":
+        return _pr_base_main(arguments[1:])
+    return _completion_main(arguments)
 
 
 if __name__ == "__main__":

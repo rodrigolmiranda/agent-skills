@@ -227,7 +227,20 @@
   "adapter_contract": {
     "reference": "runtime-adapters.md",
     "output_schema": "final-response.schema.json",
+    "pr_base_preflight": {
+      "argv": [
+        "python3",
+        "skills/interchange/scripts/protocol.py",
+        "pr-base",
+        "--packet-file",
+        "{packet_file}"
+      ],
+      "allow_exit": 0,
+      "deny_exit": 1,
+      "stdout": "one JSON PullRequestBaseDecision; invoke before gh pr create or any provider equivalent"
+    },
     "required_preflight": [
+      "PR base preflight command above, before PR creation",
       "literal argv and provider-specific argument order",
       "complete packet and coordination-file access",
       "requested and observed model/effort",

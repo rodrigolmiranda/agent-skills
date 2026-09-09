@@ -91,6 +91,15 @@ flowchart TD
 
 ## Merge authority
 
+PR creation has a separate fail-closed base preflight. Ordinary feature, fix,
+chore and documentation packets must target `test`; an ordinary packet
+requesting `main` is rejected before the provider API or CLI is called. Only an
+explicitly classified human-controlled `hotfix` or `release_promotion` packet
+may target `main`, and it must carry `human_only_merge: true` plus full,
+matching base/head ref and commit-SHA evidence. The reusable implementation is
+`skills/interchange/scripts/pr_base_guard.py`; it is an adapter boundary rather
+than remote GitHub enforcement. See [the guard contract](../skills/interchange/references/pr-base-guard.md).
+
 ```mermaid
 flowchart TD
   A[PR ready] --> B{Designated lead or manager?}
