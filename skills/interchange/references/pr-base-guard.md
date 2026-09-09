@@ -1,9 +1,17 @@
 # Interchange PR base guard
 
-Every adapter that can create a pull request must validate its complete packet
-with `skills/interchange/scripts/pr_base_guard.py` before invoking the provider
-API or CLI. The guard is local and deterministic; it does not create, approve,
-merge, or publish a pull request.
+Every adapter that can create a pull request must run this exact command with
+the complete packet before invoking the provider API or CLI:
+
+```text
+python3 skills/interchange/scripts/protocol.py pr-base --packet-file <packet-file>
+```
+
+Exit `0` means the packet may proceed to PR creation; exit `1` is a denial and
+must stop the adapter. Standard output is one machine-readable
+`PullRequestBaseDecision` JSON object. The underlying reusable guard is
+`skills/interchange/scripts/pr_base_guard.py`. Neither layer creates, approves,
+merges, or publishes a pull request.
 
 An ordinary feature, fix, chore, or documentation delivery has
 `operation_class: ordinary` and must use `base_ref: test`. A packet that asks an
@@ -31,10 +39,11 @@ restricted to `hotfix/*`. The evidence refs must match the packet refs and both
 SHAs must be full commit IDs. The hotfix exception additionally requires a
 `hotfix/` head ref.
 
-The guard is a preflight boundary, not proof that the remote base/head still
-match. The designated lead or delivery manager must re-query the live PR and
-bind any later review, approval, or merge to the exact reviewed head under the
-repository's governance. Workers still cannot merge.
+The guard is a local preflight boundary, not proof that a remote ref resolves or
+that a live PR base/head still matches. The designated lead or delivery manager
+must resolve the refs and re-query the live PR, then bind any later review,
+approval, or merge to the exact reviewed head under the repository's governance.
+Workers still cannot merge.
 
 Historical lesson: SDK PR #130 was an old human release promotion to `main`,
 not a routine worker delivery. Routine SDK publication is being redesigned by

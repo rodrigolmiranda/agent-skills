@@ -35,12 +35,13 @@ no-extra-spending preflight before any headless request.
 
 Give each assignment an ID, revision and unique attempt ID. Include outcome, acceptance, repo URL/ref/base, lead-allocated worktree, exclusive paths, read-only dependencies, fixed profile, governance references, allowed tools/actions, expected seconds, deadlines, stop/escalation conditions and return format. Leaf workers cannot delegate, merge, expand scope, weaken checks or invent contracts. For an ambiguity they cannot resolve inside the assignment, return evidence and the smallest question to the lead.
 
-Before any adapter creates a pull request, call the deterministic preflight in
-[pr-base-guard.md](references/pr-base-guard.md) and fail closed on rejection.
-Routine feature, fix, chore and documentation packets target `test`; `main`
-requires the packet's explicit human-controlled hotfix or release-promotion
-exception with exact base/head evidence. This guard is shared by Claude, Grok,
-OpenCode and Codex adapters; it does not replace the later live-base check.
+Before any adapter creates a pull request, run the exact preflight command in
+the `adapter_contract.pr_base_preflight` entry of [commands.json](references/commands.json)
+and fail closed on its nonzero result. Routine feature, fix, chore and
+documentation packets target `test`; `main` requires the packet's explicit
+human-controlled hotfix or release-promotion exception with exact base/head
+evidence. This guard is shared by Claude, Grok, OpenCode and Codex adapters; it
+does not replace later remote-ref resolution or live-base/head re-query.
 
 Before external dispatch, read [runtime-adapters.md](references/runtime-adapters.md).
 Use [commands.json](references/commands.json) as argument-array templates and read each profile's evidence status: newly configured Grok/Opus combinations have not yet been smoke-tested. These are not a production runner. Preflight literal argv, complete packet access, exact permissions and negative denies; abort closed on an unmappable rule. Do not substitute a shell-expanded string, use an unpinned default, or pass broader permissions merely to make a test succeed. Native subagents may collaborate directly; external sessions return through a supervised transport. Resume only when retained context justifies its cost. Grok runs through Grok CLI only; Cursor is excluded. Claude development uses Opus medium/high; do not select Sonnet, opusplan or automatic fallback to Sonnet.
