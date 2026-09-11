@@ -45,6 +45,7 @@ does not replace later remote-ref resolution or live-base/head re-query.
 
 Before external dispatch, read [runtime-adapters.md](references/runtime-adapters.md).
 Use [commands.json](references/commands.json) as argument-array templates and read each profile's evidence status: newly configured Grok/Opus combinations have not yet been smoke-tested. These are not a production runner. Preflight literal argv, complete packet access, exact permissions and negative denies; abort closed on an unmappable rule. Do not substitute a shell-expanded string, use an unpinned default, or pass broader permissions merely to make a test succeed. Native subagents may collaborate directly; external sessions return through a supervised transport. Resume only when retained context justifies its cost. Grok runs through Grok CLI only; Cursor is excluded. Claude development uses Opus medium/high; do not select Sonnet, opusplan or automatic fallback to Sonnet.
+DeepSeek V4.1 Flash uses only the OpenCode Go code `opencode-go/deepseek-flash` at high or max. The displayed name and provider code identify the same approved model. Treat any DeepSeek V4, V4.1 versioned code or V4 Pro selection as a profile mismatch; stop instead of substituting.
 
 ## Monitor and recover
 

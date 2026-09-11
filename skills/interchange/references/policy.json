@@ -1,6 +1,6 @@
 {
-  "version": "0.4.0",
-  "approved_on": "2026-09-09",
+  "version": "0.5.0",
+  "approved_on": "2026-09-11",
   "status": "Approved operating design; live runner not implemented",
   "profiles": [
     {
@@ -113,6 +113,28 @@
       "pool": "Go"
     },
     {
+      "id": "worker-deepseek-flash-high",
+      "house": "opencode",
+      "model": "opencode-go/deepseek-flash",
+      "display_model": "DeepSeek V4.1 Flash",
+      "effort": "high",
+      "role": "preferred bounded implementation worker with clear acceptance and settled architecture",
+      "delegation": false,
+      "evidence": "Eleven governed DeepSeek Flash runs across two repositories; high is the approved default. Independent semantic review remains mandatory.",
+      "pool": "Go"
+    },
+    {
+      "id": "worker-deepseek-flash-max",
+      "house": "opencode",
+      "model": "opencode-go/deepseek-flash",
+      "display_model": "DeepSeek V4.1 Flash",
+      "effort": "max",
+      "role": "novel public contract, identity, schema or serialization shape with settled product intent",
+      "delegation": false,
+      "evidence": "One evaluated max assignment showed value on novel public identity design; max is not a remedy for unsupported claims and still requires independent semantic review.",
+      "pool": "Go"
+    },
+    {
       "id": "worker-grok-high",
       "house": "grok",
       "model": "grok-4.6",
@@ -216,13 +238,13 @@
     },
     {
       "task": "Low/mid complexity development",
-      "first": "worker-grok-high; worker-opus-medium; worker-terra-xhigh; worker-sol-medium",
+      "first": "worker-deepseek-flash-high; worker-grok-high; worker-opus-medium; worker-terra-xhigh; worker-sol-medium",
       "fallback": "Another eligible profile from this pool",
-      "reason": "Preferred pool, not fixed rank: clear acceptance, known patterns, bounded dependencies; choose fit then speed and available quota"
+      "reason": "Preferred pool, not fixed rank: clear acceptance, known patterns, bounded dependencies; DeepSeek evidence is strongest for governed leaf implementation"
     },
     {
       "task": "Upper-mid complexity development",
-      "first": "worker-grok-xhigh; worker-opus-medium",
+      "first": "worker-deepseek-flash-high; worker-grok-xhigh; worker-opus-medium",
       "fallback": "worker-sol-high or worker-opus-high when ambiguity or consequence warrants escalation",
       "reason": "Difficult implementation within settled architecture; two primary choices are not claimed equal in capability"
     },
@@ -234,9 +256,15 @@
     },
     {
       "task": "Demanding but well-defined implementation",
-      "first": "worker-terra-max",
-      "fallback": "High-complexity pool if evidence shows a reasoning blocker",
+      "first": "worker-terra-max; worker-deepseek-flash-high",
+      "fallback": "High-complexity pool if evidence shows a reasoning blocker; never DeepSeek V4 Pro",
       "reason": "Dense implementation or integration with exact contracts and tests; never assign to outlast a loop"
+    },
+    {
+      "task": "Novel public contract design",
+      "first": "worker-deepseek-flash-max",
+      "fallback": "Lead resolves unsettled product or architecture decisions before execution; never DeepSeek V4 Pro",
+      "reason": "Use max only when the durable public shape is the deliverable and costly to reverse; require independent semantic review"
     },
     {
       "task": "Workstream with fixed contracts",
@@ -349,7 +377,7 @@
     },
     {
       "rule": "Spending",
-      "policy": "No extra purchases or automatic recharge; existing OpenCode Go allowance/balance may be used for Muse only"
+      "policy": "No extra purchases or automatic recharge; existing OpenCode Go allowance/balance may be used for approved Muse and DeepSeek Flash profiles; DeepSeek V4 Pro is excluded"
     },
     {
       "rule": "Communication",
@@ -441,7 +469,10 @@
     "External provider streams are drained outside manager context. Retrieve compact lifecycle changes and the mechanically extracted final assistant result, not accumulated raw output.",
     "A provider parent exit does not transfer writer ownership. Verify process tree, worktree command/CWD holders and provider background-agent registry before any replacement writer.",
     "Stop Claude after two consecutive no-progress auto-compactions; checkpoint and use one fresh narrow retry rather than resuming the thrashing session.",
-    "Owner concurrency exceptions are finite and journalled after an occupancy probe; leads and managers cannot self-authorize them."
+    "Owner concurrency exceptions are finite and journalled after an occupancy probe; leads and managers cannot self-authorize them.",
+    "DeepSeek V4.1 Flash uses the provider code opencode-go/deepseek-flash. The human-readable name and provider code identify the same approved model.",
+    "DeepSeek high is the default for bounded implementation. DeepSeek max is reserved for novel public contract, identity, schema or serialization shape design with settled product intent.",
+    "DeepSeek V4 Pro and versioned V4/V4.1 provider codes are excluded. If opencode-go/deepseek-flash is unavailable, stop and reroute to a different approved house; never substitute another DeepSeek model."
   ],
   "runtime_adapter_priorities": [
     "Machine-owned output adapter",
