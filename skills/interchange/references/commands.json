@@ -1,7 +1,7 @@
 {
   "schema_version": 3,
-  "status": "Explicit argument templates; Muse previous smoke-tested; new Grok/Opus profiles require runtime confirmation; live dispatch adapter not implemented",
-  "substitution": "Build subprocess argv arrays. Replace each placeholder as one literal argument. Never join into shell code.",
+  "status": "Explicit argument templates; Muse and DeepSeek Flash have prior runtime evidence; new Grok/Opus profiles require runtime confirmation; live dispatch adapter not implemented",
+  "substitution": "No silent model, effort, house or account substitution. DeepSeek V4.1 Flash is requested with provider code opencode-go/deepseek-flash. DeepSeek V4 Pro and versioned DeepSeek routes are forbidden fallbacks; stop and reroute to another approved house if Flash is unavailable.",
   "profiles": {
     "worker-muse-xhigh": {
       "argument_order": "Place {prompt} before every variadic --file attachment; append each complete packet/coordination file as [--file, {attachment}] after the prompt.",
@@ -38,6 +38,80 @@
         "{prompt}"
       ],
       "mode": "Prompt before attachments. Attach the complete packet and every required external coordination file. Exit 0 with finish=tool-calls or no final response remains incomplete. CLI permissions are not a sandbox."
+    },
+    "worker-deepseek-flash-high": {
+      "argument_order": "Place {prompt} before every variadic --file attachment; append each complete packet/coordination file as [--file, {attachment}] after the prompt.",
+      "attachment_suffix": [
+        "--file",
+        "{attachment}"
+      ],
+      "start": [
+        "opencode",
+        "run",
+        "--dir",
+        "{worktree}",
+        "--model",
+        "opencode-go/deepseek-flash",
+        "--variant",
+        "high",
+        "--format",
+        "json",
+        "{prompt}"
+      ],
+      "resume": [
+        "opencode",
+        "run",
+        "--dir",
+        "{worktree}",
+        "--session",
+        "{session_id}",
+        "--model",
+        "opencode-go/deepseek-flash",
+        "--variant",
+        "high",
+        "--format",
+        "json",
+        "{prompt}"
+      ],
+      "mode": "DeepSeek V4.1 Flash. Require exact observed model code opencode-go/deepseek-flash and requested variant. Stop on mismatch or unavailability; never substitute DeepSeek V4 Pro or a versioned DeepSeek route. Prompt before attachments. Exit 0 with finish=tool-calls or no final response remains incomplete.",
+      "evidence": "Governed implementation evidence recorded 2026-09-11; high is default, max is limited to novel public contract shape design. Independent semantic review required."
+    },
+    "worker-deepseek-flash-max": {
+      "argument_order": "Place {prompt} before every variadic --file attachment; append each complete packet/coordination file as [--file, {attachment}] after the prompt.",
+      "attachment_suffix": [
+        "--file",
+        "{attachment}"
+      ],
+      "start": [
+        "opencode",
+        "run",
+        "--dir",
+        "{worktree}",
+        "--model",
+        "opencode-go/deepseek-flash",
+        "--variant",
+        "max",
+        "--format",
+        "json",
+        "{prompt}"
+      ],
+      "resume": [
+        "opencode",
+        "run",
+        "--dir",
+        "{worktree}",
+        "--session",
+        "{session_id}",
+        "--model",
+        "opencode-go/deepseek-flash",
+        "--variant",
+        "max",
+        "--format",
+        "json",
+        "{prompt}"
+      ],
+      "mode": "DeepSeek V4.1 Flash. Require exact observed model code opencode-go/deepseek-flash and requested variant. Stop on mismatch or unavailability; never substitute DeepSeek V4 Pro or a versioned DeepSeek route. Prompt before attachments. Exit 0 with finish=tool-calls or no final response remains incomplete.",
+      "evidence": "Governed implementation evidence recorded 2026-09-11; high is default, max is limited to novel public contract shape design. Independent semantic review required."
     },
     "worker-opus-medium": {
       "start": [

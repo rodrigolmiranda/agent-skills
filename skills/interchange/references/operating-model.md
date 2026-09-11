@@ -70,7 +70,7 @@ Keep bypassable approval rules separate from non-bypassable checks and restrict 
 
 Apply [history-and-retro.md](history-and-retro.md) for the owner-approved Interchange refinement: local attempt details, approximate before/after quota observations and centrally retained weekly aggregates. This refines storage for this trial while preserving the existing score definitions and retained portfolio records.
 
-No new spending, recharge or automatic paid fallback. Existing OpenCode Go allowance/balance may be used for Muse only. Bind quota observations to house/account/pool and timestamp; unavailable/old readings are unknown, not zero. Never equate a model's list price estimate to subscription debit.
+No new spending, recharge or automatic paid fallback. Existing OpenCode Go allowance/balance may be used for the approved Muse and DeepSeek Flash profiles. DeepSeek V4 Pro is excluded even when Flash is unavailable. Bind quota observations to house/account/pool and timestamp; unavailable/old readings are unknown, not zero. Never equate a model's list price estimate to subscription debit.
 
 Store provider counters without summing overlapping token categories. Wall time, exit status, model identity and session usage come from execution metadata where available. Reviewer records quality independently using GOV-0020 dimensions; workers report facts. Fewer than three comparable reviewed packets is insufficient ranking evidence. Group by model/version/effort/task class, with house and account context.
 

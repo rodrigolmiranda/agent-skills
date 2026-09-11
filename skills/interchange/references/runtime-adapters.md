@@ -93,6 +93,12 @@ complete packet, not only a retry note. Treat exit zero after `finish=tool-calls
 as incomplete. Resume only within the attempt watchdog and only when the installed
 CLI demonstrably continues to a final assistant response.
 
+For DeepSeek V4.1 Flash, require the exact provider code
+`opencode-go/deepseek-flash` and the selected `high` or `max` variant in both the
+request and observed session metadata. A mismatch or unavailable route terminates
+the preflight. Reroute through another approved house; V4 Pro and versioned
+DeepSeek routes are not fallbacks.
+
 ### Grok
 
 For a read-only reviewer, use the trial-validated `auto` permission mode with
