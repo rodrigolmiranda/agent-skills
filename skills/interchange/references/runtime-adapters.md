@@ -94,10 +94,15 @@ as incomplete. Resume only within the attempt watchdog and only when the install
 CLI demonstrably continues to a final assistant response.
 
 For DeepSeek V4.1 Flash, require the exact provider code
-`opencode-go/deepseek-flash` and the selected `high` or `max` variant in both the
-request and observed session metadata. A mismatch or unavailable route terminates
-the preflight. Reroute through another approved house; V4 Pro and versioned
-DeepSeek routes are not fallbacks.
+`opencode-go/deepseek-v4.1-flash` and the selected `high` or `max` variant in both
+the request and observed session metadata. A mismatch or unavailable route
+terminates the preflight. Reroute through another approved house; V4 Pro, V4 Flash
+and the vision-exp variants are different models, not fallbacks.
+
+The provider renamed this code from `opencode-go/deepseek-flash`, which
+`opencode models` no longer lists. Read the code as version-bearing now: the
+`v4.1` in it is what distinguishes the approved model from `deepseek-v4-flash`,
+so a packet must pin it in full rather than matching on a prefix.
 
 ### Grok
 
