@@ -115,7 +115,7 @@
     {
       "id": "worker-deepseek-flash-high",
       "house": "opencode",
-      "model": "opencode-go/deepseek-flash",
+      "model": "opencode-go/deepseek-v4.1-flash",
       "display_model": "DeepSeek V4.1 Flash",
       "effort": "high",
       "role": "preferred bounded implementation worker with clear acceptance and settled architecture",
@@ -126,7 +126,7 @@
     {
       "id": "worker-deepseek-flash-max",
       "house": "opencode",
-      "model": "opencode-go/deepseek-flash",
+      "model": "opencode-go/deepseek-v4.1-flash",
       "display_model": "DeepSeek V4.1 Flash",
       "effort": "max",
       "role": "novel public contract, identity, schema or serialization shape with settled product intent",
@@ -470,9 +470,9 @@
     "A provider parent exit does not transfer writer ownership. Verify process tree, worktree command/CWD holders and provider background-agent registry before any replacement writer.",
     "Stop Claude after two consecutive no-progress auto-compactions; checkpoint and use one fresh narrow retry rather than resuming the thrashing session.",
     "Owner concurrency exceptions are finite and journalled after an occupancy probe; leads and managers cannot self-authorize them.",
-    "DeepSeek V4.1 Flash uses the provider code opencode-go/deepseek-flash. The human-readable name and provider code identify the same approved model.",
+    "DeepSeek V4.1 Flash uses the provider code opencode-go/deepseek-v4.1-flash. The human-readable name and provider code identify the same approved model. The provider renamed this code from opencode-go/deepseek-flash, which no longer appears in `opencode models`; the version now lives in the code itself.",
     "DeepSeek high is the default for bounded implementation. DeepSeek max is reserved for novel public contract, identity, schema or serialization shape design with settled product intent.",
-    "DeepSeek V4 Pro and versioned V4/V4.1 provider codes are excluded. If opencode-go/deepseek-flash is unavailable, stop and reroute to a different approved house; never substitute another DeepSeek model."
+    "DeepSeek V4 Pro, DeepSeek V4 Flash and the vision-exp variants are excluded: opencode-go/deepseek-v4-pro, opencode-go/deepseek-v4-flash and opencode-go/deepseek-v4-flash-vision-exp are DIFFERENT models, not fallbacks for V4.1 Flash. If opencode-go/deepseek-v4.1-flash is unavailable, stop and reroute to a different approved house; never substitute another DeepSeek model."
   ],
   "runtime_adapter_priorities": [
     "Machine-owned output adapter",

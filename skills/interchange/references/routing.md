@@ -10,7 +10,7 @@ Claude. Cross-house manager transport still needs verification.
 
 ## Active houses and profiles
 
-Use Codex, Grok CLI, Claude Code and OpenCode. Remove Cursor from Interchange routing; this does not uninstall Cursor. Grok work runs through Grok CLI with `grok-4.6` and effort `high` or `xhigh`. Claude development uses `claude-opus-5` with effort `medium` or `high`. Sonnet is excluded, including implicit execution switches and fallback routes. DeepSeek V4.1 Flash runs only through the OpenCode Go model code `opencode-go/deepseek-flash`, at `high` or `max`. Treat the displayed model name and provider code as two identities for the same approved model. Never select `deepseek-v4-flash`, `deepseek-v4.1-flash` or `deepseek-v4-pro`, and never substitute another DeepSeek route after an error. Verify actual model/effort before trusting a run; documented support is not an execution test.
+Use Codex, Grok CLI, Claude Code and OpenCode. Remove Cursor from Interchange routing; this does not uninstall Cursor. Grok work runs through Grok CLI with `grok-4.6` and effort `high` or `xhigh`. Claude development uses `claude-opus-5` with effort `medium` or `high`. Sonnet is excluded, including implicit execution switches and fallback routes. DeepSeek V4.1 Flash runs only through the OpenCode Go model code `opencode-go/deepseek-v4.1-flash`, at `high` or `max`. Treat the displayed model name and provider code as two identities for the same approved model. Never select `opencode-go/deepseek-flash`, `deepseek-v4-flash` or `deepseek-v4-pro`, and never substitute another DeepSeek route after an error. Verify actual model/effort before trusting a run; documented support is not an execution test.
 
 ## Choose a developer
 
