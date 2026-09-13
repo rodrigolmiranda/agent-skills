@@ -10,6 +10,14 @@ If the pool resets, capacity changes or a snapshot is missing, the direct delta 
 
 Never sum overlapping before/after deltas from concurrent assignments in the same pool. Weekly summary uses deduplicated pool observations over comparable windows. Keep account/pool quota trends separate from model-specific measured tokens and quality. A before/after delta is an approximate availability signal, not a basis for causal model rankings.
 
+## Codex capacity conservation
+
+At delivery start, record the available Codex window snapshot, known concurrent use, the capacity reserved for remaining brain/integration/review work, and any positive mechanical allowance. Missing usage data stays unknown; it does not create permission to spend an undeclared allowance. Before each Codex mechanical dispatch, record the exception reason and current active Codex mechanical count. Default concurrency is one and absence of an allowance means zero.
+
+Record an owner instruction prohibiting Codex delegation or leading as a zero-allocation override. It supersedes an earlier mechanical allowance and remains active for the delivery until the owner changes it. Record separately which Codex brain/review use, if any, remains explicitly requested.
+
+Capture another snapshot after the first Codex mechanical checkpoint when possible. Compare the observed pool change with the delivery allowance without claiming exact task attribution. If it exceeds plan, threatens the reserve or cannot be reconciled with known concurrent use, record the freeze and send remaining mechanical work to another eligible house. Retain in-flight checkpoint cost, review batching and repair/re-review use so the weekly retro can distinguish protected brain consumption from avoidable mechanical consumption.
+
 ## Storage
 
 Local execution journal: `~/.local/state/interchange/history/`. One concise record per attempt: task title/ID, role, house/model/effort, start/end, result, exact usage if available, quota snapshot references, independent scores, significant note and evidence links. Use existing canonical GOV-0020 score definitions; workers do not assign their own scores.

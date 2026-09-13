@@ -1,6 +1,6 @@
 # Interchange operating model
 
-Initially approved by Rodrigo on 2026-09-09; brain/mechanical routing revised on 2026-09-13. Configured values live in `policy.json`; spreadsheet and diagrams are readable views. This document explains decisions and lifecycle. Shared portfolio rules remain in MarvinaMiranda GOV-0020 and GOV-0016. Repository product meaning stays with its repository. GitHub owns delivery state; runtime files hold execution state and link to it.
+Initially approved by Rodrigo on 2026-09-09; brain/mechanical routing and Codex capacity conservation revised on 2026-09-13. Configured values live in `policy.json`; spreadsheet and diagrams are readable views. This document explains decisions and lifecycle. Shared portfolio rules remain in MarvinaMiranda GOV-0020 and GOV-0016. Repository product meaning stays with its repository. GitHub owns delivery state; runtime files hold execution state and link to it.
 
 ## Team and task size
 
@@ -35,6 +35,14 @@ Separate judgment from mechanical coordination before selecting a lead. Sol high
 Workers receive the smallest coherent assignment whose result can be verified independently without interpretation. Every mechanical packet supplies settled behavior, objective acceptance, owned paths and an explicit escalation boundary. Use fast, inexpensive workers when their startup, supervision and integration overhead is lower than the expected time or cost saved. Parallelize independent, objectively testable packets after interfaces are fixed; never overlap writable surfaces. Avoid fragments whose dispatch or merge overhead exceeds direct execution. Muse Spark 1.3 is the light mechanical and read/seek lane for repository search, localization, evidence collection, narrow checks and small explicit edits. Independent review means independently inspected artifacts, not necessarily another vendor.
 
 For development worker selection, apply [routing.md](routing.md) and the configured pools in `policy.json`. Implementation difficulty, ambiguity, consequence and coupling are separate criteria. Grok uses its own CLI only; Claude uses Opus medium/high. The preferred development pools do not replace the smaller Muse/Luna support lane or grant workers lead permissions. Mechanical agents may gather verification evidence; independent semantic and risk acceptance belongs to Sol high, with Astra medium reserved for unusually large cross-workstream scope.
+
+## Codex capacity conservation
+
+Preserve Codex for judgment, integration decisions and independent semantic/risk acceptance across the full usage window. External houses are the normal mechanical and parallel execution lane. At delivery start, capture the Codex usage window when available, note known concurrent use and reserve capacity for the remaining brain and review path. A delivery must record a positive Codex mechanical allowance and reason before starting any Codex mechanical worker or mechanical lead; absence means zero.
+
+The normal Codex mechanical concurrency is one. More requires explicit owner authorization, even when write surfaces do not overlap. After the first Codex mechanical checkpoint, capture usage again when available. Stop new Codex mechanical dispatch when observed burn exceeds the allowance, threatens the reserve or cannot be reconciled with known concurrent activity. Do not waste already-spent capacity by abruptly killing useful work: reach the nearest clean tested checkpoint unless the hard deadline or another safety boundary requires interruption, then transfer remaining execution through the normal ownership procedure.
+
+Use Muse and other mechanical workers to gather repository evidence before a brain call. Batch related ambiguities into one decision packet. Run builds, tests and evidence collection outside Codex. Commission one Sol-high semantic/risk review per meaningful integrated chunk rather than per leaf assignment; any remedy changes the head and still requires re-review. The owner may set Codex delegation or leading to zero for a delivery while retaining only explicitly requested brain/review use.
 
 ## Workspaces and context
 

@@ -2,7 +2,7 @@
 
 Personal reusable skill source. Interchange is the first package in `skills/interchange`.
 
-Interchange applies to deliveries of any size. It keeps product and architecture judgment with approved brain profiles, then routes settled mechanical work to the fastest low-cost qualified workers when dispatch and integration still produce a net gain.
+Interchange applies to deliveries of any size. It keeps product and architecture judgment with approved brain profiles, protects Codex capacity for decisions/integration/semantic review, then routes settled mechanical work to the fastest low-cost qualified external workers when dispatch and integration still produce a net gain.
 
 - [Operating design](skills/interchange/references/operating-model.md)
 - [Configured rules and model profiles](skills/interchange/references/policy.json)

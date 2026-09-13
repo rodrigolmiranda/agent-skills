@@ -1,5 +1,5 @@
 {
-  "version": "0.6.0",
+  "version": "0.7.0",
   "approved_on": "2026-09-13",
   "status": "Approved operating design; live runner not implemented",
   "profiles": [
@@ -250,38 +250,38 @@
     },
     {
       "task": "One direct lookup",
-      "first": "Local search/tool when immediate; worker-muse-xhigh when parallel dispatch frees the brain or is faster overall",
-      "fallback": "worker-luna-xhigh for bounded read-only evidence when Muse is unavailable",
+      "first": "Local search/tool when immediate; worker-muse-xhigh when delegation frees the Codex brain or is faster overall",
+      "fallback": "Another external read-only mechanical profile; Codex worker only under a recorded mechanical allowance",
       "reason": "Count startup, supervision and handback overhead; delegate when it improves accepted-result time or cost"
     },
     {
       "task": "Light mechanical and read/seek task",
       "first": "worker-muse-xhigh",
-      "fallback": "worker-luna-xhigh; worker-luna-max when evidence density warrants",
+      "fallback": "Another external bounded worker; Luna xhigh/max only under a recorded Codex mechanical allowance",
       "reason": "Repository search, localization, evidence collection, narrow checks and small explicit edits; no interpretation"
     },
     {
       "task": "Low/mid complexity development",
       "first": "worker-deepseek-flash-high; worker-grok-high; worker-opus-medium; worker-terra-xhigh; worker-sol-medium",
-      "fallback": "Another eligible profile from this pool",
+      "fallback": "Codex worker from this pool only under a recorded mechanical allowance and after external fit/availability check",
       "reason": "Settled behavior, objective acceptance and bounded dependencies; ambiguity already resolved by a brain"
     },
     {
       "task": "Upper-mid complexity development",
       "first": "worker-deepseek-flash-high; worker-grok-xhigh; worker-opus-medium",
-      "fallback": "lead-sol-high resolves ambiguity or consequence; then choose worker-sol-high, worker-opus-high or another qualified mechanical profile",
+      "fallback": "lead-sol-high resolves ambiguity; choose an external mechanical worker first, or a Codex worker under a recorded allowance",
       "reason": "Difficult mechanical implementation within settled architecture; return tradeoffs instead of choosing"
     },
     {
       "task": "High complexity development",
-      "first": "lead-sol-high resolves judgment; worker-opus-high or another qualified mechanical profile executes settled packets",
-      "fallback": "lead-astra-medium resolves unusually large cross-workstream ambiguity before mechanical execution",
+      "first": "lead-sol-high resolves judgment; worker-opus-high or another qualified external profile executes settled packets",
+      "fallback": "lead-astra-medium resolves unusually large ambiguity; Codex mechanical worker requires a recorded allowance",
       "reason": "Separate consequential decisions from implementation; independent review remains mandatory"
     },
     {
       "task": "Demanding but well-defined implementation",
-      "first": "worker-terra-max; worker-deepseek-flash-high",
-      "fallback": "High-complexity pool if evidence shows a reasoning blocker; never DeepSeek V4 Pro",
+      "first": "worker-deepseek-flash-high; worker-opus-high",
+      "fallback": "worker-terra-max only under a recorded Codex mechanical allowance; never DeepSeek V4 Pro",
       "reason": "Dense mechanical implementation or integration with exact contracts and tests; never assign interpretation or use effort to outlast a loop"
     },
     {
@@ -292,9 +292,9 @@
     },
     {
       "task": "Workstream with fixed contracts",
-      "first": "lead-terra-xhigh",
-      "fallback": "lead-terra-max or lead-sol-medium",
-      "reason": "Mechanical lead authority may coordinate and delegate settled packets; ambiguity returns to lead-sol-high or lead-astra-medium"
+      "first": "Current delivery manager coordinates settled packets across external mechanical workers",
+      "fallback": "lead-terra-xhigh/max only under a recorded Codex mechanical allowance",
+      "reason": "Preserve Codex brain capacity; a mechanical lead coordinates only settled work and returns ambiguity to Sol high or Astra medium"
     },
     {
       "task": "Consequential architecture or high coupling",
@@ -312,7 +312,7 @@
       "task": "Independent semantic or risk acceptance",
       "first": "reviewer-sol-high",
       "fallback": "reviewer-astra-medium for unusually large cross-workstream scope",
-      "reason": "Mechanical gate collection may be delegated, but acceptance judgment belongs to an independent brain on the exact head"
+      "reason": "Run gates mechanically; batch one independent brain review at a meaningful integrated chunk boundary and bind it to the exact head"
     }
   ],
   "monitoring": [
@@ -355,6 +355,31 @@
       "rule": "Adaptive calibration",
       "value": "Comparable successful runs inform estimates; limits remain approved",
       "meaning": "Weekly policy changes require owner approval; no automatic widening during runaway"
+    },
+    {
+      "rule": "Owner zero-Codex override",
+      "value": "Explicit do-not-use-Codex-for-delegation-or-leading instruction",
+      "meaning": "Set Codex mechanical worker and mechanical lead allowance to zero; retain only explicitly requested brain/review use"
+    },
+    {
+      "rule": "Codex capacity preflight",
+      "value": "Fresh usage snapshot when available + declared brain/review reserve + explicit mechanical allowance",
+      "meaning": "No recorded allowance means zero new Codex mechanical workers; external houses are the default execution lane"
+    },
+    {
+      "rule": "Codex mechanical concurrency",
+      "value": "At most 1 active by default",
+      "meaning": "Parallel Codex mechanical workers require explicit owner authorization; prefer external-house parallelism"
+    },
+    {
+      "rule": "Codex early burn checkpoint",
+      "value": "Recheck after first mechanical checkpoint when usage is observable",
+      "meaning": "Freeze new Codex mechanical dispatch when burn exceeds allowance or threatens reserved brain/review capacity"
+    },
+    {
+      "rule": "Codex review batching",
+      "value": "One semantic/risk reviewer per meaningful integrated chunk",
+      "meaning": "Mechanical gates run outside Codex; remedy commits invalidate prior review and require exact-head re-review"
     },
     {
       "rule": "Usage",
@@ -482,6 +507,12 @@
     "Semantic and risk acceptance is a brain task: use an independent Sol high reviewer, or Astra medium for unusually large cross-workstream scope. Mechanical workers may collect gates but cannot issue acceptance judgment.",
     "Coordination is not judgment authority. Opus delivery managers and mechanical leads may coordinate, monitor and integrate, but route unresolved interpretation to an approved brain.",
     "Mechanical packets contain settled behavior, objective acceptance, owned paths, allowed variance and an escalation condition. Workers return evidence and the smallest question when a choice requires interpretation.",
+    "Owner may set Codex delegation or leading to zero for a delivery. This overrides any planned mechanical allowance and preserves only explicitly requested Codex brain/review use.",
+    "Codex capacity is reserved for product/architecture judgment, integration decisions and independent semantic/risk review across the full usage window. Model quality alone does not justify Codex mechanical execution.",
+    "External houses are the default mechanical lane. A Codex mechanical worker needs a recorded delivery allowance and reason; absence of an allowance means zero Codex mechanical dispatch.",
+    "Codex mechanical concurrency defaults to one. Parallel Codex mechanical workers require explicit owner authorization; use qualified external houses for parallel execution.",
+    "Batch Codex brain questions and integrated reviews. Send compact evidence and exceptions gathered by mechanical workers instead of using Codex for broad repository exploration.",
+    "Run build, test and evidence collection mechanically. Use one Sol-high semantic/risk review per meaningful integrated chunk; new remedy commits still require exact-head re-review.",
     "Use fast, low-cost mechanical workers when startup, supervision and integration overhead still improves accepted-result time or cost. Parallelize independent objectively testable packets after decisions, interfaces and write ownership are fixed.",
     "Muse Spark 1.3 is the preferred light mechanical and read/seek lane for repository search, file localization, evidence collection, narrow checks and small explicit edits.",
     "Do not fragment work when dispatch, context transfer or integration overhead would erase the expected speed or cost gain.",
@@ -574,5 +605,18 @@
       "reviewer-astra-medium"
     ],
     "semantic_acceptance_rule": "Only profiles in semantic_review_brain may issue semantic or risk acceptance. Product-ideation brains, coordinators and mechanical workers cannot."
+  },
+  "codex_capacity": {
+    "purpose": "Preserve Codex for product/architecture judgment, integration decisions and independent semantic/risk acceptance across the full reset window.",
+    "mechanical_route": "Use qualified Claude, Grok or OpenCode workers before Codex mechanical subagents. Codex model quality alone is not a reason to spend protected brain capacity on settled execution.",
+    "delivery_preflight": "Capture the current Codex usage window when available, note known concurrent Codex work, reserve capacity for remaining brain/integration/review work, and record a positive Codex mechanical allowance before any Codex mechanical dispatch.",
+    "default_codex_mechanical_allowance": "zero when the delivery plan records no explicit allowance",
+    "dispatch_exception": "A Codex mechanical worker requires a recorded reason: no external profile is capable/available within constraints, verified context continuity produces a lower accepted-result cost, or Codex-only tooling makes external execution impractical.",
+    "concurrency": "Start at most one Codex mechanical worker at a time. Parallel Codex mechanical workers require explicit owner authorization; external mechanical workers remain the default parallel lane.",
+    "early_checkpoint": "After the first Codex mechanical checkpoint, capture usage again when available. Freeze new Codex mechanical dispatch if observed burn exceeds the delivery allowance, threatens the brain/review reserve, or cannot be reconciled with known concurrent use.",
+    "in_flight": "Do not interrupt useful in-flight work merely to recover sunk quota. Let it reach the nearest clean tested checkpoint unless a hard limit or safety condition requires interruption; then route remaining mechanical work externally.",
+    "brain_efficiency": "Batch related ambiguity questions and integration decisions. Gather repository evidence through Muse/external workers and give the brain compact exceptions rather than raw exploration.",
+    "review_efficiency": "Run mechanical gates outside Codex. Use one Sol-high semantic/risk review at each meaningful integrated chunk boundary; new remedy commits still require exact-head re-review.",
+    "override": "The owner may explicitly prohibit Codex delegation or leading for a delivery. That instruction sets Codex mechanical and lead allocation to zero while preserving only explicitly requested brain/review use."
   }
 }

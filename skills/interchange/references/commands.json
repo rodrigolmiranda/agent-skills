@@ -315,6 +315,8 @@
     },
     "required_preflight": [
       "brain/mechanical classification; mechanical packets contain settled behavior, objective acceptance, allowed variance and ambiguity escalation",
+      "owner zero-Codex override check: an explicit no-Codex-delegation-or-leading instruction sets mechanical worker/lead allowance to zero",
+      "for Codex mechanical dispatch: usage snapshot when available, known concurrent work, brain/review reserve, positive delivery allowance, exception reason and active mechanical count",
       "PR base preflight command above, before PR creation",
       "literal argv and provider-specific argument order",
       "complete packet and coordination-file access",

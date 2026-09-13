@@ -21,7 +21,16 @@ flowchart TD
   I & J & K & L --> M{Net gain after startup, supervision and integration?}
   M -->|No| N[Execute directly or keep one coherent packet]
   M -->|Yes| O[Choose fastest low-cost qualified profile]
-  O --> P{Independent objective packets and non-overlapping writes?}
+  O --> CA{Codex mechanical profile?}
+  CA -->|No| P{Independent objective packets and non-overlapping writes?}
+  CA -->|Yes| CZ{Owner set Codex delegation or leading to zero?}
+  CZ -->|Yes| CE[Use an eligible external house]
+  CZ -->|No| CB{Positive allowance, reason and brain-review reserve recorded?}
+  CB -->|No| CE[Use an eligible external house]
+  CB -->|Yes| CC{No active Codex mechanical worker?}
+  CC -->|Yes| CD[Start one; recheck usage at first clean checkpoint]
+  CC -->|No| CF[Queue or obtain explicit owner authorization]
+  CE & CD & CF --> P
   P -->|Yes| Q[Run in parallel]
   P -->|No| R[Run sequentially with one writer]
   N & Q & R --> U{Same-house exclusivity conflict?}
@@ -35,7 +44,9 @@ Sol high is the default product and architecture brain. Astra medium handles unu
 
 Muse Spark 1.3 is the light mechanical and read/seek lane. Use fast, low-cost workers when startup, supervision and integration still produce a net gain, and parallelize only independent objectively testable packets with non-overlapping write ownership. Pools are starting preferences, not universal model rankings. Read [development routing instructions](../skills/interchange/references/routing.md) for task boundaries and escalation. Worker model choice grants no delegation or merge authority.
 
-Policy 0.6.0 separates coordination from judgment. Opus 5 high remains an approved
+Codex is protected brain and semantic-review capacity. External houses take mechanical work first. A Codex mechanical worker requires a recorded delivery allowance, exception reason and remaining brain/review reserve; no allowance means zero dispatch. An owner instruction not to use Codex for delegation or leading overrides the allowance and sets worker/lead allocation to zero. Default Codex mechanical concurrency is one, with a usage checkpoint after its first clean checkpoint. Batch brain questions and review meaningful integrated chunks instead of every leaf assignment.
+
+Policy 0.7.0 separates coordination from judgment and protects Codex capacity. Opus 5 high remains an approved
 delivery-manager continuity profile but routes interpretation to an approved brain.
 Any Astra reserves Codex globally and any Fable 5.1 reserves Claude globally.
 Sol high-or-higher and Opus high-or-higher reserve their houses only for work

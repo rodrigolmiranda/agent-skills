@@ -41,6 +41,16 @@ Give each assignment an ID, revision and unique attempt ID. Include outcome, acc
 
 Use fast, low-cost mechanical workers whenever expected startup, supervision and integration overhead still improves accepted-result time or cost. Parallelize objectively testable assignments after interfaces and ownership are settled, using separate non-overlapping write surfaces. Put Muse Spark 1.3 on light mechanical work: repository reading/search, file localization, evidence collection, narrow checks and small explicit edits. Do not fragment work when dispatch and integration would cost more than direct execution.
 
+## Conserve Codex
+
+Treat Codex as protected brain and acceptance capacity across the full usage window. Use qualified Claude, Grok or OpenCode profiles first for mechanical execution, including parallel implementation, repository exploration, gate execution and evidence collection. Codex being capable of the task is not a reason to spend its capacity on it.
+
+Before any Codex mechanical subagent or mechanical Codex lead, capture the current Codex usage window when available, note known concurrent work, reserve enough capacity for remaining judgment, integration and exact-head semantic review, and record a positive delivery-level Codex mechanical allowance plus the reason. No recorded allowance means zero Codex mechanical dispatch. Start at most one Codex mechanical worker at a time; parallel Codex mechanical workers require explicit owner authorization.
+
+Recheck usage after the first Codex mechanical checkpoint when observable. Freeze new Codex mechanical dispatch when burn exceeds the allowance, threatens the brain/review reserve or cannot be reconciled with known concurrent use. Let useful in-flight work reach its nearest clean tested checkpoint unless a hard limit or safety condition requires interruption, then move remaining mechanical work to another approved house. Batch related questions and integrated reviews so the Codex brain receives compact evidence and exceptions instead of raw exploration. Run one Sol-high semantic/risk review at each meaningful integrated chunk boundary; remedies still require exact-head re-review.
+
+An explicit owner instruction such as “do not use Codex to delegate or lead” sets Codex mechanical worker and mechanical lead allocation to zero for that delivery, overriding any earlier allowance. Retain only the Codex brain or review use the owner explicitly requests. Run mechanical builds, tests and evidence collection outside Codex.
+
 Before any adapter creates a pull request, run the exact preflight command in
 the `adapter_contract.pr_base_preflight` entry of [commands.json](references/commands.json)
 and fail closed on its nonzero result. Routine feature, fix, chore and
@@ -97,4 +107,4 @@ retry from a fresh compact checkpoint rather than resume a thrashing context.
 
 Have a separate Sol high reviewer brain inspect semantics, risk, the actual diff and required evidence; use Astra medium when the review spans unusually large cross-workstream ambiguity. Mechanical workers may collect gates and evidence but cannot issue acceptance judgment. Reviewers return findings to the writer, not fix their own findings. Only a designated lead/manager may perform an authorized test merge. Read the current repository merge policy; bind review and gates to the current head and re-query the live base. Never use shared worker credentials as a claimed mechanical separation of roles.
 
-Collect duration and available provider counters mechanically, with unknowns explicit. For before/after quota snapshots, local attempt history and aggregate weekly retention, read [history-and-retro.md](references/history-and-retro.md). Reuse canonical GOV-0020 score definitions and GOV-0016 lessons; do not create a competing delivery-state ledger. Quality precedes speed and remaining allowance. Weekly routing/governance changes are proposals requiring owner approval; bounded schedule adaptation must stay within approved limits.
+Collect duration and available provider counters mechanically, with unknowns explicit. For before/after quota snapshots, Codex capacity conservation, local attempt history and aggregate weekly retention, read [history-and-retro.md](references/history-and-retro.md). Reuse canonical GOV-0020 score definitions and GOV-0016 lessons; do not create a competing delivery-state ledger. Quality precedes speed and remaining allowance. Weekly routing/governance changes are proposals requiring owner approval; bounded schedule adaptation must stay within approved limits.
