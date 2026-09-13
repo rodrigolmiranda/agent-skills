@@ -113,35 +113,86 @@ class CognitiveRoutingTests(unittest.TestCase):
         self.assertIn("write ownership", rules)
         self.assertIn("overhead would erase", rules)
 
-    def test_codex_mechanical_dispatch_defaults_to_zero_and_one_at_a_time(self):
+    def test_terra_sol_dispatch_defaults_to_zero_and_one_at_a_time(self):
         capacity = self.policy["codex_capacity"]
 
-        self.assertIn("zero", capacity["default_codex_mechanical_allowance"])
-        self.assertIn("one Codex mechanical worker", capacity["concurrency"])
+        self.assertIn("zero for Terra/Sol", capacity["default_codex_mechanical_allowance"])
+        self.assertIn("one Terra/Sol mechanical worker", capacity["concurrency"])
         self.assertIn("explicit owner authorization", capacity["concurrency"])
+        self.assertIn("Luna has no Interchange concurrency cap", capacity["concurrency"])
 
-    def test_codex_capacity_is_reserved_for_brain_integration_and_review(self):
+    def test_measured_capacity_preserves_sol_brain_integration_and_review(self):
         capacity = self.policy["codex_capacity"]
 
         self.assertIn("judgment", capacity["purpose"])
         self.assertIn("integration", capacity["purpose"])
         self.assertIn("semantic/risk acceptance", capacity["purpose"])
-        self.assertIn("Claude, Grok or OpenCode", capacity["mechanical_route"])
+        self.assertIn("Luna, DeepSeek or Muse", capacity["mechanical_route"])
 
-    def test_codex_usage_has_early_freeze_controls(self):
+    def test_terra_sol_usage_has_early_freeze_controls(self):
         capacity = self.policy["codex_capacity"]
         monitoring = {item["rule"]: item for item in self.policy["monitoring"]}
 
-        self.assertIn("Freeze new Codex mechanical dispatch", capacity["early_checkpoint"])
-        self.assertEqual(monitoring["Codex mechanical concurrency"]["value"], "At most 1 active by default")
-        self.assertIn("Freeze", monitoring["Codex early burn checkpoint"]["meaning"])
+        self.assertIn("Freeze new Terra/Sol dispatch", capacity["early_checkpoint"])
+        self.assertEqual(monitoring["Terra/Sol mechanical concurrency"]["value"], "At most 1 active by default")
+        self.assertIn("Freeze", monitoring["Terra/Sol early burn checkpoint"]["meaning"])
+
+    def test_luna_deepseek_and_muse_are_unrestricted_mechanical_capacity(self):
+        tiers = self.policy["capacity_tiers"]
+        unrestricted = tiers["unrestricted_mechanical"]
+
+        self.assertEqual(
+            set(unrestricted["profiles"]),
+            {
+                "worker-luna-xhigh",
+                "worker-luna-max",
+                "worker-muse-xhigh",
+                "worker-deepseek-flash-high",
+                "worker-deepseek-flash-max",
+            },
+        )
+        self.assertIn("an Interchange concurrency cap", unrestricted["rule"])
+        self.assertIn("Three, four, five or more", unrestricted["rule"])
+        self.assertIn("non-overlapping writes", unrestricted["boundaries"])
+
+    def test_terra_sol_and_claude_code_are_moderate_and_balanced(self):
+        tier = self.policy["capacity_tiers"]["moderate_balanced"]
+
+        self.assertEqual(
+            set(tier["models"]),
+            {"gpt-5.6-terra", "gpt-5.6-sol", "claude-opus-5"},
+        )
+        self.assertIn("Use moderately", tier["rule"])
+        self.assertIn("balance work between Codex and Claude Code", tier["rule"])
+        self.assertIn("Do not alternate houses mechanically", tier["not_forced"])
+
+    def test_luna_can_run_beside_sol_high_but_not_astra(self):
+        exclusivity = self.policy["house_exclusivity"]
+        exemptions = exclusivity["delivery_manager_exemptions"]
+
+        self.assertEqual(len(exemptions), 1)
+        self.assertEqual(
+            set(exemptions[0]["profiles"]),
+            {"worker-luna-xhigh", "worker-luna-max"},
+        )
+        self.assertIn("gpt-5.6-sol high", exemptions[0]["trigger"])
+        self.assertIn("Astra global exclusivity", exemptions[0]["reason"])
+        self.assertIn("except worker-luna-xhigh/max", exclusivity["manager_effect"])
+
+        astra_trigger = next(
+            trigger
+            for trigger in exclusivity["global_triggers"]
+            if trigger.get("model") == "gpt-6-astra"
+        )
+        self.assertEqual(astra_trigger["house"], "codex")
+        self.assertEqual(astra_trigger["effort"], "any")
 
     def test_owner_can_set_codex_delegation_and_leading_to_zero(self):
         capacity = self.policy["codex_capacity"]
         monitoring = {item["rule"]: item for item in self.policy["monitoring"]}
 
-        self.assertIn("mechanical and lead allocation to zero", capacity["override"])
-        self.assertIn("allowance to zero", monitoring["Owner zero-Codex override"]["meaning"])
+        self.assertIn("every Codex mechanical and lead allocation to zero", capacity["override"])
+        self.assertIn("including Luna, to zero", monitoring["Owner zero-Codex override"]["meaning"])
         self.assertIn("explicitly requested brain/review", monitoring["Owner zero-Codex override"]["meaning"])
 
     def test_demanding_mechanical_work_routes_external_before_codex(self):
@@ -152,7 +203,7 @@ class CognitiveRoutingTests(unittest.TestCase):
         )
 
         self.assertEqual(route["first"], "worker-deepseek-flash-high; worker-opus-high")
-        self.assertIn("recorded Codex mechanical allowance", route["fallback"])
+        self.assertIn("recorded Terra/Sol mechanical allowance", route["fallback"])
 
 
 if __name__ == "__main__":

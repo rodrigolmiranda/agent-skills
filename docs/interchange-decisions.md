@@ -25,32 +25,36 @@ flowchart TD
   I & J & K & L --> M{Net gain after startup, supervision and integration?}
   M -->|No| N[Execute directly or keep one coherent packet]
   M -->|Yes| O[Choose fastest low-cost qualified profile]
-  O --> CA{Codex mechanical profile?}
-  CA -->|No| P{Independent objective packets and non-overlapping writes?}
-  CA -->|Yes| CZ{Owner set Codex delegation or leading to zero?}
+  O --> CZ{Owner zero-Codex override blocks selected Codex profile?}
   CZ -->|Yes| CE[Use an eligible external house]
-  CZ -->|No| CB{Positive allowance, reason and brain-review reserve recorded?}
+  CZ -->|No| CT{Capacity tier}
+  CT -->|Luna, DeepSeek or Muse| CU[No balance allowance or concurrency cap; fan out useful independent packets]
+  CT -->|Grok| P{Independent objective packets and non-overlapping writes?}
+  CT -->|Terra, Sol or Claude Code| CM[Use moderately; balance Claude and Codex when fit is comparable]
+  CM --> CA{Terra or Sol mechanical profile?}
+  CA -->|No| P
+  CA -->|Yes| CB{Positive allowance, reason and brain-review reserve recorded?}
   CB -->|No| CE[Use an eligible external house]
-  CB -->|Yes| CC{No active Codex mechanical worker?}
+  CB -->|Yes| CC{No active Terra or Sol mechanical worker?}
   CC -->|Yes| CD[Start one; recheck usage at first clean checkpoint]
   CC -->|No| CF[Queue or obtain explicit owner authorization]
-  CE & CD & CF --> P
+  CE & CU & CD & CF --> P
   P -->|Yes| Q[Run in parallel]
   P -->|No| R[Run sequentially with one writer]
   N & Q & R --> U{Same-house exclusivity conflict?}
   X[Global: any Astra in Codex, any Fable 5.1 in Claude] -.-> U
-  Y[Same delivery manager only: Sol high+ in Codex, Opus high+ in Claude] -.-> U
+  Y[Same delivery manager only: Sol high+ in Codex except Luna leaves; Opus high+ in Claude] -.-> U
   U -->|Yes| V[Eligible other house or queue]
   U -->|No| S[Exact profile and tool permissions verified before dispatch]
 ```
 
 Sol high is the default product, architecture and ideation brain. Every Astra or Fable start, resume, retry and follow-up requires fresh owner authorization bound to that invocation and a concrete recorded reason Sol high cannot fit. Prior authorization cannot be reused. Fable also needs its included-plan/no-extra-cost check. Independent semantic and risk acceptance uses Sol high by default; Astra is subject to the same gate. Other profiles execute settled mechanical packets and return ambiguity instead of interpreting it. A delivery manager on another profile may coordinate but does not gain judgment authority.
 
-Muse Spark 1.3 is the light mechanical and read/seek lane. Use fast, low-cost workers when startup, supervision and integration still produce a net gain, and parallelize only independent objectively testable packets with non-overlapping write ownership. Pools are starting preferences, not universal model rankings. Read [development routing instructions](../skills/interchange/references/routing.md) for task boundaries and escalation. Worker model choice grants no delegation or merge authority.
+Luna xhigh/max, DeepSeek V4.1 Flash and Muse Spark 1.3 are the unrestricted mechanical tier. They need no balancing allowance or Interchange concurrency authorization, so three, four, five or more may run when useful. Every assignment still needs objective acceptance, bounded ownership, non-overlapping writes, watchdogs and independent review. Terra, Sol and Claude Code are used moderately and balanced across Codex/Claude when task fit is comparable. Grok retains its existing routing. Pools are starting preferences, not universal model rankings. Read [development routing instructions](../skills/interchange/references/routing.md) for task boundaries and escalation.
 
-Codex is protected brain and semantic-review capacity. External houses take mechanical work first. A Codex mechanical worker requires a recorded delivery allowance, exception reason and remaining brain/review reserve; no allowance means zero dispatch. An owner instruction not to use Codex for delegation or leading overrides the allowance and sets worker/lead allocation to zero. Default Codex mechanical concurrency is one, with a usage checkpoint after its first clean checkpoint. Batch brain questions and review meaningful integrated chunks instead of every leaf assignment.
+Sol is protected brain and semantic-review capacity. Terra/Sol mechanical work requires a recorded delivery allowance, exception reason and remaining brain/review reserve; no allowance means zero Terra/Sol dispatch. Default Terra/Sol mechanical concurrency is one. Luna is exempt from that gate. An owner instruction not to use Codex for delegation or leading still sets every Codex worker/lead allocation, including Luna, to zero. Batch brain questions and review meaningful integrated chunks instead of every leaf assignment.
 
-Policy 0.8.0 separates coordination from judgment, protects Codex capacity and owner-gates every Astra/Fable invocation. Opus 5 high remains an approved
+Policy 0.9.0 separates coordination from judgment, defines capacity tiers and owner-gates every Astra/Fable invocation. Opus 5 high remains an approved
 delivery-manager continuity profile but routes interpretation to an approved brain.
 Any Astra reserves Codex globally and any Fable 5.1 reserves Claude globally.
 Sol high-or-higher and Opus high-or-higher reserve their houses only for work

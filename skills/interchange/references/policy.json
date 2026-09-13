@@ -1,5 +1,5 @@
 {
-  "version": "0.8.0",
+  "version": "0.9.0",
   "approved_on": "2026-09-13",
   "status": "Approved operating design; live runner not implemented",
   "profiles": [
@@ -256,19 +256,19 @@
     {
       "task": "One direct lookup",
       "first": "Local search/tool when immediate; worker-muse-xhigh when delegation frees the Codex brain or is faster overall",
-      "fallback": "Another external read-only mechanical profile; Codex worker only under a recorded mechanical allowance",
+      "fallback": "worker-luna-xhigh or worker-luna-max or another bounded read-only profile; Luna needs no balancing allowance",
       "reason": "Count startup, supervision and handback overhead; delegate when it improves accepted-result time or cost"
     },
     {
       "task": "Light mechanical and read/seek task",
       "first": "worker-muse-xhigh",
-      "fallback": "Another external bounded worker; Luna xhigh/max only under a recorded Codex mechanical allowance",
+      "fallback": "worker-luna-xhigh or worker-luna-max or another bounded worker; Luna, Muse and DeepSeek need no balancing allowance",
       "reason": "Repository search, localization, evidence collection, narrow checks and small explicit edits; no interpretation"
     },
     {
       "task": "Low/mid complexity development",
       "first": "worker-deepseek-flash-high; worker-grok-high; worker-opus-medium; worker-terra-xhigh; worker-sol-medium",
-      "fallback": "Codex worker from this pool only under a recorded mechanical allowance and after external fit/availability check",
+      "fallback": "Prefer unrestricted DeepSeek/Muse/Luna when task-fit; Terra/Sol require measured Codex allowance and Claude Code remains moderate/balanced",
       "reason": "Settled behavior, objective acceptance and bounded dependencies; ambiguity already resolved by a brain"
     },
     {
@@ -280,13 +280,13 @@
     {
       "task": "High complexity development",
       "first": "lead-sol-high resolves judgment; worker-opus-high or another qualified external profile executes settled packets",
-      "fallback": "lead-astra-medium resolves unusually large ambiguity; Codex mechanical worker requires a recorded allowance; every Astra invocation requires fresh owner authorization and a concrete reason Sol high cannot fit",
+      "fallback": "lead-astra-medium resolves unusually large ambiguity; Terra/Sol mechanical worker requires a recorded allowance; every Astra invocation requires fresh owner authorization and a concrete reason Sol high cannot fit",
       "reason": "Separate consequential decisions from implementation; independent review remains mandatory"
     },
     {
       "task": "Demanding but well-defined implementation",
       "first": "worker-deepseek-flash-high; worker-opus-high",
-      "fallback": "worker-terra-max only under a recorded Codex mechanical allowance; never DeepSeek V4 Pro",
+      "fallback": "worker-terra-max only under a recorded Terra/Sol mechanical allowance; never DeepSeek V4 Pro",
       "reason": "Dense mechanical implementation or integration with exact contracts and tests; never assign interpretation or use effort to outlast a loop"
     },
     {
@@ -298,7 +298,7 @@
     {
       "task": "Workstream with fixed contracts",
       "first": "Current delivery manager coordinates settled packets across external mechanical workers",
-      "fallback": "lead-terra-xhigh/max only under a recorded Codex mechanical allowance",
+      "fallback": "lead-terra-xhigh/max only under a recorded Terra/Sol mechanical allowance",
       "reason": "Preserve Codex brain capacity; a mechanical lead coordinates only settled work and returns ambiguity to Sol high or Astra medium"
     },
     {
@@ -364,22 +364,22 @@
     {
       "rule": "Owner zero-Codex override",
       "value": "Explicit do-not-use-Codex-for-delegation-or-leading instruction",
-      "meaning": "Set Codex mechanical worker and mechanical lead allowance to zero; retain only explicitly requested brain/review use"
+      "meaning": "Set every Codex mechanical worker and lead allocation, including Luna, to zero; retain only explicitly requested brain/review use"
     },
     {
-      "rule": "Codex capacity preflight",
-      "value": "Fresh usage snapshot when available + declared brain/review reserve + explicit mechanical allowance",
-      "meaning": "No recorded allowance means zero new Codex mechanical workers; external houses are the default execution lane"
+      "rule": "Terra/Sol capacity preflight",
+      "value": "Fresh usage snapshot when available + declared brain/review reserve + explicit Terra/Sol mechanical allowance",
+      "meaning": "No recorded allowance means zero new Terra/Sol mechanical workers; Luna is exempt unless Astra exclusivity or an owner zero-Codex override applies"
     },
     {
-      "rule": "Codex mechanical concurrency",
+      "rule": "Terra/Sol mechanical concurrency",
       "value": "At most 1 active by default",
-      "meaning": "Parallel Codex mechanical workers require explicit owner authorization; prefer external-house parallelism"
+      "meaning": "Parallel Terra/Sol mechanical workers require explicit owner authorization; Luna is unrestricted by this cap"
     },
     {
-      "rule": "Codex early burn checkpoint",
-      "value": "Recheck after first mechanical checkpoint when usage is observable",
-      "meaning": "Freeze new Codex mechanical dispatch when burn exceeds allowance or threatens reserved brain/review capacity"
+      "rule": "Terra/Sol early burn checkpoint",
+      "value": "Recheck after first Terra/Sol mechanical checkpoint when usage is observable",
+      "meaning": "Freeze new Terra/Sol mechanical dispatch when burn exceeds allowance or threatens reserved brain/review capacity"
     },
     {
       "rule": "Codex review batching",
@@ -425,6 +425,21 @@
       "rule": "Astra/Fable authorization reuse",
       "value": "Forbidden",
       "meaning": "A completed, failed or suspended invocation consumes its authorization; the next invocation needs a new owner decision"
+    },
+    {
+      "rule": "Unrestricted mechanical tier",
+      "value": "Luna xhigh/max, DeepSeek V4.1 Flash high/max, Muse Spark 1.3 xhigh",
+      "meaning": "No balancing prerequisite or Interchange concurrency cap; three, four, five or more may run when assignments are useful, independent and non-overlapping"
+    },
+    {
+      "rule": "Unrestricted-tier safeguards",
+      "value": "Normal ownership, watchdog, completion and independent-acceptance rules remain",
+      "meaning": "Free use never permits duplicate writers, overlapping paths, interpretation, unbounded loops or extra spending"
+    },
+    {
+      "rule": "Moderate balanced tier",
+      "value": "Terra, Sol and Claude Code",
+      "meaning": "Plan and observe usage, protect brain/review capacity, avoid unnecessary concentration and balance across Claude/Codex when task fit is comparable; no forced alternation"
     }
   ],
   "governance": [
@@ -528,9 +543,9 @@
     "Coordination is not judgment authority. Opus delivery managers and mechanical leads may coordinate, monitor and integrate, but route unresolved interpretation to an approved brain.",
     "Mechanical packets contain settled behavior, objective acceptance, owned paths, allowed variance and an escalation condition. Workers return evidence and the smallest question when a choice requires interpretation.",
     "Owner may set Codex delegation or leading to zero for a delivery. This overrides any planned mechanical allowance and preserves only explicitly requested Codex brain/review use.",
-    "Codex capacity is reserved for product/architecture judgment, integration decisions and independent semantic/risk review across the full usage window. Model quality alone does not justify Codex mechanical execution.",
-    "External houses are the default mechanical lane. A Codex mechanical worker needs a recorded delivery allowance and reason; absence of an allowance means zero Codex mechanical dispatch.",
-    "Codex mechanical concurrency defaults to one. Parallel Codex mechanical workers require explicit owner authorization; use qualified external houses for parallel execution.",
+    "Sol, Terra and Claude Code are moderate, balanced capacity. Preserve Sol for judgment, integration and independent semantic/risk review; use unrestricted Luna, DeepSeek and Muse for suitable mechanical work and balance premium work across Claude/Codex when fit is comparable.",
+    "Luna xhigh/max, DeepSeek V4.1 Flash and Muse Spark 1.3 are the unrestricted mechanical tier. They require no balancing allowance and have no Interchange concurrency cap when packets are independent and non-overlapping.",
+    "Terra/Sol mechanical concurrency defaults to one and requires a recorded allowance; parallel Terra/Sol workers require explicit owner authorization. Luna is exempt unless Astra exclusivity or an owner zero-Codex override applies.",
     "Batch Codex brain questions and integrated reviews. Send compact evidence and exceptions gathered by mechanical workers instead of using Codex for broad repository exploration.",
     "Run build, test and evidence collection mechanically. Use one Sol-high semantic/risk review per meaningful integrated chunk; new remedy commits still require exact-head re-review.",
     "Use fast, low-cost mechanical workers when startup, supervision and integration overhead still improves accepted-result time or cost. Parallelize independent objectively testable packets after decisions, interfaces and write ownership are fixed.",
@@ -540,7 +555,7 @@
     "No automatic repeated effort increases. Stop, diagnose or reassign under existing watchdog and recovery limits.",
     "High consequence can require stronger review even for a small edit. Model choice never removes acceptance gates.",
     "Verify effective model and effort at dispatch. Newly configured Grok/Opus combinations are not yet claimed smoke-tested; no unapproved substitution.",
-    "House exclusivity has two scopes. Astra at any effort reserves Codex globally and Fable 5.1 at any effort reserves Claude globally. Sol high or higher reserves Codex only for assignments under the same delivery manager; Opus high or higher reserves Claude only for assignments under the same delivery manager.",
+    "House exclusivity has two scopes. Astra at any effort reserves Codex globally and Fable 5.1 at any effort reserves Claude globally. Sol high or higher reserves Codex under the same delivery manager except unrestricted Luna xhigh/max mechanical leaves; Opus high or higher reserves Claude under the same delivery manager without that exception.",
     "New-product brainstorming uses Sol high by default. Fable 5.1 medium or Astra medium requires fresh invocation-specific owner authorization and a concrete reason Sol high cannot fit; Fable separately requires included-plan/no-extra-spend proof. Both create global house reservations while active.",
     "Fable model authorization does not permit paid usage credits or extra spending. Verify included allowance before any headless request.",
     "The delivery manager keeps its turn active with a real bounded wait while workers run. It may finish only after terminal handbacks or explicit transfer to another live supervisor.",
@@ -551,7 +566,9 @@
     "DeepSeek V4.1 Flash uses the provider code opencode-go/deepseek-v4.1-flash. The human-readable name and provider code identify the same approved model. The provider renamed this code from opencode-go/deepseek-flash, which no longer appears in `opencode models`; the version now lives in the code itself.",
     "DeepSeek high is the default for bounded implementation. DeepSeek max mechanically implements novel public contract, identity, schema or serialization shapes only after an approved brain settles the shape and objective contract tests.",
     "DeepSeek V4 Pro, DeepSeek V4 Flash and the vision-exp variants are excluded: opencode-go/deepseek-v4-pro, opencode-go/deepseek-v4-flash and opencode-go/deepseek-v4-flash-vision-exp are DIFFERENT models, not fallbacks for V4.1 Flash. If opencode-go/deepseek-v4.1-flash is unavailable, stop and reroute to a different approved house; never substitute another DeepSeek model.",
-    "Every Astra or Fable invocation in any role requires fresh explicit owner authorization bound to that start, resume, retry or follow-up, plus a concrete reason gpt-5.6-sol high cannot fit. Prior authorization is never reusable; Fable also requires included-plan/no-extra-spend proof."
+    "Every Astra or Fable invocation in any role requires fresh explicit owner authorization bound to that start, resume, retry or follow-up, plus a concrete reason gpt-5.6-sol high cannot fit. Prior authorization is never reusable; Fable also requires included-plan/no-extra-spend proof.",
+    "Unrestricted does not mean ungoverned: Luna, DeepSeek and Muse still require bounded mechanical packets, non-overlapping ownership, watchdogs, valid completion and independent acceptance. Do not duplicate work merely because capacity is available.",
+    "Grok retains its approved task-fit routing but is not part of the unrestricted tier or the new Terra/Sol/Claude balancing rule."
   ],
   "runtime_adapter_priorities": [
     "Machine-owned output adapter",
@@ -598,12 +615,23 @@
       "max",
       "ultra"
     ],
-    "rule": "A global trigger prevents every other visible Interchange-managed assignment from overlapping in that house. A delivery-manager trigger prevents same-house overlap only among assignments owned or supervised by that delivery manager; separately managed deliveries may still use the house. Check new and existing assignments symmetrically. Higher levels apply only where model/tool supported and separately approved.",
+    "rule": "A global trigger prevents every other visible Interchange-managed assignment from overlapping in that house. A delivery-manager trigger prevents same-house overlap among assignments owned or supervised by that manager, except an explicitly listed delivery_manager_exemption. Separately managed deliveries may still use the house. Check new and existing assignments symmetrically.",
     "conflict_action": "Prefer an eligible other house; otherwise queue. Do not silently lower effort, kill other sessions, or widen permissions.",
     "release": "Release only after attempt stops or is explicitly suspended with no remaining computation and supervisor ownership preserved; an open idle transcript alone is not an active assignment.",
-    "manager_effect": "An active Astra manager reserves Codex globally. An active Sol-high manager reserves Codex within its own managed work. An active Opus-high manager reserves Claude within its own managed work. No implicit exemption for same-scope subagents or review.",
+    "manager_effect": "An active Astra manager reserves Codex globally. An active Sol-high manager reserves Codex within its own managed work except worker-luna-xhigh/max mechanical leaves. An active Opus-high manager reserves Claude within its own managed work. No other implicit exemption applies.",
     "outside_activity": "Check visible external activity without controlling it; user sessions outside Interchange cannot be reliably locked by skill text. Disclose unknown occupancy.",
-    "status": "Instruction policy only; cross-process reservation enforcement awaits live runner"
+    "status": "Instruction policy only; cross-process reservation enforcement awaits live runner",
+    "delivery_manager_exemptions": [
+      {
+        "trigger": "codex gpt-5.6-sol high or higher",
+        "profiles": [
+          "worker-luna-xhigh",
+          "worker-luna-max"
+        ],
+        "scope": "mechanical leaf assignments only",
+        "reason": "Owner-designated unrestricted Luna capacity may run concurrently with the Sol brain/manager; Astra global exclusivity and owner zero-Codex override still take precedence"
+      }
+    ]
   },
   "cognitive_roles": {
     "default_brain": [
@@ -628,17 +656,17 @@
     "semantic_acceptance_rule": "Only profiles in semantic_review_brain may issue semantic or risk acceptance. Product-ideation brains, coordinators and mechanical workers cannot."
   },
   "codex_capacity": {
-    "purpose": "Preserve Codex for product/architecture judgment, integration decisions and independent semantic/risk acceptance across the full reset window.",
-    "mechanical_route": "Use qualified Claude, Grok or OpenCode workers before Codex mechanical subagents. Codex model quality alone is not a reason to spend protected brain capacity on settled execution.",
-    "delivery_preflight": "Capture the current Codex usage window when available, note known concurrent Codex work, reserve capacity for remaining brain/integration/review work, and record a positive Codex mechanical allowance before any Codex mechanical dispatch.",
-    "default_codex_mechanical_allowance": "zero when the delivery plan records no explicit allowance",
-    "dispatch_exception": "A Codex mechanical worker requires a recorded reason: no external profile is capable/available within constraints, verified context continuity produces a lower accepted-result cost, or Codex-only tooling makes external execution impractical.",
-    "concurrency": "Start at most one Codex mechanical worker at a time. Parallel Codex mechanical workers require explicit owner authorization; external mechanical workers remain the default parallel lane.",
-    "early_checkpoint": "After the first Codex mechanical checkpoint, capture usage again when available. Freeze new Codex mechanical dispatch if observed burn exceeds the delivery allowance, threatens the brain/review reserve, or cannot be reconciled with known concurrent use.",
+    "purpose": "Use Sol and Terra moderately while preserving Sol for product/architecture judgment, integration decisions and independent semantic/risk acceptance across the full reset window.",
+    "mechanical_route": "Use unrestricted Luna, DeepSeek or Muse workers first when task-fit. Balance necessary Terra/Sol mechanical work with qualified Claude Code capacity when fit is comparable.",
+    "delivery_preflight": "Before Terra/Sol mechanical dispatch, capture the current Codex usage window when available, note known concurrent work, reserve brain/integration/review capacity and record a positive Terra/Sol allowance. Luna does not require this allowance.",
+    "default_codex_mechanical_allowance": "zero for Terra/Sol mechanical work when no explicit allowance is recorded; Luna xhigh/max is exempt",
+    "dispatch_exception": "A Terra/Sol mechanical worker requires a recorded reason. Luna xhigh/max, DeepSeek V4.1 Flash and Muse Spark 1.3 require no balancing exception.",
+    "concurrency": "Start at most one Terra/Sol mechanical worker at a time. Parallel Terra/Sol mechanical workers require explicit owner authorization. Luna has no Interchange concurrency cap, subject to independent non-overlapping packets, runtime capacity, Astra exclusivity and the owner zero-Codex override.",
+    "early_checkpoint": "After the first Terra/Sol mechanical checkpoint, capture usage again when available. Freeze new Terra/Sol dispatch if burn exceeds allowance or threatens the brain/review reserve. This balance checkpoint is not required for Luna.",
     "in_flight": "Do not interrupt useful in-flight work merely to recover sunk quota. Let it reach the nearest clean tested checkpoint unless a hard limit or safety condition requires interruption; then route remaining mechanical work externally.",
     "brain_efficiency": "Batch related ambiguity questions and integration decisions. Gather repository evidence through Muse/external workers and give the brain compact exceptions rather than raw exploration.",
     "review_efficiency": "Run mechanical gates outside Codex. Use one Sol-high semantic/risk review at each meaningful integrated chunk boundary; new remedy commits still require exact-head re-review.",
-    "override": "The owner may explicitly prohibit Codex delegation or leading for a delivery. That instruction sets Codex mechanical and lead allocation to zero while preserving only explicitly requested brain/review use."
+    "override": "The owner may explicitly prohibit Codex delegation or leading for a delivery. That instruction sets every Codex mechanical and lead allocation to zero, including Luna, while preserving only explicitly requested brain/review use."
   },
   "owner_gated_brains": {
     "scope": "Every model invocation, including start, resume, retry and follow-up, in every role",
@@ -656,5 +684,29 @@
     "non_reuse": "Authorization is bound to one invocation and expires when that invocation returns or exits. Never reuse it for another start, resume, retry or follow-up.",
     "missing": "Do not dispatch. Use gpt-5.6-sol high when it fits; otherwise present the concrete non-fit reason and wait for owner authorization.",
     "fable_additional_gate": "Authorization does not permit paid usage. Confirm included-plan/no-extra-cost eligibility separately before every Fable invocation."
+  },
+  "capacity_tiers": {
+    "unrestricted_mechanical": {
+      "profiles": [
+        "worker-luna-xhigh",
+        "worker-luna-max",
+        "worker-muse-xhigh",
+        "worker-deepseek-flash-high",
+        "worker-deepseek-flash-max"
+      ],
+      "rule": "Use freely without quota balancing, delivery allowance or an Interchange concurrency cap. Three, four, five or more concurrent assignments are allowed when useful.",
+      "boundaries": "Assignments remain mechanical, bounded, objectively testable and independently owned with non-overlapping writes. Runtime/provider limits, watchdogs, spending policy, completion protocol, review, Astra/Fable exclusivity and explicit owner overrides still apply."
+    },
+    "moderate_balanced": {
+      "models": [
+        "gpt-5.6-terra",
+        "gpt-5.6-sol",
+        "claude-opus-5"
+      ],
+      "rule": "Use moderately. Observe available usage, protect brain/review reserve, avoid unnecessary concentration and balance work between Codex and Claude Code when task fit is comparable.",
+      "not_forced": "Do not alternate houses mechanically or select a worse-fit model merely to equalize usage. Record material imbalance and its task-fit or continuity reason."
+    },
+    "grok_status": "Grok keeps its existing approved routing. This revision neither classifies it as unrestricted nor adds a new balancing requirement.",
+    "astra_fable": "Astra and Fable retain invocation-specific owner authorization and existing house exclusivity. Fable also retains its no-extra-spend gate."
   }
 }

@@ -1,6 +1,6 @@
 # Development routing instructions
 
-Owner revision 2026-09-13; configured profile IDs and evidence status are in `policy.json` version 0.8.0. These are initial preferred pools, not benchmark rankings or interchangeable capability claims.
+Owner revision 2026-09-13; configured profile IDs and evidence status are in `policy.json` version 0.9.0. These are initial preferred pools, not benchmark rankings or interchangeable capability claims.
 
 Sol high is the default product, architecture and ideation brain. Astra medium and
 Fable 5.1 medium are candidates only after the owner authorizes that exact model
@@ -41,18 +41,30 @@ the delivery session.
 
 ## Preserve Codex capacity
 
-Route mechanical work to qualified Claude, Grok or OpenCode profiles first. Preserve
-Codex for judgment, integration decisions and semantic/risk review across the full
-usage window. Before a Codex mechanical worker or mechanical lead, record the current
-usage snapshot when available, known concurrent work, the brain/review reserve, a
-positive mechanical allowance and the reason external execution is unsuitable. No
-allowance means no Codex mechanical dispatch. Start one Codex mechanical worker at a
-time; more requires explicit owner authorization. Recheck usage at its first clean
-checkpoint and freeze further Codex mechanical dispatch when burn exceeds plan or
-threatens the reserve.
+Luna xhigh/max, DeepSeek V4.1 Flash and Muse Spark 1.3 form the unrestricted
+mechanical tier. They need no quota-balancing prerequisite, delivery allowance or
+Interchange concurrency authorization. Run three, four, five or more concurrently
+when that improves delivery. Each packet must remain bounded, objectively testable,
+independently owned and non-overlapping, with normal watchdog, completion and review
+controls. Runtime/provider limits, spending policy and active Astra/Fable exclusivity
+still apply.
+
+Use Terra, Sol and Claude Code moderately. Observe available usage and active work,
+protect Sol brain/review capacity, avoid unnecessary concentration and balance
+premium work across Codex and Claude when task fit is comparable. Do not force
+alternation or select a worse-fit model to equalize usage. Grok keeps its existing
+task-fit routing and is not added to either capacity tier by this revision.
+
+Before a Terra/Sol mechanical worker or lead, record the current usage snapshot when
+available, known concurrent work, the brain/review reserve, a positive allowance and
+the reason unrestricted or external execution is unsuitable. No allowance means no
+Terra/Sol mechanical dispatch. Start one Terra/Sol mechanical worker at a time; more
+requires explicit owner authorization. Luna is exempt from that allowance and cap.
+Recheck usage at the first Terra/Sol clean checkpoint and freeze further Terra/Sol
+dispatch when burn exceeds plan or threatens the reserve.
 
 An owner instruction not to use Codex for delegation or leading overrides every
-mechanical allowance and sets Codex worker/lead allocation to zero. Keep only the
+mechanical allowance and sets all Codex worker/lead allocation, including Luna, to zero. Keep only the
 Codex brain/review use explicitly requested. Run builds, tests and evidence collection
 through mechanical external workers.
 
@@ -68,10 +80,11 @@ Claude globally (currently approved only at medium). Global covers all visible
 Interchange-managed delivery managers, deliveries, projects and roles.
 
 Sol high or higher reserves Codex only within assignments owned or supervised by
-the same delivery manager. Opus high or higher applies the same manager-scoped
-reservation to Claude. Another delivery manager may use that house concurrently,
-subject to any global reservation. Managers, leads, workers and reviewers have no
-implicit exemption inside the applicable scope.
+the same delivery manager, with one explicit exception: Luna xhigh/max mechanical
+leaves may run concurrently under the unrestricted tier. Opus high or higher
+applies its manager-scoped reservation to Claude without that exception. Another
+delivery manager may use the house concurrently, subject to any global reservation.
+No other role or profile has an implicit exemption.
 
 The check is symmetric: an exclusive job must wait for existing conflicting jobs,
 and a new ordinary job must wait behind an applicable reservation. Prefer another
@@ -84,9 +97,10 @@ Release reservation after the attempt stops, or explicit suspension confirms no
 remaining computation and preserves supervision/continuation ownership. Merely
 waiting for a tool or posting a checkpoint does not release an active assignment.
 An idle saved transcript is not itself a reservation. An active Astra manager
-therefore sends all parallel Codex work to other houses. A Sol-high manager sends
-its own parallel Codex work elsewhere, while an independent delivery manager may
-still use Codex if no global reservation applies.
+therefore sends all parallel Codex work to other houses. A Sol-high manager may run
+unrestricted Luna xhigh/max leaves concurrently, while its other Codex work waits
+or moves elsewhere. An independent delivery manager may still use Codex if no
+global reservation applies.
 
 Fable medium cannot run alongside any other active Claude assignment. External user
 sessions may be invisible; disclose uncertain occupancy rather than claim a
