@@ -93,6 +93,69 @@ complete packet, not only a retry note. Treat exit zero after `finish=tool-calls
 as incomplete. Resume only within the attempt watchdog and only when the installed
 CLI demonstrably continues to a final assistant response.
 
+Headless OpenCode auto-rejects its default `external_directory: ask` requests.
+An attachment outside the selected `--dir`, or an artifact path such as `/tmp`,
+therefore fails before useful work unless the adapter grants that exact directory.
+For OpenCode 1.18.30's configuration shape, verified on 2026-09-13 with
+`opencode debug config`, prefer an attempt-scoped
+`OPENCODE_CONFIG_CONTENT` override with a narrow rule such as:
+
+```json
+{
+  "permission": {
+    "external_directory": {
+      "/tmp/interchange-<attempt-id>/**": "allow"
+    },
+    "edit": {
+      "*": "deny",
+      "/tmp/interchange-<attempt-id>/**": "allow"
+    }
+  }
+}
+```
+
+Generate the unique directory before launch, never allow `/tmp/**`, and combine
+the external boundary with the assignment's separate read/edit/bash rules. Use
+`opencode debug config` under the same environment to prove the override resolved,
+then run a harmless positive access check and a negative sibling-path check. Detect
+the installed configuration generation first: OpenCode v2 uses ordered
+`permissions` rules and `shell`/`subagent` action names instead of v1's
+`permission` and `bash`/`task`. If the adapter cannot map the installed version,
+fail closed. An in-worktree untracked packet/artifact directory is an acceptable
+fallback, but the manager must remove it after terminal handback and verify that
+no source diff remains.
+
+The override is an environment variable on the exact `opencode` process, not a
+credential and not a global user setting. Construct it as JSON in the adapter and
+pass it to both preflight and execution. A minimal preflight is:
+
+1. create `/tmp/interchange-<attempt-id>/` and one harmless probe file inside it;
+2. resolve `OPENCODE_CONFIG_CONTENT` with `opencode debug config` and inspect only
+   the `permission` object, because the full resolved configuration may contain
+   unrelated provider details;
+3. run the selected profile against the allowed probe and require success;
+4. request the same operation against a sibling path and require denial;
+5. launch the real attempt with the identical environment and literal prompt,
+   `--dir`, model, variant and attachment arguments.
+
+For read-only external attachments, omit the `edit` block. For an authorized
+external artifact writer, allow only its attempt directory. Repository edit and
+command permissions remain those of the assignment profile; this override grants
+only the named external-directory boundary. Remove the attempt directory after a
+terminal handback unless it is retained as cited evidence.
+
+Do not resume a session that retains an inaccessible original `--file` attachment:
+the client can replay that boundary and fail again even when a new in-worktree
+attachment is supplied. After confirming process and worktree ownership are clear,
+start one fresh compact attempt with the corrected attachment set.
+
+For Playwright, bind the process working directory to the directory that owns the
+intended `package.json` and `playwright.config.*`. A repository-root invocation of
+a nested suite can load a second Playwright package/config and fail at collection
+with `Playwright Test did not expect test.describe() to be called here`. Store the
+working directory separately from the spec path in the packet and preflight both;
+do not convert a known suite command into a repository-root-relative command.
+
 For DeepSeek V4.1 Flash, require the exact provider code
 `opencode-go/deepseek-v4.1-flash` and the selected `high` or `max` variant in both
 the request and observed session metadata. A mismatch or unavailable route
