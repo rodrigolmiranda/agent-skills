@@ -283,7 +283,7 @@
         "{prompt}"
       ],
       "cwd": "{worktree}",
-      "mode": "Brainstorming only, no tools. Verify exact model/effort, supported client and included-plan billing BEFORE launch; headless Fable may charge credits without a consent prompt.",
+      "mode": "Brainstorming only, no tools. Before EACH start/resume/retry/follow-up, require fresh owner authorization bound to the invocation and a concrete reason gpt-5.6-sol high cannot fit; never reuse approval. Also verify exact model/effort, supported client and included-plan billing BEFORE launch; headless Fable may charge credits without a consent prompt.",
       "evidence": "Official configuration supports model and medium; no live invocation performed"
     }
   },
@@ -296,7 +296,7 @@
       "reasoning_effort",
       "fork_turns"
     ],
-    "rule": "Use exact selected profile model/effort, fork_turns none with complete bounded context. Check current tool availability; fixed-role defaults may conflict with approved efforts. Do not claim changing the active manager model through this call. Before dispatch, check both scopes: Astra/Fable reserve their houses globally; Sol-high/Opus-high reserve their houses only under the same delivery manager, including same-scope subagents."
+    "rule": "Use exact selected profile model/effort, fork_turns none with complete bounded context. Check current tool availability; fixed-role defaults may conflict with approved efforts. Do not claim changing the active manager model through this call. Before dispatch, check both scopes: Astra/Fable reserve their houses globally; Sol-high/Opus-high reserve their houses only under the same delivery manager, including same-scope subagents. Every Astra start, resume, retry or follow-up requires fresh invocation-specific owner authorization and a concrete reason gpt-5.6-sol high cannot fit; never reuse approval."
   },
   "adapter_contract": {
     "reference": "runtime-adapters.md",
@@ -314,7 +314,10 @@
       "stdout": "one JSON PullRequestBaseDecision; invoke before gh pr create or any provider equivalent"
     },
     "required_preflight": [
+      "Astra/Fable invocation gate: before every start, resume, retry or follow-up in any role, require fresh explicit owner authorization bound to packet/attempt/invocation plus a concrete reason gpt-5.6-sol high cannot fit; reject reused approval; Fable separately requires included-plan/no-extra-spend proof",
       "brain/mechanical classification; mechanical packets contain settled behavior, objective acceptance, allowed variance and ambiguity escalation",
+      "owner zero-Codex override check: an explicit no-Codex-delegation-or-leading instruction sets mechanical worker/lead allowance to zero",
+      "for Codex mechanical dispatch: usage snapshot when available, known concurrent work, brain/review reserve, positive delivery allowance, exception reason and active mechanical count",
       "PR base preflight command above, before PR creation",
       "literal argv and provider-specific argument order",
       "complete packet and coordination-file access",

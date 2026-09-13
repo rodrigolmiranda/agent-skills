@@ -44,6 +44,38 @@ class CognitiveRoutingTests(unittest.TestCase):
             ["dm-astra-medium", "lead-astra-medium"],
         )
 
+    def test_every_astra_and_fable_profile_is_owner_gated_per_invocation(self):
+        gated_models = {"gpt-6-astra", "claude-fable-5-1"}
+        gated_profiles = [
+            profile for profile in self.policy["profiles"]
+            if profile["model"] in gated_models
+        ]
+
+        self.assertTrue(gated_profiles)
+        for profile in gated_profiles:
+            gate = profile.get("invocation_authorization", "")
+            self.assertIn("Fresh explicit owner authorization", gate)
+            self.assertIn("start/resume/retry/follow-up", gate)
+            self.assertIn("gpt-5.6-sol high cannot fit", gate)
+            self.assertIn("never reuse", gate)
+
+        policy_gate = self.policy["owner_gated_brains"]
+        self.assertIn("Every model invocation", policy_gate["scope"])
+        self.assertIn("Only the owner", policy_gate["authority"])
+        self.assertIn("Never reuse", policy_gate["non_reuse"])
+        self.assertIn("included-plan/no-extra-cost", policy_gate["fable_additional_gate"])
+
+    def test_sol_high_is_default_for_product_ideation(self):
+        route = next(
+            route
+            for route in self.policy["routing"]
+            if route["task"] == "New product idea and brainstorming"
+        )
+
+        self.assertEqual(route["first"], "lead-sol-high or dm-sol-high")
+        self.assertIn("fresh owner authorization", route["fallback"])
+        self.assertIn("Sol high cannot fit", route["fallback"])
+
     def test_semantic_acceptance_excludes_fable_and_mechanical_profiles(self):
         cognitive = self.policy["cognitive_roles"]
 
@@ -80,6 +112,47 @@ class CognitiveRoutingTests(unittest.TestCase):
         self.assertIn("objectively testable packets", rules)
         self.assertIn("write ownership", rules)
         self.assertIn("overhead would erase", rules)
+
+    def test_codex_mechanical_dispatch_defaults_to_zero_and_one_at_a_time(self):
+        capacity = self.policy["codex_capacity"]
+
+        self.assertIn("zero", capacity["default_codex_mechanical_allowance"])
+        self.assertIn("one Codex mechanical worker", capacity["concurrency"])
+        self.assertIn("explicit owner authorization", capacity["concurrency"])
+
+    def test_codex_capacity_is_reserved_for_brain_integration_and_review(self):
+        capacity = self.policy["codex_capacity"]
+
+        self.assertIn("judgment", capacity["purpose"])
+        self.assertIn("integration", capacity["purpose"])
+        self.assertIn("semantic/risk acceptance", capacity["purpose"])
+        self.assertIn("Claude, Grok or OpenCode", capacity["mechanical_route"])
+
+    def test_codex_usage_has_early_freeze_controls(self):
+        capacity = self.policy["codex_capacity"]
+        monitoring = {item["rule"]: item for item in self.policy["monitoring"]}
+
+        self.assertIn("Freeze new Codex mechanical dispatch", capacity["early_checkpoint"])
+        self.assertEqual(monitoring["Codex mechanical concurrency"]["value"], "At most 1 active by default")
+        self.assertIn("Freeze", monitoring["Codex early burn checkpoint"]["meaning"])
+
+    def test_owner_can_set_codex_delegation_and_leading_to_zero(self):
+        capacity = self.policy["codex_capacity"]
+        monitoring = {item["rule"]: item for item in self.policy["monitoring"]}
+
+        self.assertIn("mechanical and lead allocation to zero", capacity["override"])
+        self.assertIn("allowance to zero", monitoring["Owner zero-Codex override"]["meaning"])
+        self.assertIn("explicitly requested brain/review", monitoring["Owner zero-Codex override"]["meaning"])
+
+    def test_demanding_mechanical_work_routes_external_before_codex(self):
+        route = next(
+            route
+            for route in self.policy["routing"]
+            if route["task"] == "Demanding but well-defined implementation"
+        )
+
+        self.assertEqual(route["first"], "worker-deepseek-flash-high; worker-opus-high")
+        self.assertIn("recorded Codex mechanical allowance", route["fallback"])
 
 
 if __name__ == "__main__":
