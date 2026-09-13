@@ -1,11 +1,13 @@
 ---
 name: interchange
-description: Coordinate governed delivery across Codex subagents and external Claude, Grok and OpenCode sessions, with explicit ownership, fixed execution profiles, checkpoints, bounded monitoring and independent acceptance.
+description: Route judgment and mechanical work across Codex subagents and external Claude, Grok and OpenCode sessions. Use for small tasks too when a faster, cheaper worker yields a net gain; preserves explicit ownership, fixed profiles, supervision and independent acceptance.
 ---
 
 # Interchange
 
-Use the primary conversation as delivery manager. Resolve product ambiguity and cross-workstream dependencies here; delegate coherent owned outcomes. Default personal manager profile: Astra medium; Sol high and Opus 5 high are approved alternatives with no additional profile override needed. Verify the active model/effort; loading the skill does not switch it. For manager handover and transport prerequisites, read [operating-model.md](references/operating-model.md). This package is an initial skill and protocol implementation, not an operational process supervisor. Never claim monitoring, cancellation or automatic callbacks are active without testing the actual transport.
+Use Interchange for any delivery size when orchestration improves accepted-result speed or cost, including one small mechanical assignment. Apply the net-gain test before dispatch so orchestration overhead does not become the work.
+
+Use the primary conversation as delivery manager. Coordination and judgment are separate responsibilities. Sol high is the default brain for product and architecture judgment; escalate unusually large cross-workstream ambiguity to Astra medium. Fable 5.1 medium is an included-plan-only product-ideation brain. A manager on another profile coordinates the delivery but routes interpretive decisions to one of those brains. Verify the active model/effort; loading the skill does not switch it. For manager handover and transport prerequisites, read [operating-model.md](references/operating-model.md). This package is an initial skill and protocol implementation, not an operational process supervisor. Never claim monitoring, cancellation or automatic callbacks are active without testing the actual transport.
 
 ## Start
 
@@ -33,7 +35,11 @@ New-product brainstorming uses Fable 5.1 medium or Astra medium. Ideation author
 does not authorize implementation or extra spend. Fable must pass the existing
 no-extra-spending preflight before any headless request.
 
-Give each assignment an ID, revision and unique attempt ID. Include outcome, acceptance, repo URL/ref/base, lead-allocated worktree, exclusive paths, read-only dependencies, fixed profile, governance references, allowed tools/actions, expected seconds, deadlines, stop/escalation conditions and return format. Leaf workers cannot delegate, merge, expand scope, weaken checks or invent contracts. For an ambiguity they cannot resolve inside the assignment, return evidence and the smallest question to the lead.
+Before dispatch, separate judgment from execution. Only Sol high, Astra medium and Fable 5.1 medium may receive unresolved interpretation. Use Sol high normally, Astra medium for unusually large cross-workstream ambiguity, and Fable medium for product ideation. Semantic and risk acceptance also uses an independent Sol high brain, or Astra medium for unusually large cross-workstream scope. Terra, Luna, DeepSeek, Grok, Muse, Opus workers and lower-effort Sol profiles receive mechanical assignments based on settled decisions. A coordinator using another profile does not acquire judgment authority.
+
+Give each assignment an ID, revision and unique attempt ID. Include outcome, acceptance, repo URL/ref/base, lead-allocated worktree, exclusive paths, read-only dependencies, fixed profile, governing decisions, allowed tools/actions, expected seconds, deadlines, stop/escalation conditions and return format. A mechanical packet must make every behavior choice objective: name the contract or expected transformation, allowed variance and evidence required. If two valid implementations require a tradeoff, acceptance is missing or sources conflict, the worker returns evidence and the smallest question instead of interpreting. Leaf workers cannot delegate, merge, expand scope, weaken checks or invent contracts.
+
+Use fast, low-cost mechanical workers whenever expected startup, supervision and integration overhead still improves accepted-result time or cost. Parallelize objectively testable assignments after interfaces and ownership are settled, using separate non-overlapping write surfaces. Put Muse Spark 1.3 on light mechanical work: repository reading/search, file localization, evidence collection, narrow checks and small explicit edits. Do not fragment work when dispatch and integration would cost more than direct execution.
 
 Before any adapter creates a pull request, run the exact preflight command in
 the `adapter_contract.pr_base_preflight` entry of [commands.json](references/commands.json)
@@ -89,6 +95,6 @@ retry from a fresh compact checkpoint rather than resume a thrashing context.
 
 ## Accept and improve
 
-Have a separate qualified reviewer inspect the actual diff and required evidence. Reviewers return findings to the writer, not fix their own findings. Only a designated lead/manager may perform an authorized test merge. Read the current repository merge policy; bind review and gates to the current head and re-query the live base. Never use shared worker credentials as a claimed mechanical separation of roles.
+Have a separate Sol high reviewer brain inspect semantics, risk, the actual diff and required evidence; use Astra medium when the review spans unusually large cross-workstream ambiguity. Mechanical workers may collect gates and evidence but cannot issue acceptance judgment. Reviewers return findings to the writer, not fix their own findings. Only a designated lead/manager may perform an authorized test merge. Read the current repository merge policy; bind review and gates to the current head and re-query the live base. Never use shared worker credentials as a claimed mechanical separation of roles.
 
 Collect duration and available provider counters mechanically, with unknowns explicit. For before/after quota snapshots, local attempt history and aggregate weekly retention, read [history-and-retro.md](references/history-and-retro.md). Reuse canonical GOV-0020 score definitions and GOV-0016 lessons; do not create a competing delivery-state ledger. Quality precedes speed and remaining allowance. Weekly routing/governance changes are proposals requiring owner approval; bounded schedule adaptation must stay within approved limits.

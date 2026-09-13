@@ -6,37 +6,37 @@ Approved configuration: [policy.json](../skills/interchange/references/policy.js
 
 ```mermaid
 flowchart TD
-  A[Approved outcome] --> B{One direct lookup?}
-  B -->|Yes| C[Use local search or tool]
-  B -->|No| D[Delivery manager: Astra medium default, Sol high or Opus 5 high]
-  D --> E[Partition coherent workstreams and dependencies]
-  D -->|New product brainstorming| W[Fable 5.1 medium or Astra medium]
-  W --> R
-  E --> F{Lead decision complexity}
-  F -->|Defined contracts| G[Terra xhigh]
-  F -->|Difficult integration, defined architecture| H[Terra max]
-  F -->|Moderate architecture| I[Sol medium]
-  F -->|High consequence or coupling| J[Sol high]
-  F -->|Unresolved cross-workstream architecture| K[Astra medium]
-  G & H & I & J & K --> L[Bounded packets with one writer and acceptance]
-  L --> M{Implementation class after ambiguity and risk assessment}
-  M -->|Small bounded support| N[Muse xhigh or Luna xhigh/max]
-  M -->|Low/mid| O[Grok high, Opus medium, Terra xhigh, Sol medium]
-  M -->|Upper-mid| P[Grok xhigh or Opus medium]
-  M -->|High| Q[Sol high or Opus high]
-  M -->|Demanding but well-defined| T[Terra max]
-  N & O & P & Q & T --> R[Quality eligibility, then accepted-result speed, available pool and context continuity]
-  R --> U{Same-house exclusivity conflict?}
+  A[Approved outcome] --> B{Unresolved interpretation?}
+  B -->|Ordinary product or architecture judgment| C[Sol high brain]
+  B -->|Unusually large cross-workstream ambiguity| D[Astra medium brain]
+  B -->|Product ideation| E[Fable 5.1 medium brain after included-plan check]
+  B -->|No| F[Mechanical candidate]
+  C & D & E --> G[Settle behavior, interfaces, tradeoffs and acceptance]
+  G --> F
+  F --> H{Mechanical work class}
+  H -->|Immediate direct lookup| I[Local tool]
+  H -->|Light read/seek or narrow edit| J[Muse xhigh; Luna alternative]
+  H -->|Bounded implementation| K[DeepSeek, Grok, Opus, Terra or Sol worker profile]
+  H -->|Dense settled integration| L[Terra max or approved bounded worker]
+  I & J & K & L --> M{Net gain after startup, supervision and integration?}
+  M -->|No| N[Execute directly or keep one coherent packet]
+  M -->|Yes| O[Choose fastest low-cost qualified profile]
+  O --> P{Independent objective packets and non-overlapping writes?}
+  P -->|Yes| Q[Run in parallel]
+  P -->|No| R[Run sequentially with one writer]
+  N & Q & R --> U{Same-house exclusivity conflict?}
   X[Global: any Astra in Codex, any Fable 5.1 in Claude] -.-> U
   Y[Same delivery manager only: Sol high+ in Codex, Opus high+ in Claude] -.-> U
   U -->|Yes| V[Eligible other house or queue]
   U -->|No| S[Exact profile and tool permissions verified before dispatch]
 ```
 
-Pools are starting preferences, not model rankings. Read [development routing instructions](../skills/interchange/references/routing.md) for task boundaries and escalation. Grok uses Grok CLI only; Claude development uses Opus. Worker model choice grants no delegation or merge authority.
+Sol high is the default product and architecture brain. Astra medium handles unusually large cross-workstream ambiguity; Fable 5.1 medium handles product ideation after its included-plan/no-extra-cost check. Independent semantic and risk acceptance also uses Sol high, with Astra medium for unusually large cross-workstream scope. Other profiles execute settled mechanical packets and return ambiguity instead of interpreting it. A delivery manager on another profile may coordinate but does not gain judgment authority.
 
-Policy 0.4.0 allows Sol high and Opus 5 high as alternative delivery managers, with Astra medium
-remaining the default. Product brainstorming uses Fable 5.1 medium or Astra medium.
+Muse Spark 1.3 is the light mechanical and read/seek lane. Use fast, low-cost workers when startup, supervision and integration still produce a net gain, and parallelize only independent objectively testable packets with non-overlapping write ownership. Pools are starting preferences, not universal model rankings. Read [development routing instructions](../skills/interchange/references/routing.md) for task boundaries and escalation. Worker model choice grants no delegation or merge authority.
+
+Policy 0.6.0 separates coordination from judgment. Opus 5 high remains an approved
+delivery-manager continuity profile but routes interpretation to an approved brain.
 Any Astra reserves Codex globally and any Fable 5.1 reserves Claude globally.
 Sol high-or-higher and Opus high-or-higher reserve their houses only for work
 under the same delivery manager. Only medium is currently approved for Fable.
