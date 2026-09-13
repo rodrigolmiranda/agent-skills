@@ -322,8 +322,10 @@
       "PR base preflight command above, before PR creation",
       "literal argv and provider-specific argument order",
       "complete packet and coordination-file access",
+      "OpenCode external paths: detect client configuration generation; grant only attempt-scoped trusted directories, verify resolved config plus positive and denied-sibling checks, or keep packet/artifacts inside the selected worktree; never rely on headless external_directory prompts",
       "requested and observed model/effort",
       "exact required commands and shell composition",
+      "test runner working directory is the directory owning the intended package/configuration; record it separately from the test/spec path",
       "fail-closed tool mapping and negative deny test",
       "finite wall-time and turn ceilings",
       "registered process/session handles and next wait"

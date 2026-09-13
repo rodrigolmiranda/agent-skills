@@ -32,9 +32,26 @@ credentials or secret provider data in the authorization record.
 
 ## Storage
 
-Local execution journal: `~/.local/state/interchange/history/`. One concise record per attempt: task title/ID, role, house/model/effort, start/end, result, exact usage if available, quota snapshot references, independent scores, significant note and evidence links. Use existing canonical GOV-0020 score definitions; workers do not assign their own scores.
+Local execution journal: `~/.local/state/interchange/history/`. One concise record per attempt: source project, repository URL/path and immutable base/head where available; task title/ID and revision; attempt ID; role; house/tool/model/version; requested and observed effort; start/end; result; exact usage if available; quota snapshot references; independent scores; significant note; command or permission failures; the verified correction or unresolved blocker; and evidence links. Use existing canonical GOV-0020 score definitions; workers do not assign their own scores. Unknown values remain explicit rather than inferred.
 
 Local records supply an end-of-run summary: contributions, time, measured tokens and approximate quota changes, retries, quality and comparable history. Collection and generation are requirements for the future runner; no automatic before/after collector is implemented yet.
+
+Until that collector exists, the delivery manager writes or updates the local record
+when each attempt becomes `ready_for_review`, `blocked`, `partial`, `failed` or
+otherwise terminal. Do this before replacement dispatch, worktree reuse or final
+delivery reporting. A failed attempt still counts toward cost, elapsed time and
+first-pass quality.
+
+When an attempt exposes a CLI invocation, attachment, working-directory, command
+composition or permission failure, record the exact failing condition and safe
+diagnostic evidence without credentials. If a bounded correction is verified by
+resolved configuration plus a positive allowed-path probe and a negative sibling
+or denied-action probe, update the applicable section of
+[runtime-adapters.md](runtime-adapters.md) in the same delivery and link that change
+from the attempt. If it is not verified, retain it as an unresolved transport
+blocker; do not publish a guessed recipe. Repeated worker-quality or packet-design
+failures follow the central lesson lifecycle below rather than accumulating as
+adapter trivia.
 
 Central retained history: `MarvinaMiranda/07 - Decisions & Learning/Agent Delivery/Retros/RETRO-YYYY-Www.md`. One retro per completed ISO week, in Australia/Perth time. Keep grouped results and lessons, not a second itemized task diary. Existing PRs, test evidence, incident records and previously retained evaluations are not deleted or duplicated.
 
