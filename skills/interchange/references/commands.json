@@ -73,8 +73,8 @@
         "json",
         "{prompt}"
       ],
-      "mode": "DeepSeek V4.1 Flash. Require exact observed model code opencode-go/deepseek-v4.1-flash and requested variant. Stop on mismatch or unavailability; never substitute DeepSeek V4 Pro or a versioned DeepSeek route. Prompt before attachments. Exit 0 with finish=tool-calls or no final response remains incomplete.",
-      "evidence": "Governed implementation evidence recorded 2026-09-11; high is default, max is limited to novel public contract shape design. Independent semantic review required."
+      "mode": "DeepSeek V4.1 Flash. Require exact observed model code opencode-go/deepseek-v4.1-flash and requested variant. Stop on mismatch or unavailability; never substitute DeepSeek V4 Pro or another DeepSeek route. Prompt before attachments. Exit 0 with finish=tool-calls or no final response remains incomplete.",
+      "evidence": "Governed implementation evidence recorded 2026-09-11; high is default, max mechanically implements a novel public contract only after a brain settles its shape. Independent semantic review required."
     },
     "worker-deepseek-flash-max": {
       "argument_order": "Place {prompt} before every variadic --file attachment; append each complete packet/coordination file as [--file, {attachment}] after the prompt.",
@@ -110,8 +110,8 @@
         "json",
         "{prompt}"
       ],
-      "mode": "DeepSeek V4.1 Flash. Require exact observed model code opencode-go/deepseek-v4.1-flash and requested variant. Stop on mismatch or unavailability; never substitute DeepSeek V4 Pro or a versioned DeepSeek route. Prompt before attachments. Exit 0 with finish=tool-calls or no final response remains incomplete.",
-      "evidence": "Governed implementation evidence recorded 2026-09-11; high is default, max is limited to novel public contract shape design. Independent semantic review required."
+      "mode": "DeepSeek V4.1 Flash. Require exact observed model code opencode-go/deepseek-v4.1-flash and requested variant. Stop on mismatch or unavailability; never substitute DeepSeek V4 Pro or another DeepSeek route. Prompt before attachments. Exit 0 with finish=tool-calls or no final response remains incomplete.",
+      "evidence": "Governed implementation evidence recorded 2026-09-11; high is default, max mechanically implements a novel public contract only after a brain settles its shape. Independent semantic review required."
     },
     "worker-opus-medium": {
       "start": [
@@ -314,6 +314,7 @@
       "stdout": "one JSON PullRequestBaseDecision; invoke before gh pr create or any provider equivalent"
     },
     "required_preflight": [
+      "brain/mechanical classification; mechanical packets contain settled behavior, objective acceptance, allowed variance and ambiguity escalation",
       "PR base preflight command above, before PR creation",
       "literal argv and provider-specific argument order",
       "complete packet and coordination-file access",

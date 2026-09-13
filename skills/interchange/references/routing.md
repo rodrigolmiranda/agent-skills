@@ -1,12 +1,15 @@
 # Development routing instructions
 
-Owner revision 2026-09-11; configured profile IDs and evidence status are in `policy.json` version 0.5.0. These are initial preferred pools, not benchmark rankings or interchangeable capability claims.
+Owner revision 2026-09-13; configured profile IDs and evidence status are in `policy.json` version 0.6.0. These are initial preferred pools, not benchmark rankings or interchangeable capability claims.
 
-Delivery manager: Astra medium by default; Sol high and Opus 5 high are approved
-alternatives. A matching conversation may use its manager profile without a new
-override. Astra reserves Codex globally. Sol high reserves Codex only within work
-under the same delivery manager. Opus high has that same manager-scoped effect in
-Claude. Cross-house manager transport still needs verification.
+Sol high is the default product and architecture brain. Escalate unusually large
+cross-workstream ambiguity to Astra medium. Use Fable 5.1 medium for product
+ideation when its included-plan check passes. Delivery managers on other approved
+profiles may coordinate, monitor and integrate settled work, but must route
+unresolved interpretation to a brain. Astra reserves Codex globally. Sol high
+reserves Codex only within work under the same delivery manager. Opus high has
+that same manager-scoped effect in Claude. Cross-house manager transport still
+needs verification.
 
 ## Active houses and profiles
 
@@ -19,6 +22,13 @@ medium. Explore user/problem evidence, alternatives, assumptions and validation
 questions; return recommendations without inventing owner decisions or starting
 implementation. These are ideation profiles, not additions to the default coding
 pool. Fable's exact runtime identity and included-plan eligibility remain unverified.
+
+Before choosing a developer, resolve every product, behavior, architecture and
+tradeoff decision through Sol high, Astra medium or Fable medium as applicable.
+All other profiles are mechanical executors. Their packets name settled behavior,
+objective acceptance, owned paths and the condition that returns ambiguity to the
+brain. A coordinator on a non-brain profile does not decide merely because it owns
+the delivery session.
 
 ## House exclusivity
 
@@ -61,22 +71,22 @@ blocker. Selecting Fable is not permission to spend credits. See
 
 | Assignment | Preferred pool | Assignment boundary |
 |---|---|---|
-| Small bounded support work | Muse Spark 1.3 Contributor xhigh; Luna xhigh/max as alternatives | Focused exploration, explicit small edits, test preparation; no delegation |
-| Low/mid complexity development | DeepSeek V4.1 Flash high, Grok high, Opus medium, Terra xhigh, Sol medium | Known patterns, clear acceptance, bounded dependencies |
-| Upper-mid complexity development | DeepSeek V4.1 Flash high, Grok xhigh, Opus medium | Difficult implementation with settled architecture and manageable coupling |
-| High complexity development | Sol high, Opus high | Substantial reasoning or consequential/coupled boundaries; independent review remains mandatory |
+| Light mechanical and read/seek work | Muse Spark 1.3 Contributor xhigh; Luna xhigh/max as alternatives | Repository search, file localization, evidence collection, narrow checks and small explicit edits; no interpretation or delegation |
+| Low/mid complexity development | DeepSeek V4.1 Flash high, Grok high, Opus medium, Terra xhigh, Sol medium | Settled behavior, objective acceptance and bounded dependencies; no interpretation |
+| Upper-mid complexity development | DeepSeek V4.1 Flash high, Grok xhigh, Opus medium | Difficult mechanical implementation with settled architecture; return tradeoffs instead of choosing |
+| High complexity development | Sol high settles judgment; Opus high or another qualified profile executes mechanical packets | Separate consequential decisions from implementation; independent brain review remains mandatory |
 | Demanding, well-defined implementation | Terra max; DeepSeek V4.1 Flash high | Dense implementation or integration with explicit contracts, tests and finite scope |
-| Novel public contract design | DeepSeek V4.1 Flash max | Public API, identity, schema or serialization shape with settled product intent; independent semantic review required |
+| Novel public contract implementation | Sol high settles the shape; DeepSeek V4.1 Flash max implements it | Public API, identity, schema or serialization shape and objective contract tests are decided before dispatch |
 
-Entries in a pool are not listed in priority order. First select configurations with evidence of suitable quality for the task. Then consider expected time to an accepted result, available quota, existing session/context and the cost of transferring context. For parallel independent assignments, distribute suitable work across houses to preserve capacity. Reuse the same house when continuity or observed performance justifies it.
+Entries in a pool are not listed in priority order. First select configurations with evidence of suitable quality for the mechanical task. Then prefer the fastest, lowest-cost eligible profile after accounting for startup, supervision, context transfer and integration. Run independent, objectively testable packets in parallel after decisions, interfaces and write ownership are fixed. Do not split work when orchestration overhead would erase the gain. Distribute suitable work across houses to preserve capacity; reuse the same house when continuity or observed performance justifies it.
 
 ## Classification and escalation
 
-Assess implementation difficulty, ambiguity, consequence and coupling separately. A small permission edit can be high consequence; a large mechanical change can have low ambiguity. A high consequence requires appropriate review even if implementation is simple.
+Assess implementation difficulty, ambiguity, consequence and coupling separately. A small permission edit can be high consequence; a large mechanical change can have low ambiguity. Route interpretation to a brain before implementation. A high consequence requires appropriate review even if implementation is simple.
 
-Do not treat higher effort as a universal capability ranking. Use Terra max for sustained, bounded implementation, not to compensate for missing requirements or to persist in a loop. DeepSeek high is the default DeepSeek effort. Use DeepSeek max only when a novel public contract's shape is itself the deliverable and costly to reverse; max does not replace claim evidence or independent review. If the public contract or product outcome is unclear, the lead resolves that decision before assigning more execution effort. Stop and escalate under the existing watchdog/recovery limits.
+Do not treat higher effort as a universal capability ranking. Use Terra max for sustained, bounded implementation, not to compensate for missing requirements or to persist in a loop. DeepSeek high is the default DeepSeek effort. Use DeepSeek max only to implement a novel public contract after an approved brain settles its shape and objective contract tests; max does not receive interpretation authority or replace independent review. If the public contract or product outcome is unclear, the brain resolves that decision before assigning execution. Stop and escalate under the existing watchdog/recovery limits.
 
-Keep the delivery manager and lead routing unchanged. A worker using Sol or Terra is still a leaf unless explicitly assigned lead authority. Workers cannot merge or delegate merely because their model is also available to leads.
+A worker using a brain-capable model remains a mechanical leaf unless explicitly assigned a brain role. Workers cannot merge, delegate or interpret merely because their model is also available to leads or managers.
 
 ## Calibration
 

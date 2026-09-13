@@ -1,6 +1,6 @@
 {
-  "version": "0.5.0",
-  "approved_on": "2026-09-11",
+  "version": "0.6.0",
+  "approved_on": "2026-09-13",
   "status": "Approved operating design; live runner not implemented",
   "profiles": [
     {
@@ -8,7 +8,7 @@
       "house": "claude",
       "model": "claude-opus-5",
       "effort": "high",
-      "role": "delivery manager: approved alternative with explicit handover when switching houses",
+      "role": "delivery manager: mechanical coordination and continuity; route unresolved interpretation to an approved brain",
       "delegation": true,
       "evidence": "Model and effort documented; exact runtime and cross-house manager dispatch unverified"
     },
@@ -17,7 +17,7 @@
       "house": "codex",
       "model": "gpt-5.6-sol",
       "effort": "high",
-      "role": "delivery manager: approved alternative when starting with Sol high",
+      "role": "delivery manager and default product/architecture brain",
       "delegation": true,
       "evidence": "Supported by current tool metadata; manager routing uncalibrated"
     },
@@ -26,7 +26,7 @@
       "house": "codex",
       "model": "gpt-6-astra",
       "effort": "medium",
-      "role": "delivery manager",
+      "role": "delivery manager and brain for unusually large cross-workstream ambiguity",
       "delegation": true,
       "evidence": "Supported by current tool metadata; routing uncalibrated"
     },
@@ -35,7 +35,7 @@
       "house": "codex",
       "model": "gpt-6-astra",
       "effort": "medium",
-      "role": "lead: high ambiguity or cross-workstream architecture",
+      "role": "brain lead: unusually large ambiguity or cross-workstream architecture",
       "delegation": true,
       "evidence": "Supported by current tool metadata; routing uncalibrated"
     },
@@ -44,7 +44,7 @@
       "house": "codex",
       "model": "gpt-5.6-sol",
       "effort": "medium",
-      "role": "lead: bounded architecture and moderate coupling",
+      "role": "mechanical workstream coordinator for settled contracts; no interpretive authority",
       "delegation": true,
       "evidence": "Supported by current tool metadata; routing uncalibrated"
     },
@@ -53,16 +53,34 @@
       "house": "codex",
       "model": "gpt-5.6-sol",
       "effort": "high",
-      "role": "lead: consequential design and risk",
+      "role": "default brain lead: product, architecture, consequence and tradeoff decisions",
       "delegation": true,
       "evidence": "Supported by current tool metadata; routing uncalibrated"
+    },
+    {
+      "id": "reviewer-sol-high",
+      "house": "codex",
+      "model": "gpt-5.6-sol",
+      "effort": "high",
+      "role": "independent semantic and risk review brain; no implementation or self-review",
+      "delegation": false,
+      "evidence": "Sol high review found meaning-level defects in governed delivery; reviewer remains independent of writer and current-head bound"
+    },
+    {
+      "id": "reviewer-astra-medium",
+      "house": "codex",
+      "model": "gpt-6-astra",
+      "effort": "medium",
+      "role": "independent semantic review brain for unusually large cross-workstream scope; no implementation or self-review",
+      "delegation": false,
+      "evidence": "Supported by current tool metadata; reviewer routing uncalibrated"
     },
     {
       "id": "lead-terra-xhigh",
       "house": "codex",
       "model": "gpt-5.6-terra",
       "effort": "xhigh",
-      "role": "lead: defined contracts and bounded workstream",
+      "role": "mechanical lead: defined contracts and bounded workstream; escalate interpretation",
       "delegation": true,
       "evidence": "Supported by current tool metadata; routing uncalibrated"
     },
@@ -71,7 +89,7 @@
       "house": "codex",
       "model": "gpt-5.6-terra",
       "effort": "max",
-      "role": "lead: defined architecture with difficult integration",
+      "role": "mechanical lead: difficult integration within defined architecture; escalate interpretation",
       "delegation": true,
       "evidence": "Supported by current tool metadata; routing uncalibrated"
     },
@@ -107,7 +125,7 @@
       "house": "opencode",
       "model": "opencode-go/muse-spark-1.3-contributor",
       "effort": "xhigh",
-      "role": "preferred initial cheap leaf candidate",
+      "role": "light mechanical and read/seek leaf: repository search, localization, evidence, narrow checks or small explicit edits",
       "delegation": false,
       "evidence": "CLI send/resume/recall smoke-tested; quality advantage is owner hypothesis",
       "pool": "Go"
@@ -129,9 +147,9 @@
       "model": "opencode-go/deepseek-v4.1-flash",
       "display_model": "DeepSeek V4.1 Flash",
       "effort": "max",
-      "role": "novel public contract, identity, schema or serialization shape with settled product intent",
+      "role": "mechanical implementation of a novel public contract shape already settled by an approved brain",
       "delegation": false,
-      "evidence": "One evaluated max assignment showed value on novel public identity design; max is not a remedy for unsupported claims and still requires independent semantic review.",
+      "evidence": "One evaluated max assignment showed value on novel public identity work; current policy restricts max to mechanical implementation after a brain settles the shape. Independent semantic review remains mandatory.",
       "pool": "Go"
     },
     {
@@ -202,7 +220,7 @@
       "house": "claude",
       "model": "claude-fable-5-1",
       "effort": "medium",
-      "role": "new-product ideation and brainstorming",
+      "role": "product-ideation brain; no implementation; included-plan/no-extra-cost preflight required",
       "delegation": false,
       "evidence": "Official model/effort documentation; exact runtime and included-plan eligibility not verified",
       "spending_gate": "Do not dispatch if usage credits or extra paid usage would be charged; no inferred spending authorization"
@@ -212,7 +230,7 @@
       "house": "codex",
       "model": "gpt-6-astra",
       "effort": "medium",
-      "role": "new-product ideation and brainstorming",
+      "role": "product-ideation brain for unusually large or cross-workstream concepts",
       "delegation": false,
       "evidence": "Current tool metadata supports profile; no comparative ideation benchmark"
     }
@@ -225,70 +243,76 @@
       "reason": "Explore users, problem, options, assumptions and validation; does not authorize implementation"
     },
     {
-      "task": "One direct lookup",
-      "first": "Local search/tool",
-      "fallback": "Bounded explorer only if context merits it",
-      "reason": "Avoid dispatch and repeated context overhead"
+      "task": "Product, behavior or architecture judgment",
+      "first": "lead-sol-high or dm-sol-high",
+      "fallback": "lead-astra-medium or dm-astra-medium for unusually large cross-workstream ambiguity",
+      "reason": "Only approved brain profiles interpret missing requirements, choose tradeoffs or settle contracts"
     },
     {
-      "task": "Small bounded support task",
+      "task": "One direct lookup",
+      "first": "Local search/tool when immediate; worker-muse-xhigh when parallel dispatch frees the brain or is faster overall",
+      "fallback": "worker-luna-xhigh for bounded read-only evidence when Muse is unavailable",
+      "reason": "Count startup, supervision and handback overhead; delegate when it improves accepted-result time or cost"
+    },
+    {
+      "task": "Light mechanical and read/seek task",
       "first": "worker-muse-xhigh",
       "fallback": "worker-luna-xhigh; worker-luna-max when evidence density warrants",
-      "reason": "Exploration, explicit small edits or test preparation; retain lower-cost leaf lane"
+      "reason": "Repository search, localization, evidence collection, narrow checks and small explicit edits; no interpretation"
     },
     {
       "task": "Low/mid complexity development",
       "first": "worker-deepseek-flash-high; worker-grok-high; worker-opus-medium; worker-terra-xhigh; worker-sol-medium",
       "fallback": "Another eligible profile from this pool",
-      "reason": "Preferred pool, not fixed rank: clear acceptance, known patterns, bounded dependencies; DeepSeek evidence is strongest for governed leaf implementation"
+      "reason": "Settled behavior, objective acceptance and bounded dependencies; ambiguity already resolved by a brain"
     },
     {
       "task": "Upper-mid complexity development",
       "first": "worker-deepseek-flash-high; worker-grok-xhigh; worker-opus-medium",
-      "fallback": "worker-sol-high or worker-opus-high when ambiguity or consequence warrants escalation",
-      "reason": "Difficult implementation within settled architecture; two primary choices are not claimed equal in capability"
+      "fallback": "lead-sol-high resolves ambiguity or consequence; then choose worker-sol-high, worker-opus-high or another qualified mechanical profile",
+      "reason": "Difficult mechanical implementation within settled architecture; return tradeoffs instead of choosing"
     },
     {
       "task": "High complexity development",
-      "first": "worker-sol-high; worker-opus-high",
-      "fallback": "Lead/manager resolves architecture or scope before further execution",
-      "reason": "Substantial reasoning, sensitive boundaries or coupled contracts; keep mandatory independent risk review"
+      "first": "lead-sol-high resolves judgment; worker-opus-high or another qualified mechanical profile executes settled packets",
+      "fallback": "lead-astra-medium resolves unusually large cross-workstream ambiguity before mechanical execution",
+      "reason": "Separate consequential decisions from implementation; independent review remains mandatory"
     },
     {
       "task": "Demanding but well-defined implementation",
       "first": "worker-terra-max; worker-deepseek-flash-high",
       "fallback": "High-complexity pool if evidence shows a reasoning blocker; never DeepSeek V4 Pro",
-      "reason": "Dense implementation or integration with exact contracts and tests; never assign to outlast a loop"
+      "reason": "Dense mechanical implementation or integration with exact contracts and tests; never assign interpretation or use effort to outlast a loop"
     },
     {
-      "task": "Novel public contract design",
-      "first": "worker-deepseek-flash-max",
-      "fallback": "Lead resolves unsettled product or architecture decisions before execution; never DeepSeek V4 Pro",
-      "reason": "Use max only when the durable public shape is the deliverable and costly to reverse; require independent semantic review"
+      "task": "Novel public contract implementation",
+      "first": "lead-sol-high settles shape; worker-deepseek-flash-max implements the exact contract",
+      "fallback": "lead-astra-medium settles unusually large cross-workstream contract ambiguity before execution",
+      "reason": "DeepSeek max receives a decided shape and objective contract tests; it does not choose the public contract"
     },
     {
       "task": "Workstream with fixed contracts",
       "first": "lead-terra-xhigh",
       "fallback": "lead-terra-max or lead-sol-medium",
-      "reason": "Lead authority is explicitly assigned; a worker on the same model remains a leaf"
+      "reason": "Mechanical lead authority may coordinate and delegate settled packets; ambiguity returns to lead-sol-high or lead-astra-medium"
     },
     {
       "task": "Consequential architecture or high coupling",
       "first": "lead-sol-high",
-      "fallback": "lead-astra-medium",
-      "reason": "Escalate ambiguity or consequence beyond owned workstream"
+      "fallback": "lead-astra-medium for unusually large cross-workstream ambiguity",
+      "reason": "Approved brain resolves product, architecture, consequence and coupling before execution"
     },
     {
       "task": "Cross-workstream planning and decisions",
-      "first": "dm-astra-medium",
-      "fallback": "dm-sol-high or dm-opus-high; use directly when already in that configuration; verify transport and handover for house switches",
-      "reason": "Manager receives compact exceptions and evidence, not raw logs"
+      "first": "dm-sol-high",
+      "fallback": "dm-astra-medium for unusually large ambiguity; dm-opus-high may coordinate but routes judgment to a brain",
+      "reason": "Manager receives compact exceptions and evidence; only an assigned brain resolves interpretation"
     },
     {
-      "task": "Independent acceptance",
-      "first": "Separate qualified reviewer session",
-      "fallback": "Another eligible house; same house allowed with reason",
-      "reason": "Reviewer inspects actual head/artifacts and never fixes its own findings"
+      "task": "Independent semantic or risk acceptance",
+      "first": "reviewer-sol-high",
+      "fallback": "reviewer-astra-medium for unusually large cross-workstream scope",
+      "reason": "Mechanical gate collection may be delegated, but acceptance judgment belongs to an independent brain on the exact head"
     }
   ],
   "monitoring": [
@@ -454,12 +478,15 @@
     "Only Codex, Grok CLI, Claude Code and OpenCode are active houses. Cursor removed from Interchange routing, not uninstalled.",
     "Grok work uses Grok CLI only, model grok-4.6 with high or xhigh. No Cursor route.",
     "Claude development uses claude-opus-5 medium or high. Sonnet and automatic fallback to it are excluded.",
-    "Treat task bands as routing preferences, not benchmark rankings. Assess ambiguity, consequence, coupling and implementation difficulty separately.",
-    "Within an eligible pool, use task-fit evidence first, then expected accepted-result latency and available account/pool quota. Pool order is not a ranking.",
-    "Use different houses for parallel independent jobs of similar nature when suitable; preserve cached context and session continuity when that is cheaper or faster.",
+    "Brain boundary: only assigned Sol high, Astra medium and Fable 5.1 medium brain profiles resolve product, behavior, architecture or tradeoff ambiguity. Fable is for product ideation; Astra is for unusually large cross-workstream ambiguity; Sol high is the default.",
+    "Semantic and risk acceptance is a brain task: use an independent Sol high reviewer, or Astra medium for unusually large cross-workstream scope. Mechanical workers may collect gates but cannot issue acceptance judgment.",
+    "Coordination is not judgment authority. Opus delivery managers and mechanical leads may coordinate, monitor and integrate, but route unresolved interpretation to an approved brain.",
+    "Mechanical packets contain settled behavior, objective acceptance, owned paths, allowed variance and an escalation condition. Workers return evidence and the smallest question when a choice requires interpretation.",
+    "Use fast, low-cost mechanical workers when startup, supervision and integration overhead still improves accepted-result time or cost. Parallelize independent objectively testable packets after decisions, interfaces and write ownership are fixed.",
+    "Muse Spark 1.3 is the preferred light mechanical and read/seek lane for repository search, file localization, evidence collection, narrow checks and small explicit edits.",
+    "Do not fragment work when dispatch, context transfer or integration overhead would erase the expected speed or cost gain.",
     "More reasoning is not universally more intelligence or better value. Terra max handles difficult settled implementation, not unresolved product decisions.",
     "No automatic repeated effort increases. Stop, diagnose or reassign under existing watchdog and recovery limits.",
-    "Do not send every tiny job to the primary developer pool. Muse/Luna remain eligible bounded support workers.",
     "High consequence can require stronger review even for a small edit. Model choice never removes acceptance gates.",
     "Verify effective model and effort at dispatch. Newly configured Grok/Opus combinations are not yet claimed smoke-tested; no unapproved substitution.",
     "House exclusivity has two scopes. Astra at any effort reserves Codex globally and Fable 5.1 at any effort reserves Claude globally. Sol high or higher reserves Codex only for assignments under the same delivery manager; Opus high or higher reserves Claude only for assignments under the same delivery manager.",
@@ -471,7 +498,7 @@
     "Stop Claude after two consecutive no-progress auto-compactions; checkpoint and use one fresh narrow retry rather than resuming the thrashing session.",
     "Owner concurrency exceptions are finite and journalled after an occupancy probe; leads and managers cannot self-authorize them.",
     "DeepSeek V4.1 Flash uses the provider code opencode-go/deepseek-v4.1-flash. The human-readable name and provider code identify the same approved model. The provider renamed this code from opencode-go/deepseek-flash, which no longer appears in `opencode models`; the version now lives in the code itself.",
-    "DeepSeek high is the default for bounded implementation. DeepSeek max is reserved for novel public contract, identity, schema or serialization shape design with settled product intent.",
+    "DeepSeek high is the default for bounded implementation. DeepSeek max mechanically implements novel public contract, identity, schema or serialization shapes only after an approved brain settles the shape and objective contract tests.",
     "DeepSeek V4 Pro, DeepSeek V4 Flash and the vision-exp variants are excluded: opencode-go/deepseek-v4-pro, opencode-go/deepseek-v4-flash and opencode-go/deepseek-v4-flash-vision-exp are DIFFERENT models, not fallbacks for V4.1 Flash. If opencode-go/deepseek-v4.1-flash is unavailable, stop and reroute to a different approved house; never substitute another DeepSeek model."
   ],
   "runtime_adapter_priorities": [
@@ -525,5 +552,27 @@
     "manager_effect": "An active Astra manager reserves Codex globally. An active Sol-high manager reserves Codex within its own managed work. An active Opus-high manager reserves Claude within its own managed work. No implicit exemption for same-scope subagents or review.",
     "outside_activity": "Check visible external activity without controlling it; user sessions outside Interchange cannot be reliably locked by skill text. Disclose unknown occupancy.",
     "status": "Instruction policy only; cross-process reservation enforcement awaits live runner"
+  },
+  "cognitive_roles": {
+    "default_brain": [
+      "dm-sol-high",
+      "lead-sol-high"
+    ],
+    "large_cross_workstream_brain": [
+      "dm-astra-medium",
+      "lead-astra-medium"
+    ],
+    "product_ideation_brain": [
+      "brainstorm-fable-medium",
+      "brainstorm-astra-medium"
+    ],
+    "rule": "Only assigned profiles in the decision-brain lists may resolve product, behavior, architecture or tradeoff ambiguity. A brain-capable model running under a worker profile remains a mechanical leaf.",
+    "mechanical_boundary": "Every other profile receives settled behavior, objective acceptance, owned paths and an explicit escalation condition. If more than one valid choice requires judgment, return evidence and the smallest question to a brain.",
+    "coordination_boundary": "A delivery manager or lead without an assigned brain profile may coordinate, monitor and integrate but must route unresolved interpretation to a brain.",
+    "semantic_review_brain": [
+      "reviewer-sol-high",
+      "reviewer-astra-medium"
+    ],
+    "semantic_acceptance_rule": "Only profiles in semantic_review_brain may issue semantic or risk acceptance. Product-ideation brains, coordinators and mechanical workers cannot."
   }
 }
