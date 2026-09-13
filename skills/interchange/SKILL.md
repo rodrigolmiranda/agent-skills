@@ -23,10 +23,11 @@ Apply `policy.json` house exclusivity before dispatch. Astra at any effort reser
 Codex globally; Fable 5.1 at any effort reserves Claude globally (currently
 approved only at medium). Global means across visible Interchange-managed delivery
 managers, projects and roles. Sol high or higher reserves Codex only within work
-owned or supervised by the same delivery manager; Opus high or higher does the
-same for Claude. Separately managed deliveries may use those houses concurrently.
-Managers, leads, workers and reviewers have no exemption inside the applicable
-scope. Prefer another eligible house or queue the work. Check both directions:
+owned or supervised by the same delivery manager, except unrestricted Luna
+xhigh/max leaf assignments. Opus high or higher applies the same manager-scoped
+reservation to Claude without a free-tier exception. Separately managed deliveries
+may use those houses concurrently. No other role or profile has an exemption.
+Prefer another eligible house or queue the work. Check both directions:
 an exclusive job must also wait for conflicting active jobs. Do not silently
 reduce effort or stop user sessions. Read the precise
 scope/release rules in [routing.md](references/routing.md). This is not yet a
@@ -41,17 +42,17 @@ Before dispatch, separate judgment from execution. Only Sol high and an individu
 
 Give each assignment an ID, revision and unique attempt ID. Include outcome, acceptance, repo URL/ref/base, lead-allocated worktree, exclusive paths, read-only dependencies, fixed profile, governing decisions, allowed tools/actions, expected seconds, deadlines, stop/escalation conditions and return format. A mechanical packet must make every behavior choice objective: name the contract or expected transformation, allowed variance and evidence required. If two valid implementations require a tradeoff, acceptance is missing or sources conflict, the worker returns evidence and the smallest question instead of interpreting. Leaf workers cannot delegate, merge, expand scope, weaken checks or invent contracts.
 
-Use fast, low-cost mechanical workers whenever expected startup, supervision and integration overhead still improves accepted-result time or cost. Parallelize objectively testable assignments after interfaces and ownership are settled, using separate non-overlapping write surfaces. Put Muse Spark 1.3 on light mechanical work: repository reading/search, file localization, evidence collection, narrow checks and small explicit edits. Do not fragment work when dispatch and integration would cost more than direct execution.
+Use Luna xhigh/max, DeepSeek V4.1 Flash and Muse Spark 1.3 freely for mechanical work. They need no house-balancing quota or delivery allowance and have no Interchange concurrency cap: run three, four, five or more when useful. Parallel assignments must still be objectively testable, independently owned and non-overlapping, and every attempt keeps its watchdog, completion and acceptance controls. Do not create duplicate work or fragments whose dispatch and integration cost exceeds the gain. Put Muse on light repository reading/search, localization, evidence, narrow checks and small explicit edits; use DeepSeek for bounded implementation and Luna for bounded Codex-native leaf work.
 
-## Conserve Codex
+## Capacity tiers
 
-Treat Codex as protected brain and acceptance capacity across the full usage window. Use qualified Claude, Grok or OpenCode profiles first for mechanical execution, including parallel implementation, repository exploration, gate execution and evidence collection. Codex being capable of the task is not a reason to spend its capacity on it.
+Treat Sol, Terra and Claude Code as measured capacity that must be used moderately and balanced across their houses when task fit is comparable. Preserve Sol for brain and acceptance work, and send suitable mechanical work to the unrestricted Luna, DeepSeek and Muse tier first. Balance means consult observable usage and active work, avoid unnecessary concentration, and choose the better-positioned eligible house; it does not require forced alternation or weaken task fit. Grok retains its existing task-fit routing and is not added to the unrestricted tier by this rule.
 
-Before any Codex mechanical subagent or mechanical Codex lead, capture the current Codex usage window when available, note known concurrent work, reserve enough capacity for remaining judgment, integration and exact-head semantic review, and record a positive delivery-level Codex mechanical allowance plus the reason. No recorded allowance means zero Codex mechanical dispatch. Start at most one Codex mechanical worker at a time; parallel Codex mechanical workers require explicit owner authorization.
+Before any Terra or Sol mechanical subagent or mechanical lead, capture the current Codex usage window when available, note known concurrent work, reserve enough capacity for remaining judgment, integration and exact-head semantic review, and record a positive delivery-level allowance plus the reason. No recorded allowance means zero Terra/Sol mechanical dispatch. Start at most one Terra/Sol mechanical worker at a time; parallel Terra/Sol mechanical workers require explicit owner authorization. Luna is exempt from this allowance and concurrency gate, unless an active Astra global reservation or an explicit owner zero-Codex instruction blocks it.
 
-Recheck usage after the first Codex mechanical checkpoint when observable. Freeze new Codex mechanical dispatch when burn exceeds the allowance, threatens the brain/review reserve or cannot be reconciled with known concurrent use. Let useful in-flight work reach its nearest clean tested checkpoint unless a hard limit or safety condition requires interruption, then move remaining mechanical work to another approved house. Batch related questions and integrated reviews so the Codex brain receives compact evidence and exceptions instead of raw exploration. Run one Sol-high semantic/risk review at each meaningful integrated chunk boundary; remedies still require exact-head re-review.
+Recheck usage after the first Terra/Sol mechanical checkpoint when observable. Freeze new Terra/Sol mechanical dispatch when burn exceeds the allowance, threatens the brain/review reserve or cannot be reconciled with known concurrent use. Use the same moderate, usage-aware planning for Claude Code; prefer Luna, DeepSeek or Muse when they fit and balance necessary premium work across Claude and Codex. Let useful in-flight work reach its nearest clean tested checkpoint unless a hard limit or safety condition requires interruption. Batch related questions and integrated reviews so the brain receives compact evidence and exceptions instead of raw exploration. Run one Sol-high semantic/risk review at each meaningful integrated chunk boundary; remedies still require exact-head re-review.
 
-An explicit owner instruction such as “do not use Codex to delegate or lead” sets Codex mechanical worker and mechanical lead allocation to zero for that delivery, overriding any earlier allowance. Retain only the Codex brain or review use the owner explicitly requests. Run mechanical builds, tests and evidence collection outside Codex.
+An explicit owner instruction such as “do not use Codex to delegate or lead” sets every Codex mechanical worker and lead allocation, including Luna, to zero for that delivery, overriding the unrestricted tier and any earlier allowance. Retain only the Codex brain or review use the owner explicitly requests. Run mechanical builds, tests and evidence collection outside Codex.
 
 Before any adapter creates a pull request, run the exact preflight command in
 the `adapter_contract.pr_base_preflight` entry of [commands.json](references/commands.json)

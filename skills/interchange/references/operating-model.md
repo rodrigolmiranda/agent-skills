@@ -1,6 +1,6 @@
 # Interchange operating model
 
-Initially approved by Rodrigo on 2026-09-09; brain/mechanical routing, Codex capacity conservation and owner-gated exceptional brains revised on 2026-09-13. Configured values live in `policy.json`; spreadsheet and diagrams are readable views. This document explains decisions and lifecycle. Shared portfolio rules remain in MarvinaMiranda GOV-0020 and GOV-0016. Repository product meaning stays with its repository. GitHub owns delivery state; runtime files hold execution state and link to it.
+Initially approved by Rodrigo on 2026-09-09; brain/mechanical routing, capacity tiers and owner-gated exceptional brains revised on 2026-09-13. Configured values live in `policy.json`; spreadsheet and diagrams are readable views. This document explains decisions and lifecycle. Shared portfolio rules remain in MarvinaMiranda GOV-0020 and GOV-0016. Repository product meaning stays with its repository. GitHub owns delivery state; runtime files hold execution state and link to it.
 
 ## Team and task size
 
@@ -36,11 +36,13 @@ Workers receive the smallest coherent assignment whose result can be verified in
 
 For development worker selection, apply [routing.md](routing.md) and the configured pools in `policy.json`. Implementation difficulty, ambiguity, consequence and coupling are separate criteria. Grok uses its own CLI only; Claude uses Opus medium/high. The preferred development pools do not replace the smaller Muse/Luna support lane or grant workers lead permissions. Mechanical agents may gather verification evidence; independent semantic and risk acceptance belongs to Sol high, with Astra medium reserved for unusually large cross-workstream scope.
 
-## Codex capacity conservation
+## Capacity tiers
 
-Preserve Codex for judgment, integration decisions and independent semantic/risk acceptance across the full usage window. External houses are the normal mechanical and parallel execution lane. At delivery start, capture the Codex usage window when available, note known concurrent use and reserve capacity for the remaining brain and review path. A delivery must record a positive Codex mechanical allowance and reason before starting any Codex mechanical worker or mechanical lead; absence means zero.
+Luna xhigh/max, DeepSeek V4.1 Flash and Muse Spark 1.3 are unrestricted mechanical capacity. Use them without balancing or an Interchange concurrency cap; three, four, five or more parallel assignments are valid when work is independent, useful and non-overlapping. Unrestricted capacity still obeys packet boundaries, runtime/provider limits, watchdogs, spending policy, completion, independent acceptance and active Astra/Fable reservations.
 
-The normal Codex mechanical concurrency is one. More requires explicit owner authorization, even when write surfaces do not overlap. After the first Codex mechanical checkpoint, capture usage again when available. Stop new Codex mechanical dispatch when observed burn exceeds the allowance, threatens the reserve or cannot be reconciled with known concurrent activity. Do not waste already-spent capacity by abruptly killing useful work: reach the nearest clean tested checkpoint unless the hard deadline or another safety boundary requires interruption, then transfer remaining execution through the normal ownership procedure.
+Use Terra, Sol and Claude Code moderately and balance their consumption when task fit is comparable. Observe available usage, protect the remaining Sol brain/review path and avoid unnecessary concentration. Balance is a tie-breaker, not forced alternation. Grok retains its existing task-fit routing.
+
+Before Terra/Sol mechanical work, capture the Codex usage window when available, note known concurrent use and reserve capacity for the remaining brain and review path. A delivery must record a positive Terra/Sol allowance and reason; absence means zero Terra/Sol mechanical dispatch. The normal Terra/Sol mechanical concurrency is one. More requires explicit owner authorization. Luna is exempt from this gate unless Astra exclusivity or an explicit owner zero-Codex instruction applies. After the first Terra/Sol checkpoint, capture usage again when available and stop new Terra/Sol work when burn exceeds the allowance or threatens the reserve.
 
 Use Muse and other mechanical workers to gather repository evidence before a brain call. Batch related ambiguities into one decision packet. Run builds, tests and evidence collection outside Codex. Commission one Sol-high semantic/risk review per meaningful integrated chunk rather than per leaf assignment; any remedy changes the head and still requires re-review. The owner may set Codex delegation or leading to zero for a delivery while retaining only explicitly requested brain/review use.
 
