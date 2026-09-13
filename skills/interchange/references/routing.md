@@ -1,10 +1,10 @@
 # Development routing instructions
 
-Owner revision 2026-09-13; configured profile IDs and evidence status are in `policy.json` version 0.7.0. These are initial preferred pools, not benchmark rankings or interchangeable capability claims.
+Owner revision 2026-09-13; configured profile IDs and evidence status are in `policy.json` version 0.8.0. These are initial preferred pools, not benchmark rankings or interchangeable capability claims.
 
-Sol high is the default product and architecture brain. Escalate unusually large
-cross-workstream ambiguity to Astra medium. Use Fable 5.1 medium for product
-ideation when its included-plan check passes. Delivery managers on other approved
+Sol high is the default product, architecture and ideation brain. Astra medium and
+Fable 5.1 medium are candidates only after the owner authorizes that exact model
+invocation and the record states concretely why Sol high cannot fit. Delivery managers on other approved
 profiles may coordinate, monitor and integrate settled work, but must route
 unresolved interpretation to a brain. Astra reserves Codex globally. Sol high
 reserves Codex only within work under the same delivery manager. Opus high has
@@ -17,11 +17,20 @@ Use Codex, Grok CLI, Claude Code and OpenCode. Remove Cursor from Interchange ro
 
 ## Choose a developer
 
-For new-product ideas and product brainstorming, use Fable 5.1 medium or Astra
-medium. Explore user/problem evidence, alternatives, assumptions and validation
+For new-product ideas and product brainstorming, use Sol high by default. Fable
+5.1 medium or Astra medium may be used only after the per-invocation owner gate.
+Explore user/problem evidence, alternatives, assumptions and validation
 questions; return recommendations without inventing owner decisions or starting
 implementation. These are ideation profiles, not additions to the default coding
 pool. Fable's exact runtime identity and included-plan eligibility remain unverified.
+
+The gate applies to every Astra or Fable start, resume, retry and follow-up in any
+role. Authorization must name the packet, attempt, invocation, model, effort and
+purpose, and record a concrete reason `gpt-5.6-sol` high cannot fit. Only the owner
+can authorize. An earlier authorization, general model preference or delivery
+approval cannot be reused. Without it, use Sol high if suitable or stop and ask the
+owner with the proposed reason. Fable additionally requires separate proof that
+the invocation stays inside the included plan and creates no extra spend.
 
 Before choosing a developer, resolve every product, behavior, architecture and
 tradeoff decision through Sol high, Astra medium or Fable medium as applicable.
@@ -83,7 +92,8 @@ Fable medium cannot run alongside any other active Claude assignment. External u
 sessions may be invisible; disclose uncertain occupancy rather than claim a
 global lock. Mechanical enforcement needs the future shared runner.
 
-Fable may bill usage credits without prompting in headless mode. Existing
+Fable may bill usage credits without prompting in headless mode. Owner authorization
+to invoke Fable is not spending authorization. Existing
 no-extra-spending policy still applies: verify included allowance before launch;
 if credit billing cannot be excluded, use an eligible alternative or report the
 blocker. Selecting Fable is not permission to spend credits. See

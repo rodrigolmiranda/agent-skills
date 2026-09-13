@@ -8,8 +8,12 @@ Approved configuration: [policy.json](../skills/interchange/references/policy.js
 flowchart TD
   A[Approved outcome] --> B{Unresolved interpretation?}
   B -->|Ordinary product or architecture judgment| C[Sol high brain]
-  B -->|Unusually large cross-workstream ambiguity| D[Astra medium brain]
-  B -->|Product ideation| E[Fable 5.1 medium brain after included-plan check]
+  B -->|Candidate exceptional brain| BA{Astra or Fable requested?}
+  BA -->|No| C
+  BA -->|Yes| BB{Fresh owner authorization for this invocation and concrete reason Sol high cannot fit?}
+  BB -->|No| BC[Use Sol high if it fits or wait for owner]
+  BB -->|Yes, large cross-workstream ambiguity| D[Astra medium brain]
+  BB -->|Yes, product ideation and included-plan check passes| E[Fable 5.1 medium brain]
   B -->|No| F[Mechanical candidate]
   C & D & E --> G[Settle behavior, interfaces, tradeoffs and acceptance]
   G --> F
@@ -40,13 +44,13 @@ flowchart TD
   U -->|No| S[Exact profile and tool permissions verified before dispatch]
 ```
 
-Sol high is the default product and architecture brain. Astra medium handles unusually large cross-workstream ambiguity; Fable 5.1 medium handles product ideation after its included-plan/no-extra-cost check. Independent semantic and risk acceptance also uses Sol high, with Astra medium for unusually large cross-workstream scope. Other profiles execute settled mechanical packets and return ambiguity instead of interpreting it. A delivery manager on another profile may coordinate but does not gain judgment authority.
+Sol high is the default product, architecture and ideation brain. Every Astra or Fable start, resume, retry and follow-up requires fresh owner authorization bound to that invocation and a concrete recorded reason Sol high cannot fit. Prior authorization cannot be reused. Fable also needs its included-plan/no-extra-cost check. Independent semantic and risk acceptance uses Sol high by default; Astra is subject to the same gate. Other profiles execute settled mechanical packets and return ambiguity instead of interpreting it. A delivery manager on another profile may coordinate but does not gain judgment authority.
 
 Muse Spark 1.3 is the light mechanical and read/seek lane. Use fast, low-cost workers when startup, supervision and integration still produce a net gain, and parallelize only independent objectively testable packets with non-overlapping write ownership. Pools are starting preferences, not universal model rankings. Read [development routing instructions](../skills/interchange/references/routing.md) for task boundaries and escalation. Worker model choice grants no delegation or merge authority.
 
 Codex is protected brain and semantic-review capacity. External houses take mechanical work first. A Codex mechanical worker requires a recorded delivery allowance, exception reason and remaining brain/review reserve; no allowance means zero dispatch. An owner instruction not to use Codex for delegation or leading overrides the allowance and sets worker/lead allocation to zero. Default Codex mechanical concurrency is one, with a usage checkpoint after its first clean checkpoint. Batch brain questions and review meaningful integrated chunks instead of every leaf assignment.
 
-Policy 0.7.0 separates coordination from judgment and protects Codex capacity. Opus 5 high remains an approved
+Policy 0.8.0 separates coordination from judgment, protects Codex capacity and owner-gates every Astra/Fable invocation. Opus 5 high remains an approved
 delivery-manager continuity profile but routes interpretation to an approved brain.
 Any Astra reserves Codex globally and any Fable 5.1 reserves Claude globally.
 Sol high-or-higher and Opus high-or-higher reserve their houses only for work

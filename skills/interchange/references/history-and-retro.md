@@ -18,6 +18,16 @@ Record an owner instruction prohibiting Codex delegation or leading as a zero-al
 
 Capture another snapshot after the first Codex mechanical checkpoint when possible. Compare the observed pool change with the delivery allowance without claiming exact task attribution. If it exceeds plan, threatens the reserve or cannot be reconciled with known concurrent use, record the freeze and send remaining mechanical work to another eligible house. Retain in-flight checkpoint cost, review batching and repair/re-review use so the weekly retro can distinguish protected brain consumption from avoidable mechanical consumption.
 
+## Astra and Fable authorization records
+
+Before every Astra or Fable start, resume, retry or follow-up, store the packet ID,
+attempt ID, unique invocation ID, model, effort, role/purpose, timestamp, explicit
+owner authorization evidence and the concrete reason `gpt-5.6-sol` high cannot fit.
+The authorization is valid for that invocation only. A later call, including a
+resume of the same session, requires a new record and owner decision. Fable records
+also include the separate included-plan/no-extra-spend preflight result. Never put
+credentials or secret provider data in the authorization record.
+
 ## Storage
 
 Local execution journal: `~/.local/state/interchange/history/`. One concise record per attempt: task title/ID, role, house/model/effort, start/end, result, exact usage if available, quota snapshot references, independent scores, significant note and evidence links. Use existing canonical GOV-0020 score definitions; workers do not assign their own scores.

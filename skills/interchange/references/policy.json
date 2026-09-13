@@ -1,5 +1,5 @@
 {
-  "version": "0.7.0",
+  "version": "0.8.0",
   "approved_on": "2026-09-13",
   "status": "Approved operating design; live runner not implemented",
   "profiles": [
@@ -28,7 +28,8 @@
       "effort": "medium",
       "role": "delivery manager and brain for unusually large cross-workstream ambiguity",
       "delegation": true,
-      "evidence": "Supported by current tool metadata; routing uncalibrated"
+      "evidence": "Supported by current tool metadata; routing uncalibrated",
+      "invocation_authorization": "Fresh explicit owner authorization for this exact start/resume/retry/follow-up, with a concrete recorded reason gpt-5.6-sol high cannot fit; never reuse prior authorization"
     },
     {
       "id": "lead-astra-medium",
@@ -37,7 +38,8 @@
       "effort": "medium",
       "role": "brain lead: unusually large ambiguity or cross-workstream architecture",
       "delegation": true,
-      "evidence": "Supported by current tool metadata; routing uncalibrated"
+      "evidence": "Supported by current tool metadata; routing uncalibrated",
+      "invocation_authorization": "Fresh explicit owner authorization for this exact start/resume/retry/follow-up, with a concrete recorded reason gpt-5.6-sol high cannot fit; never reuse prior authorization"
     },
     {
       "id": "lead-sol-medium",
@@ -73,7 +75,8 @@
       "effort": "medium",
       "role": "independent semantic review brain for unusually large cross-workstream scope; no implementation or self-review",
       "delegation": false,
-      "evidence": "Supported by current tool metadata; reviewer routing uncalibrated"
+      "evidence": "Supported by current tool metadata; reviewer routing uncalibrated",
+      "invocation_authorization": "Fresh explicit owner authorization for this exact start/resume/retry/follow-up, with a concrete recorded reason gpt-5.6-sol high cannot fit; never reuse prior authorization"
     },
     {
       "id": "lead-terra-xhigh",
@@ -223,7 +226,8 @@
       "role": "product-ideation brain; no implementation; included-plan/no-extra-cost preflight required",
       "delegation": false,
       "evidence": "Official model/effort documentation; exact runtime and included-plan eligibility not verified",
-      "spending_gate": "Do not dispatch if usage credits or extra paid usage would be charged; no inferred spending authorization"
+      "spending_gate": "Do not dispatch if usage credits or extra paid usage would be charged; no inferred spending authorization",
+      "invocation_authorization": "Fresh explicit owner authorization for this exact start/resume/retry/follow-up, with a concrete recorded reason gpt-5.6-sol high cannot fit; never reuse prior authorization"
     },
     {
       "id": "brainstorm-astra-medium",
@@ -232,20 +236,21 @@
       "effort": "medium",
       "role": "product-ideation brain for unusually large or cross-workstream concepts",
       "delegation": false,
-      "evidence": "Current tool metadata supports profile; no comparative ideation benchmark"
+      "evidence": "Current tool metadata supports profile; no comparative ideation benchmark",
+      "invocation_authorization": "Fresh explicit owner authorization for this exact start/resume/retry/follow-up, with a concrete recorded reason gpt-5.6-sol high cannot fit; never reuse prior authorization"
     }
   ],
   "routing": [
     {
       "task": "New product idea and brainstorming",
-      "first": "brainstorm-fable-medium; brainstorm-astra-medium",
-      "fallback": "Eligible alternative respecting house exclusivity and no-extra-spend policy",
+      "first": "lead-sol-high or dm-sol-high",
+      "fallback": "brainstorm-fable-medium or brainstorm-astra-medium only after fresh owner authorization for that invocation and a concrete reason Sol high cannot fit; Fable also requires included-plan/no-extra-spend proof",
       "reason": "Explore users, problem, options, assumptions and validation; does not authorize implementation"
     },
     {
       "task": "Product, behavior or architecture judgment",
       "first": "lead-sol-high or dm-sol-high",
-      "fallback": "lead-astra-medium or dm-astra-medium for unusually large cross-workstream ambiguity",
+      "fallback": "lead-astra-medium or dm-astra-medium for unusually large cross-workstream ambiguity; every Astra invocation requires fresh owner authorization and a concrete reason Sol high cannot fit",
       "reason": "Only approved brain profiles interpret missing requirements, choose tradeoffs or settle contracts"
     },
     {
@@ -275,7 +280,7 @@
     {
       "task": "High complexity development",
       "first": "lead-sol-high resolves judgment; worker-opus-high or another qualified external profile executes settled packets",
-      "fallback": "lead-astra-medium resolves unusually large ambiguity; Codex mechanical worker requires a recorded allowance",
+      "fallback": "lead-astra-medium resolves unusually large ambiguity; Codex mechanical worker requires a recorded allowance; every Astra invocation requires fresh owner authorization and a concrete reason Sol high cannot fit",
       "reason": "Separate consequential decisions from implementation; independent review remains mandatory"
     },
     {
@@ -287,7 +292,7 @@
     {
       "task": "Novel public contract implementation",
       "first": "lead-sol-high settles shape; worker-deepseek-flash-max implements the exact contract",
-      "fallback": "lead-astra-medium settles unusually large cross-workstream contract ambiguity before execution",
+      "fallback": "lead-astra-medium settles unusually large cross-workstream contract ambiguity before execution; every Astra invocation requires fresh owner authorization and a concrete reason Sol high cannot fit",
       "reason": "DeepSeek max receives a decided shape and objective contract tests; it does not choose the public contract"
     },
     {
@@ -299,19 +304,19 @@
     {
       "task": "Consequential architecture or high coupling",
       "first": "lead-sol-high",
-      "fallback": "lead-astra-medium for unusually large cross-workstream ambiguity",
+      "fallback": "lead-astra-medium for unusually large cross-workstream ambiguity; every Astra invocation requires fresh owner authorization and a concrete reason Sol high cannot fit",
       "reason": "Approved brain resolves product, architecture, consequence and coupling before execution"
     },
     {
       "task": "Cross-workstream planning and decisions",
       "first": "dm-sol-high",
-      "fallback": "dm-astra-medium for unusually large ambiguity; dm-opus-high may coordinate but routes judgment to a brain",
+      "fallback": "dm-astra-medium for unusually large ambiguity; dm-opus-high may coordinate but routes judgment to a brain; every Astra invocation requires fresh owner authorization and a concrete reason Sol high cannot fit",
       "reason": "Manager receives compact exceptions and evidence; only an assigned brain resolves interpretation"
     },
     {
       "task": "Independent semantic or risk acceptance",
       "first": "reviewer-sol-high",
-      "fallback": "reviewer-astra-medium for unusually large cross-workstream scope",
+      "fallback": "reviewer-astra-medium for unusually large cross-workstream scope; every Astra invocation requires fresh owner authorization and a concrete reason Sol high cannot fit",
       "reason": "Run gates mechanically; batch one independent brain review at a meaningful integrated chunk boundary and bind it to the exact head"
     }
   ],
@@ -405,6 +410,21 @@
       "rule": "Claude compaction",
       "value": "Stop after 2 consecutive auto-compactions without artifact, evidence or gate progress",
       "meaning": "Classify autocompact_thrashing as context/transport failure; retry fresh and narrow, never resume that context"
+    },
+    {
+      "rule": "Astra/Fable invocation authorization",
+      "value": "Fresh explicit owner authorization for every start, resume, retry and follow-up",
+      "meaning": "Bind approval to packet, attempt and invocation ID plus model/effort/role; manager or lead cannot self-authorize"
+    },
+    {
+      "rule": "Sol-high non-fit reason",
+      "value": "Concrete recorded reason gpt-5.6-sol high cannot fit",
+      "meaning": "Vague preference or prior approval fails closed; use Sol high if it fits or wait for owner"
+    },
+    {
+      "rule": "Astra/Fable authorization reuse",
+      "value": "Forbidden",
+      "meaning": "A completed, failed or suspended invocation consumes its authorization; the next invocation needs a new owner decision"
     }
   ],
   "governance": [
@@ -504,7 +524,7 @@
     "Grok work uses Grok CLI only, model grok-4.6 with high or xhigh. No Cursor route.",
     "Claude development uses claude-opus-5 medium or high. Sonnet and automatic fallback to it are excluded.",
     "Brain boundary: only assigned Sol high, Astra medium and Fable 5.1 medium brain profiles resolve product, behavior, architecture or tradeoff ambiguity. Fable is for product ideation; Astra is for unusually large cross-workstream ambiguity; Sol high is the default.",
-    "Semantic and risk acceptance is a brain task: use an independent Sol high reviewer, or Astra medium for unusually large cross-workstream scope. Mechanical workers may collect gates but cannot issue acceptance judgment.",
+    "Semantic and risk acceptance is a brain task: use an independent Sol high reviewer by default. Astra medium is eligible only for unusually large cross-workstream scope after fresh invocation-specific owner authorization and a concrete reason Sol high cannot fit. Mechanical workers may collect gates but cannot issue acceptance judgment.",
     "Coordination is not judgment authority. Opus delivery managers and mechanical leads may coordinate, monitor and integrate, but route unresolved interpretation to an approved brain.",
     "Mechanical packets contain settled behavior, objective acceptance, owned paths, allowed variance and an escalation condition. Workers return evidence and the smallest question when a choice requires interpretation.",
     "Owner may set Codex delegation or leading to zero for a delivery. This overrides any planned mechanical allowance and preserves only explicitly requested Codex brain/review use.",
@@ -521,7 +541,7 @@
     "High consequence can require stronger review even for a small edit. Model choice never removes acceptance gates.",
     "Verify effective model and effort at dispatch. Newly configured Grok/Opus combinations are not yet claimed smoke-tested; no unapproved substitution.",
     "House exclusivity has two scopes. Astra at any effort reserves Codex globally and Fable 5.1 at any effort reserves Claude globally. Sol high or higher reserves Codex only for assignments under the same delivery manager; Opus high or higher reserves Claude only for assignments under the same delivery manager.",
-    "New-product brainstorming may use Fable 5.1 medium or Astra medium. Both create global house reservations while active; prefer another eligible house or queue competing work.",
+    "New-product brainstorming uses Sol high by default. Fable 5.1 medium or Astra medium requires fresh invocation-specific owner authorization and a concrete reason Sol high cannot fit; Fable separately requires included-plan/no-extra-spend proof. Both create global house reservations while active.",
     "Fable model authorization does not permit paid usage credits or extra spending. Verify included allowance before any headless request.",
     "The delivery manager keeps its turn active with a real bounded wait while workers run. It may finish only after terminal handbacks or explicit transfer to another live supervisor.",
     "External provider streams are drained outside manager context. Retrieve compact lifecycle changes and the mechanically extracted final assistant result, not accumulated raw output.",
@@ -530,7 +550,8 @@
     "Owner concurrency exceptions are finite and journalled after an occupancy probe; leads and managers cannot self-authorize them.",
     "DeepSeek V4.1 Flash uses the provider code opencode-go/deepseek-v4.1-flash. The human-readable name and provider code identify the same approved model. The provider renamed this code from opencode-go/deepseek-flash, which no longer appears in `opencode models`; the version now lives in the code itself.",
     "DeepSeek high is the default for bounded implementation. DeepSeek max mechanically implements novel public contract, identity, schema or serialization shapes only after an approved brain settles the shape and objective contract tests.",
-    "DeepSeek V4 Pro, DeepSeek V4 Flash and the vision-exp variants are excluded: opencode-go/deepseek-v4-pro, opencode-go/deepseek-v4-flash and opencode-go/deepseek-v4-flash-vision-exp are DIFFERENT models, not fallbacks for V4.1 Flash. If opencode-go/deepseek-v4.1-flash is unavailable, stop and reroute to a different approved house; never substitute another DeepSeek model."
+    "DeepSeek V4 Pro, DeepSeek V4 Flash and the vision-exp variants are excluded: opencode-go/deepseek-v4-pro, opencode-go/deepseek-v4-flash and opencode-go/deepseek-v4-flash-vision-exp are DIFFERENT models, not fallbacks for V4.1 Flash. If opencode-go/deepseek-v4.1-flash is unavailable, stop and reroute to a different approved house; never substitute another DeepSeek model.",
+    "Every Astra or Fable invocation in any role requires fresh explicit owner authorization bound to that start, resume, retry or follow-up, plus a concrete reason gpt-5.6-sol high cannot fit. Prior authorization is never reusable; Fable also requires included-plan/no-extra-spend proof."
   ],
   "runtime_adapter_priorities": [
     "Machine-owned output adapter",
@@ -618,5 +639,22 @@
     "brain_efficiency": "Batch related ambiguity questions and integration decisions. Gather repository evidence through Muse/external workers and give the brain compact exceptions rather than raw exploration.",
     "review_efficiency": "Run mechanical gates outside Codex. Use one Sol-high semantic/risk review at each meaningful integrated chunk boundary; new remedy commits still require exact-head re-review.",
     "override": "The owner may explicitly prohibit Codex delegation or leading for a delivery. That instruction sets Codex mechanical and lead allocation to zero while preserving only explicitly requested brain/review use."
+  },
+  "owner_gated_brains": {
+    "scope": "Every model invocation, including start, resume, retry and follow-up, in every role",
+    "authority": "Only the owner may authorize; a delivery manager, lead or prior policy approval cannot self-authorize the invocation",
+    "required_record": [
+      "packet_id",
+      "attempt_id",
+      "invocation_id",
+      "model",
+      "effort",
+      "role/purpose",
+      "explicit owner authorization evidence",
+      "concrete reason gpt-5.6-sol high cannot fit"
+    ],
+    "non_reuse": "Authorization is bound to one invocation and expires when that invocation returns or exits. Never reuse it for another start, resume, retry or follow-up.",
+    "missing": "Do not dispatch. Use gpt-5.6-sol high when it fits; otherwise present the concrete non-fit reason and wait for owner authorization.",
+    "fable_additional_gate": "Authorization does not permit paid usage. Confirm included-plan/no-extra-cost eligibility separately before every Fable invocation."
   }
 }
