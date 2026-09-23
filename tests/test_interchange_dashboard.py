@@ -58,7 +58,7 @@ class DashboardTests(unittest.TestCase):
                 {'id': 'next', 'job_id': 'job-next', 'order': 3, 'title': 'Upcoming task',
                  'state': 'not-started', 'owner': None},
                 {'id': 'done', 'job_id': 'job-done', 'order': 4, 'title': 'Finished task',
-                 'state': 'completed', 'owner': 'builder'},
+                 'state': 'completed', 'owner': 'builder', 'pr_url': 'https://example.test/pull/1'},
             ],
             'attempts': [
                 {'job_id': 'job-run', 'attempt_id': 'a1', 'agent_id': 'builder', 'task': 'Old failed retry',
@@ -346,3 +346,14 @@ class ArtifactLinkTests(unittest.TestCase):
         self.assertEqual('done', column)
         for suffix in ('pull/1', 'pull/2', 'issues/3'):
             self.assertIn('https://github.com/o/r/' + suffix, card)
+
+class DoneSourceGateTests(unittest.TestCase):
+    def test_publication_rejects_missing_source_before_writing(self):
+        record = {'project_id': 'x', 'coordinator': {'agent_id': 'a'},
+                  'workflow_steps': [{'id': 'finished-work', 'state': 'done'}]}
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(ValueError, 'finished-work'):
+                dashboard.publish(directory, record)
+            self.assertEqual([], list(Path(directory).iterdir()))
+        record['workflow_steps'][0]['pr_url'] = 'https://github.com/o/r/pull/1'
+        dashboard.validate_done_sources(record)

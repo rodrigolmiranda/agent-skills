@@ -108,3 +108,5 @@ Treat the initial dashboard and workflow as a trial: record friction and propose
 Board order: Next → Blocked → Working now → Waiting → Done. Waiting means a prerequisite is progressing under a named owner and return event/check; record what is awaited and since when. Blocked means intervention is required, such as a failed route, unresolved decision or stalled prerequisite. Do not leave an overdue or failed dependency Waiting without checking it. Working now requires current execution evidence; coordinator work can be an activity independently of a worker. Done is the caller's accepted disposition, not process exit.
 
 For Waiting snapshot rows use `state: waiting`, `waiting_for`, `waiting_owner`, `waiting_since` (time with offset) and `next_event`. An explicit failed execution remains Blocked even if its plan still says Waiting.
+
+Done activities must retain an issue, PR or source/evidence URL in the activity or its latest return. Non-code work may link its evidence; do not invent a PR. Board publication rejects missing links before replacing the published snapshot. Supply the missing source and republish; do not bypass the check.

@@ -314,7 +314,7 @@ def task_card(item, attempts):
     requested = model_effort(current, True)
     observed = model_effort(current, False)
     links = []
-    issue_url = item.get('issue_url') or item.get('source_url') or (current.get('issue_url') if current else None)
+    issue_url = item.get('issue_url') or item.get('source_url') or ((current.get('issue_url') or current.get('source_url')) if current else None)
     parent_url = item.get('parent_url')
     if issue_url:
         links.append('<span><strong>Issue:</strong> ' + safe_link(issue_url, item.get('issue_title') or issue_url) + '</span>')
@@ -477,7 +477,20 @@ section{border:1px solid var(--line);border-radius:9px;margin:0 0 16px;overflow:
 
 
 
+def validate_done_sources(record):
+    activities, _ = attempt_groups(record, ordered_steps(record.get('workflow_steps')))
+    for item, attempts in activities:
+        if activity_column(item, attempts) != 'done':
+            continue
+        current = latest_attempt(attempts) or {}
+        sources = [item.get(k) or current.get(k) for k in ('issue_url', 'source_url', 'pr_url')]
+        sources += [link.get('url') for link in item.get('links') or [] if isinstance(link, dict)]
+        if not any(isinstance(url, str) and url.startswith(('https://', 'http://')) for url in sources):
+            raise ValueError('Done activity requires a source/evidence link: ' + str(item.get('id') or item.get('title')))
+
+
 def publish(repo, record):
+    validate_done_sources(record)
     project = record['project_id']
     agent = record['coordinator']['agent_id']
     for value in (project, agent):
