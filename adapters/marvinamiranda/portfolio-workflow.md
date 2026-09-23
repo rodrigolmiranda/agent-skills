@@ -104,4 +104,4 @@ defect.
 
 ## Portfolio packet templates
 
-Use [portfolio delivery formats](../templates/portfolio-delivery.md) for dispatch, questions, restartable handover, independent review and correction. Central GOV-0020 retains authority and evidence requirements.
+Use [portfolio delivery formats](portfolio-delivery.md) for dispatch, questions, restartable handover, independent review and correction. Central GOV-0020 retains authority and evidence requirements.

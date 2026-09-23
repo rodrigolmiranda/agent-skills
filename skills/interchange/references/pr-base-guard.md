@@ -44,7 +44,3 @@ that a live PR base/head still matches. The designated lead or delivery manager
 must resolve the refs and re-query the live PR, then bind any later review,
 approval, or merge to the exact reviewed head under the repository's governance.
 Workers still cannot merge.
-
-Historical lesson: SDK PR #130 was an old human release promotion to `main`,
-not a routine worker delivery. Routine SDK publication is being redesigned by
-`sm360-sdk` PR #132; this guard does not change either repository.

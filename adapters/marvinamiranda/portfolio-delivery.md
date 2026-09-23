@@ -4,55 +4,7 @@ Governed by the adopted GOV-0020 authority. Fill actual assignment facts, omit i
 
 ## Dispatch document
 
-```markdown
-# <Session / packet ID> — <observable outcome>
-Revision / date / owner / assigned writer:
-Issue URLs / one-PR bundle / approved scope source:
-Requested model/effort; observed identity or unknown:
-
-## Read and understand first
-Read this whole document, then every required source in the order below before
-execution beyond safe reconnaissance. Record your understanding/checklist in
-handover.md. Ask about missing or conflicting requirements before dependent work.
-1. Applicable AGENTS.md/CLAUDE.md and resolved governance source/revision.
-2. Exact product/decision/milestone file paths and relevant sections.
-3. Live issue/PR URLs and controlling approved clarification records.
-4. Exact implementation, contract, fixture and validation-script paths.
-Checkout map / accessible artifact locations / successor-machine instructions:
-
-## Outcome and acceptance
-Actor / current behavior / desired observable result:
-Acceptance ID | Expected result | Required proof | Owning issue
-
-## Scope and prerequisites
-Owned files / allowed variance / non-goals:
-External contracts/packages and published evidence:
-Gate | Current verified state | Owner | Event authorizing next action
-Independent work allowed while a gate is closed:
-
-## Workspace and coordination
-Repository / base or minimum ancestor / drift policy:
-Assigned isolated worktree / branch / resume-or-create instructions:
-Protected source checkout, other writers' paths, generated files and runtime:
-Allowed tools/actions, data mutations, environment and credential prerequisites:
-
-## Execution and validation
-Bounded implementation steps / approved commands and meaningful tests:
-Local validation before ready PR / browser evidence when applicable:
-Evidence directory, redaction, source/runtime identity and artifact requirements:
-PR base / draft-to-ready conditions / merge authority:
-Target budget / hard stop / escalation triggers:
-
-## Questions and answers
-Question file path; write context, options/trade-offs, recommendation and blocked
-work; notify owner. Wait before dependent work; continue safe independent work.
-Ask again if still unclear. Incorporate accepted answers into this packet revision
-and the handover before a reset or transfer.
-
-## Return
-Durable handover path/link / expected report format:
-PR/head SHA, acceptance mapping, validation, gaps, next owner/action.
-```
+Compose the [semantic assignment](../../skills/delivery-orchestrator/templates/assignment.md) and [execution envelope](../../skills/interchange/templates/assignment.md). Apply the additional portfolio requirements in [procedures](portfolio-procedures.md). Do not duplicate these templates.
 
 ## Clarification record
 

@@ -4,21 +4,7 @@ Operational procedures for projects adopting GOV-0020. The central register reta
 
 ## Executable packet: required content
 
-Each packet contains the following, with concrete values rather than placeholders
-when issued:
-
-| Field | What the worker must receive |
-|---|---|
-| Identity | Packet ID/revision, approved outcome, coordinator and related issue/spec links |
-| Acceptance | User-visible positive journey, relevant failure paths, exact evidence required, definition of ready for review |
-| Baseline | Repository URLs, minimum/base commits and how to inspect the intended version |
-| Workspaces | One isolated worktree per repository per session; branch names, writable vs read-only context, collision/reuse rules |
-| Ownership | Exclusive paths plus shared seams reserved to coordinator; explicit dependencies and non-goals |
-| Interface | Versioned shared contract, serialization/null/enum rules, canonical examples, errors and compatibility behaviour |
-| Execution | Reading order, meaningful steps, required checks, local runtime setup, environment/credential prerequisites |
-| Escalation | What is routine judgment, what blocks dependent work, how to report a proposed interface or scope change |
-| Delivery | Commit/PR expectations, permissions, preserved worktrees and Mandatory handback section in this reference |
-| Calibration | Relevant prior findings and lesson links, each translated into a check for this packet |
+Use the [semantic assignment](../../skills/delivery-orchestrator/templates/assignment.md) plus the [execution envelope](../../skills/interchange/templates/assignment.md). Portfolio additions are exact governing revision, canonical public contract fixture, calibration lessons and the mandatory handback below. They supplement the semantic layer; do not maintain a second dispatch-field list.
 
 Keep general rules in this authority. Packets carry task-specific instructions and
 link here instead of duplicating governance. A public contract used by parallel

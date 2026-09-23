@@ -18,3 +18,19 @@ Delivery Orchestrator reassesses all approved unfinished work after each dispatc
 Start with [Delivery Orchestrator](../skills/delivery-orchestrator/SKILL.md) for planning and coordination, or [Interchange](../skills/interchange/SKILL.md) for execution operations. See the [scenario diagrams](../skills/delivery-orchestrator/references/diagrams.md) for the interaction paths. There is one plan and two complementary skills.
 
 GitHub owns live delivery state. The board is a published projection, not a second backlog. Planning approval does not independently authorize implementation, GitHub writes, deployment or publication.
+
+## Assignment and execution layers
+
+```mermaid
+flowchart LR
+  H[Human or coordinator] --> S[Accepted semantic assignment]
+  D[Delivery Orchestrator] --> S
+  S --> E[Interchange execution envelope: revision and digest]
+  E --> W[Authorized worker]
+  W --> Q[Durable question or result]
+  Q --> I[Interchange verifies and records receipt]
+  I --> H
+  H --> A[Decision or acceptance]
+```
+
+Interchange can serve a human or another planner without loading Delivery Orchestrator. When both skills are used, Delivery Orchestrator supplies the semantic assignment and scheduling decision. Manual sessions use reported observations; registered callback verification remains a separate protocol.

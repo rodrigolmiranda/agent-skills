@@ -102,7 +102,7 @@ See [transport](skills/interchange/references/transport.md) for actual commands,
 | [`references/observability.md`](skills/delivery-orchestrator/references/observability.md) | Identity, comparable reports, evaluation, transfer and GitHub provenance |
 | [`references/communication.md`](skills/delivery-orchestrator/references/communication.md) + [`templates/messages.md`](skills/interchange/templates/messages.md) | Understand/confirm/ask/answer/resume/return, with questions and answers stored in files |
 | [`references/transport.md`](skills/interchange/references/transport.md) | Launching, return routes, timeouts and uncertain delivery |
-| [`templates/`](skills/interchange/templates/) | Plan, assignment, question, handover, review, status and continuation records |
+| [`templates/`](skills/interchange/templates) | Plan, assignment, question, handover, review, status and continuation records |
 | [`scripts/run_job.py`](skills/interchange/scripts/run_job.py) + [`relay.py`](skills/interchange/scripts/relay.py) | Deterministic process supervision and callback delivery |
 | [`references/adoption.md`](skills/interchange/references/adoption.md) | Pilot, active-assignment continuity and governance alignment |
 | [`docs/delivery-responsibilities.md`](docs/delivery-responsibilities.md) | Ownership and cooperation between the two skills |
@@ -119,6 +119,16 @@ The tests cover existing protocol behavior and the relay/runner. Skill and diagr
 
 ### Local activity page
 
-Interchange can publish a local four-column activity board per repository, shared by linked worktrees and multiple coordinators. It puts current work first, groups retries inside one task, and keeps completed/stopped history collapsed. Optional workflow steps are the task-card source; without them the board groups attempts by job. Select a project or inspect all activity, with issue/parent links and expandable evidence. Run `python3 skills/interchange/scripts/dashboard.py --repo <checkout> --snapshot <continuation.json>` and open the printed file. Updates are explicit snapshots, not live monitoring, and GitHub remains the backlog authority. See [observability](skills/delivery-orchestrator/references/observability.md#repository-dashboard-and-session-access) for the snapshot contract and limits.
+Interchange can publish a local five-column activity board per repository, shared by linked worktrees and multiple coordinators. It puts current work first, groups retries inside one task, and keeps completed/stopped history collapsed. Optional workflow steps are the task-card source; without them the board groups attempts by job. Select a project or inspect all activity, with issue/parent links and expandable evidence. Run `python3 skills/interchange/scripts/dashboard.py --repo <checkout> --snapshot <continuation.json>` and open the printed file. Updates are explicit snapshots, not live monitoring, and GitHub remains the backlog authority. See [observability](skills/delivery-orchestrator/references/observability.md#repository-dashboard-and-session-access) for the snapshot contract and limits.
 
 Workspace configuration and non-destructive retention inventory are described in [workspace.md](skills/interchange/references/workspace.md). The runner drains excess output by default and keeps a separate final-artifact receipt; receiver routes explicitly distinguish Codex queue, Claude parent harness and manual return.
+
+## Optional portfolio adapter
+
+The [portfolio adapter](adapters/marvinamiranda/README.md) is loaded only when selected by the project's governance. Core skills contain no portfolio workflow dependency.
+
+## Installation identity
+
+Interchange can be installed alone for a human or other coordinator. The paired installation rules below apply when using Delivery Orchestrator with it.
+
+Each client uses its normal installed skill directory. When using the paired workflow, Codex and Claude must resolve both skills to the same approved repository commit; record that SHA and each resolved target in the [installation manifest](templates/installation.json). A shared immutable release directory with client-local links is sufficient. Do not mix a working-tree skill with a released companion and report the pair as installed. Active attempts retain their pinned execution resources until a safe checkpoint. Shared owner policy names the skills; it must not require another client's temporary worktree.

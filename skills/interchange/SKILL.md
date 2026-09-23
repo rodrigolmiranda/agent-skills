@@ -1,32 +1,21 @@
 ---
 name: interchange
-description: Execute bounded assignments through Codex, Claude Code or external sessions, with worker communication, transport, callbacks, evidence and observability. Use with delivery-orchestrator for planning and scheduling.
+description: Execute authorized assignments through Codex, Claude Code or external sessions. Use for dispatch, startup verification, durable messages, callbacks, execution observations and communication recovery.
 ---
 
 # Interchange
 
-The current coordinator supplies an accepted assignment from delivery-orchestrator. Interchange executes that assignment and returns correlated evidence. The user may override any role, model, effort or assignment. Repository safety and execution permissions still apply.
+Execute an authorized assignment supplied by a human or coordinator and return correlated evidence. This skill works independently of any planning skill. It does not decide product scope, priority, review allocation or acceptance. Repository permissions and the supplied authority remain binding.
 
-For a visual walkthrough of job types, decision branches and recovery, read [workflow diagrams](../delivery-orchestrator/references/diagrams.md).
+## Execute and return
 
-Use [principles.md](../delivery-orchestrator/references/principles.md) to choose when coordination is worthwhile and keep implementation proportionate. Resolve shared records and retention through [workspace.md](references/workspace.md). For status reports, dispatch evaluation, GitHub provenance or moving to another account/client, use [observability.md](../delivery-orchestrator/references/observability.md).
+1. Read the supplied semantic assignment and its authority, revision, owned surface, acceptance and holds. Missing or contradictory scope returns to its owner; do not invent a plan.
+2. Resolve the selected authorized profile through [profiles](references/profiles.md). Record requested versus observed model and effort; never silently substitute a provider or model.
+3. Bind the assignment to the [execution envelope](templates/assignment.md). Resolve portable records through [workspace](references/workspace.md), then use [transport](references/transport.md) for the chosen route.
+4. Apply the [exchange contract](references/communication.md) to startup, questions, answers and returns. Verify startup rather than treating a PID or queued message as execution.
+5. Correlate a return with its registered attempt and artifact digest, acknowledge receipt once and deliver evidence to the assignment owner. Exit, receipt and acceptance are distinct.
+6. Before yielding, record actual process state, supervisor, deadline and next return owner. Never claim automatic continuation without a verified wake route. Unsupervised work requires repair or an explicit blocker.
 
-Before sending a worker dispatch, question, answer or correction, use [communication.md](../delivery-orchestrator/references/communication.md) and its compact message templates; decisions must be recorded in the packet, not left only in chat.
+Use [execution operations](references/execution-operations.md) for capability inventory, technical agreements, logs, board publication and communication recovery. The caller owns board dispositions and evaluations; Interchange records execution facts. Use [setup](references/adoption.md) for installation and manual observations.
 
-For capability inventory, technical exchange agreements, event logging, board freshness and communication recovery, use [execution operations](references/execution-operations.md). Interchange maintains execution facts; the orchestrator owns plan, priority, evaluation and acceptance.
-
-## Accepted assignment → execution → return
-
-[Delivery orchestrator](../delivery-orchestrator/SKILL.md) owns scope, roles, breakdown, scheduling, review selection and disposition. Receive its accepted packet and validated scheduling decision; do not create a second plan here.
-
-1. Resolve the selected authorized profile through [roles.md](references/roles.md) and the adopter profile. Record requested versus observed identity; unsupported routes fail explicitly, never silently substitute.
-2. Prepare the technical envelope using [assignment.md](templates/assignment.md): correlate job, attempt, packet revision, sender, worktree, callback route, budget and stop condition. Preserve the packet's semantic scope and authority. Read [transport.md](references/transport.md) before external dispatch.
-3. Verify actual startup, not just a PID or queued prompt. Record the supervisor, deadline and return route. Provider failure returns to the coordinator for scheduling/routing disposition; retain the existing worktree and artifacts.
-4. Correlate the return with the registered attempt and artifact digest, acknowledge receipt once, and deliver the evidence to the coordinator. An exit or callback is neither acceptance nor authorization. Durable [questions](templates/question.md) and [handovers](templates/handover.md) survive session changes.
-5. Before releasing execution, supply actual process/receiver state to the orchestrator's [turn-exit checkpoint](../delivery-orchestrator/references/execution-checkpoints.md). A queued notification is not acknowledged receipt. Never claim automatic continuation without a verified supported wake route.
-
-Review selection, test allocation, correction ownership and subsequent dispatch belong to delivery-orchestrator. This skill may carry a review or correction packet but does not decide the outcome.
-
-## Configuration
-
-Configure supported provider profiles and project-specific authority. Keep personal paths, quotas and product names out of the portable core. Delivery-orchestrator owns workflow; Interchange owns execution operations. Active attempts keep their recorded protocol and evidence until completion.
+Keep personal preferences and product-specific rules in explicit adopter configuration. Active attempts retain their recorded resources and protocol. Neither this skill nor a transport receipt grants merge, publication, deployment or expanded scope.
