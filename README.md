@@ -132,3 +132,5 @@ The [portfolio adapter](adapters/marvinamiranda/README.md) is loaded only when s
 Interchange can be installed alone for a human or other coordinator. The paired installation rules below apply when using Delivery Orchestrator with it.
 
 Each client uses its normal installed skill directory. When using the paired workflow, Codex and Claude must resolve both skills to the same approved repository commit; record that SHA and each resolved target in the [installation manifest](templates/installation.json). A shared immutable release directory with client-local links is sufficient. Do not mix a working-tree skill with a released companion and report the pair as installed. Active attempts retain their pinned execution resources until a safe checkpoint. Shared owner policy names the skills; it must not require another client's temporary worktree.
+
+Owner-enabled coordinator acceptance and merge is an optional Delivery Orchestrator session setting. See [the merge checkpoint](skills/delivery-orchestrator/references/coordinator-merge.md) for exact-head independent review, green checks, pending review requests and repository authority.
