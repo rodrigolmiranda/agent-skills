@@ -1,9 +1,9 @@
 ---
-name: plan-delivery
-description: Build or resume an approved delivery plan with complete task coverage, dependency and resource ownership analysis, and a validated scheduling record before dispatch. Use for project planning, delivery takeover, and replanning after worker returns or blockers change.
+name: delivery-orchestrator
+description: Plan and orchestrate delivery from accepted specifications through GitHub breakdown, safe parallel dispatch, independent acceptance and portable continuation. Use for planning, takeover, worker returns and delivery coordination.
 ---
 
-# Plan delivery
+# Delivery orchestrator
 
 Produce a resumable plan and an executable scheduling decision, not a prose promise. The coordinator owns scope and decisions. Planning alone does not authorize implementation, publication or deployment.
 
@@ -17,7 +17,7 @@ This skill owns the [delivery workflow](references/workflow.md), [scheduling gat
 2. Resolve requirements that affect implementation before dispatch. Carry known context, contracts, acceptance and non-goals into meaningful PR-sized packets. Routine prerequisite checks belong in those packets; investigate separately only when the answer can change scope/architecture or unblock several jobs.
 3. Apply this skill’s scheduling gate to the complete approved set: dependencies, write ownership, runtime/test resources, model authority and actual capacity. Select all safe independent work, record specific exclusions, and identify coordinator actions for unknown readiness. Board display limits never constrain this scan.
 4. Save the project-owned plan and scheduling receipt under the project's configured shared coordination root. GitHub owns backlog/status; the receipt contains IDs, links and dispatch decisions, not copied issue bodies. Use relative artifact paths, repository identities and a separate machine-root mapping. Include current coordinator identity, handover entrypoint and next wake owner in the continuation record. Another thread, account or client must resolve the same record rather than create a competing plan.
-5. Run `python3 <installed-plan-delivery>/scripts/check_schedule.py <receipt>`. Preserve command, exit status and receipt identity. Correct failures before declaring the plan dispatch-ready or reporting that no more safe work exists. A passing record checks consistency only: independently verify that its authority, dependencies and resource claims are true.
+5. Run `python3 <installed-delivery-orchestrator>/scripts/check_schedule.py <receipt>`. Preserve command, exit status and receipt identity. Correct failures before declaring the plan dispatch-ready or reporting that no more safe work exists. A passing record checks consistency only: independently verify that its authority, dependencies and resource claims are true.
 6. When execution is authorized, hand accepted packets to Interchange, dispatch the selected set and verify startup. For planning-only requests, return the validated plan without launching workers. Before yielding, leave only supervised returns, concrete authority decisions or recorded external blockers; complete executable coordinator actions first.
 
 ## Resume and change
@@ -34,13 +34,13 @@ This is a mandatory skill process gate when routed by AGENTS.md or CLAUDE.md. It
 
 ```mermaid
 flowchart LR
-  A[plan-delivery: scope and accepted plan] --> B[Dependencies and complete scheduling receipt]
+  A[delivery-orchestrator: scope and accepted plan] --> B[Dependencies and complete scheduling receipt]
   B --> C{Receipt valid and execution authorized?}
   C -- No --> D[Resolve gaps or return planning-only result]
   C -- Yes --> E[Interchange: dispatch and verify startup]
   E --> F[Worker return or question]
-  F --> G[plan-delivery: disposition, review and reschedule]
+  F --> G[delivery-orchestrator: disposition, review and reschedule]
   G --> B
 ```
 
-Plan-delivery chooses what runs, dependencies, acceptance checkpoints and next actions. Interchange chooses the authorized execution route, sends the bounded packet, verifies delivery/startup and records the return. Independent reviewers supply proof; the coordinator makes acceptance decisions under existing authority. Neither skill grants merge, deployment or publication permission.
+Delivery orchestrator chooses what runs, dependencies, acceptance checkpoints and next actions. Interchange chooses the authorized execution route, sends the bounded packet, verifies delivery/startup and records the return. Independent reviewers supply proof; the coordinator makes acceptance decisions under existing authority. Neither skill grants merge, deployment or publication permission.

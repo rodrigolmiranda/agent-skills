@@ -41,3 +41,25 @@ An incident is not a license to audit the portfolio. A review correction is not 
 Budgets are per outcome, not arbitrarily tiny fragments. Use one integrated review rather than multiple reviewers reading the same diff. Batch questions, summarize evidence, keep raw tool streams on disk. Mechanical supervision consumes no model calls. Record actual elapsed/usage where exposed, unknown otherwise; file size, time or callback count does not measure token usage.
 
 Escalate a Builder when settled requirements still demand difficult cross-boundary engineering, repeated proof failure or unfamiliar high-consequence work. State why, proposed role/model, bounded output and cost/time limit; owner approves Senior/Architecture dispatch. Approval never authorizes new product scope.
+
+## Coordinator modes and execution boundary
+
+One accountable coordinator changes mode; do not create manager agents for each hat.
+
+- **Plan:** inspect existing behavior at the named baseline; resolve gaps in the changed outcome; settle contracts, failure behavior and acceptance; map requirements to GitHub work and identify likely file/runtime conflicts. Existing approved specifications remain authoritative.
+- **Deliver:** refresh actual ownership and prerequisite evidence, validate the scheduling receipt, dispatch through Interchange, verify startup and answer file-backed questions. Reconcile every return before selecting the next safe set.
+- **Accept:** request independent review against the accepted specification and exact content; consolidate findings, schedule the planned user-journey checks, reconcile documentation/GitHub and record remaining gates. Merge/publication/deployment follow separate authority.
+
+Check likely conflicts during breakdown and actual conflicts before dispatch. Scope, dependency and ownership changes invalidate only affected decisions, not all prior planning.
+
+## Verification plan
+
+Choose checks when settling the slice: meaningful unit/integration proof and simple navigation for affected UI; independent code/outcome review; design guidance for new or complex interactions; integrated UX/journey checks for feature clusters; full end-to-end or multi-consumer SDK proof at named release/milestone boundaries. Record applicability and reuse valid evidence. Do not run every layer on every correction. Reviewers never repair their own findings.
+
+## Specification consistency
+
+Before implementation and acceptance, reconcile requirement IDs → issue/task IDs → tests and actual evidence. Identify uncovered requirements, unapproved scope, unresolved decisions and changed contracts. Fix the owning specification/plan when intent changes; do not silently adjust acceptance to fit the implementation. Use existing product FEAT/SCN/ADR notes rather than creating parallel specification trees.
+
+## Portable continuation
+
+Persist coordinator identity, adopted workflow revision, source references, ownership, packet revisions, returns/questions, scheduling receipt, evidence and next wake in the project's shared coordination root. Paths are relative to repository/artifact roots resolved by the machine map. GitHub owns live delivery state; the dashboard is a projection of the same records. New Codex/Claude/OpenCode coordinators refresh mutable facts and resume without requiring the old chat. Interchange owns client-specific transport/session resumption and callback correlation.

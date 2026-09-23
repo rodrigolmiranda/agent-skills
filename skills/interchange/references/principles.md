@@ -13,4 +13,4 @@ Apply Interchange when coordination earns its cost: delegated implementation, in
 
 ## Reassess safe parallelism; reuse useful context
 
-Planning and the mandatory scheduling gate are owned by [plan-delivery](../../plan-delivery/SKILL.md). Apply its [scheduling rule](../../plan-delivery/references/scheduling.md) before dispatch and at every return/unblock; Interchange executes the selected assignments and returns correlated evidence. This compatibility anchor retains existing handover links without duplicating the rule.
+Planning and the mandatory scheduling gate are owned by [delivery-orchestrator](../../delivery-orchestrator/SKILL.md). Apply its [scheduling rule](../../delivery-orchestrator/references/scheduling.md) before dispatch and at every return/unblock; Interchange executes the selected assignments and returns correlated evidence. This compatibility anchor retains existing handover links without duplicating the rule.

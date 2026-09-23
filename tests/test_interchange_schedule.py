@@ -7,7 +7,7 @@ import tempfile
 import unittest
 
 spec = importlib.util.spec_from_file_location(
-    'check_schedule', Path(__file__).parents[1] / 'skills/plan-delivery/scripts/check_schedule.py')
+    'check_schedule', Path(__file__).parents[1] / 'skills/delivery-orchestrator/scripts/check_schedule.py')
 check_schedule = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(check_schedule)
 
@@ -165,7 +165,7 @@ class ScheduleReceiptTests(unittest.TestCase):
 
     def test_cli_labels_success_as_consistency_only(self):
         record = receipt()
-        script = Path(__file__).parents[1] / 'skills/plan-delivery/scripts/check_schedule.py'
+        script = Path(__file__).parents[1] / 'skills/delivery-orchestrator/scripts/check_schedule.py'
         with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', suffix='.json') as receipt_file:
             json.dump(record, receipt_file)
             receipt_file.flush()

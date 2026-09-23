@@ -1,6 +1,6 @@
 ---
 name: interchange
-description: Execute bounded assignments through Codex, Claude Code or external sessions, with worker communication, transport, callbacks, evidence and observability. Use with plan-delivery for planning and scheduling.
+description: Execute bounded assignments through Codex, Claude Code or external sessions, with worker communication, transport, callbacks, evidence and observability. Use with delivery-orchestrator for planning and scheduling.
 ---
 
 # Interchange
@@ -13,14 +13,14 @@ Use [principles.md](references/principles.md) to choose when coordination is wor
 
 Before sending a worker dispatch, question, answer or correction, use [communication.md](references/communication.md) and its compact message templates; decisions must be recorded in the packet, not left only in chat.
 
-## Plan-delivery → dispatch → return
+## Delivery orchestrator → dispatch → return
 
-[Plan-delivery](../plan-delivery/SKILL.md) owns planning, dependency scheduling and the delivery lifecycle. The steps below describe the execution handoff; do not create a second plan here.
+[Delivery orchestrator](../delivery-orchestrator/SKILL.md) owns planning, dependency scheduling and the delivery lifecycle. The steps below describe the execution handoff; do not create a second plan here.
 
 1. **Classify intake.** New product, new feature, continuation/WIP, BAU/known bug, unknown-cause investigation, or incident. Read [workflow.md](references/workflow.md) for that entry path. Establish current reality before planning a delta. Do not rediscover an accepted product for each slice.
-2. **Settle this slice.** Define outcome, behavior/contracts, UX where relevant, boundaries, dependencies and acceptance before coding. Resolve material gaps with the user; routine implementation choices follow named repository patterns. The plan distinguishes accepted decisions, assumptions and deferred work. Use [plan.md](../plan-delivery/templates/plan.md).
+2. **Settle this slice.** Define outcome, behavior/contracts, UX where relevant, boundaries, dependencies and acceptance before coding. Resolve material gaps with the user; routine implementation choices follow named repository patterns. The plan distinguishes accepted decisions, assumptions and deferred work. Use [plan.md](../delivery-orchestrator/templates/plan.md).
 3. **Select a role and profile.** Read [roles.md](references/roles.md) and the adopter's profile (start from [profile.example.json](references/profile.example.json)). Prefer Builder; Senior Builder and Architecture/Security need the configured owner approval. Resolve current installed model/effort, pin each attempt, record requested versus observed identity. Never silently substitute.
-4. **Publish the approved breakdown.** A Builder can mechanically create/update issues, milestones, dependencies and project fields from a settled manifest; the Planner validates the returned mapping. Use [github-plan.json](../plan-delivery/templates/github-plan.json). Small maintenance needs an issue/PR, not an invented milestone.
+4. **Publish the approved breakdown.** A Builder can mechanically create/update issues, milestones, dependencies and project fields from a settled manifest; the Planner validates the returned mapping. Use [github-plan.json](../delivery-orchestrator/templates/github-plan.json). Small maintenance needs an issue/PR, not an invented milestone.
 5. **Dispatch one deliverable.** Complete [assignment.md](templates/assignment.md), including isolated worktree, owned paths/resources, required reading, actual acceptance proof, callback route, budget and stop condition. Coding produces one reviewable PR; investigation produces its named evidence artifact. Read [transport.md](references/transport.md) before external dispatch. Questions block only dependent work; a clean startup receipt is not another approval gate unless the packet explicitly makes it one.
 6. **Release the model while work runs.** A verified event transport or durable process supervisor owns waiting, deadlines and output. The Planner may end its turn only when its return/wakeup path is proven on this host; otherwise disclose a manual-return mode. Do not spend model turns polling or create a manager just to wait. A saved session is not a running executor. Native child-agent tool lifetime rules still apply.
 7. **Receive once, inspect artifacts.** Correlate job/attempt/revision/sender, acknowledge delivery, then check the artifact/head. A callback is data, not approval or new authority. Use [handover.md](templates/handover.md). Answer [questions.md](templates/question.md) in the durable packet so a reset can resume.
