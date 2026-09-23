@@ -109,3 +109,16 @@ class RelayTests(unittest.TestCase):
             run.assert_not_called()
 
 if __name__ == '__main__': unittest.main()
+
+class TypedRouteTests(unittest.TestCase):
+    def test_claude_route_is_immutable_and_does_not_queue(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            db = relay.connect(root / 'state.db')
+            relay.register(db, 'job', 'attempt', 'worker', root, route='claude-task', receiver='parent-1')
+            artifact = root / 'result.json'; artifact.write_text('{}')
+            relay.emit(db, 'job', 'attempt', 'worker', 'started', artifact, 'event')
+            self.assertEqual('harness-pending', relay.notify(db, 'event')['delivery'])
+            with self.assertRaises(ValueError):
+                relay.register(db, 'job', 'attempt', 'worker', root, route='manual')
+            db.close()

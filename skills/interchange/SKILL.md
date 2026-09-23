@@ -9,7 +9,7 @@ The current chat is the **Planner** and accountable coordinator. Keep product de
 
 For a visual walkthrough of job types, decision branches and recovery, read [workflow diagrams](references/diagrams.md).
 
-Use [principles.md](references/principles.md) to choose when coordination is worthwhile and keep implementation proportionate. For status reports, dispatch evaluation, GitHub provenance or moving to another account/client, use [observability.md](references/observability.md).
+Use [principles.md](references/principles.md) to choose when coordination is worthwhile and keep implementation proportionate. Resolve shared records and retention through [workspace.md](references/workspace.md). For status reports, dispatch evaluation, GitHub provenance or moving to another account/client, use [observability.md](references/observability.md).
 
 Before sending a worker dispatch, question, answer or correction, use [communication.md](references/communication.md) and its compact message templates; decisions must be recorded in the packet, not left only in chat.
 
@@ -39,4 +39,4 @@ Use [verification.md](references/verification.md) to select, not multiply, check
 
 ## Customization and migration
 
-This skill runs without an organization vault. Customize profile, templates and repository-specific adapters; do not embed personal paths, account quotas or product names in the portable core. Local instructions may add stronger rules. [adoption.md](references/adoption.md) describes adopting this revision without disrupting active assignments. Older reference files and protocol helpers are compatibility material for already-dispatched jobs, not extra rules to load for new assignments.
+This skill runs without an organization vault. Customize profile, templates and repository-specific adapters; do not embed personal paths, account quotas or product names in the portable core. Local instructions may add stronger rules. [adoption.md](references/adoption.md) describes adopting this revision without disrupting active assignments. Older reference files live outside the installed skill under repository `archive/interchange/references/`; protocol helpers are compatibility material for already-dispatched jobs, not extra rules to load for new assignments.

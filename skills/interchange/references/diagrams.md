@@ -256,3 +256,51 @@ flowchart TD
 ## Walkthrough checklist
 
 Validate at least one path through each diagram before adoption: feature; WIP; known bug; investigation; incident; mechanical GitHub work; role escalation; question/resume; duplicate or uncertain callback; timeout; UX repair; failed review; shared-file handoff; restart; merge with a separate deployment hold. A diagram is explanatory evidence, not proof that a transport or product journey has run successfully.
+
+## Shared workspace and takeover
+
+```mermaid
+flowchart TD
+  A[Coordinator or worker] --> B[Resolve shared workspace manifest]
+  B --> C[Map repository and worktree IDs on this machine]
+  C --> D{Existing ownership and references valid?}
+  D -->|No| E[Record blocker; preserve existing work]
+  D -->|Yes| F{Taking over coordination?}
+  F -->|No| G[Continue authorized assignment]
+  F -->|Yes| H[Outgoing checkpoint and release]
+  H --> I[Incoming verifies worktrees, holds and callback routes]
+  I --> J[Record new generation and receiver acknowledgement]
+  J --> G
+  G --> K[Publish own snapshot to shared repository dashboard]
+```
+
+## Retention inventory
+
+```mermaid
+flowchart TD
+  A[Closure or explicit maintenance request] --> B[Read registered resources and retention]
+  B --> C{Unknown owner, active work, hold or missing proof?}
+  C -->|Yes| D[Retain with reason]
+  C -->|No| E{Grace period elapsed and worktree clean?}
+  E -->|No| D
+  E -->|Yes| F[Candidate for human or coordinator review]
+  F --> G[Dry-run report only; no deletion]
+  G --> H[Separate authorized cleanup requires fresh ownership and archive checks]
+```
+
+## Scheduling after every return
+
+```mermaid
+flowchart TD
+  A[Return, unblock or ownership release] --> B[Reconcile evidence and actual acceptance gates]
+  B --> C[Check whole approved dependency graph]
+  C --> D{Newly ready independent work?}
+  D -->|No| E[Record reason held or no ready work]
+  D -->|Yes| F[Check ownership, runtime, platform and authority limits]
+  F --> G{Useful existing agent context?}
+  G -->|Yes| H[Resume suitable agent with current packet]
+  G -->|No| I[Dispatch suitable new agent]
+  H --> J[Release all safely parallel authorized jobs]
+  I --> J
+  J --> K[Record scheduling decision; no polling]
+```

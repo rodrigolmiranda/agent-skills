@@ -1,3 +1,5 @@
+> Historical compatibility reference. Not active instructions. New work uses [Interchange](../../../skills/interchange/SKILL.md).
+
 # Installation and portable configuration
 
 Repository layout supports several independently discoverable skills: `skills/interchange` and `skills/caveman`. Caveman is bundled unchanged from the MIT-licensed source recorded in its `UPSTREAM.json`, including the licence. A clone therefore has the required dependency without another download.

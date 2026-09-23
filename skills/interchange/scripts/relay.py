@@ -12,7 +12,7 @@ import subprocess
 import uuid
 
 IDENTIFIER = re.compile(r'[A-Za-z0-9._-]{1,100}\Z')
-KINDS = {'result', 'question', 'failed', 'exited'}
+KINDS = {'started', 'result', 'question', 'failed', 'exited'}
 
 
 def now():
@@ -32,6 +32,8 @@ def connect(path):
     CREATE TABLE IF NOT EXISTS attempts (
       job TEXT, attempt TEXT, sender TEXT, coordinator TEXT, root TEXT,
       PRIMARY KEY(job, attempt));
+    CREATE TABLE IF NOT EXISTS routes (
+      job TEXT, attempt TEXT, kind TEXT, receiver TEXT, PRIMARY KEY(job, attempt));
     CREATE TABLE IF NOT EXISTS launches (
       job TEXT, attempt TEXT, directory TEXT, started TEXT,
       PRIMARY KEY(job, attempt));
@@ -49,7 +51,14 @@ def identifier(value):
     return value
 
 
-def register(db, job, attempt, sender, root, coordinator=None):
+def register(db, job, attempt, sender, root, coordinator=None, route=None, receiver=None):
+    route = route or ("codex-queue" if coordinator else "manual")
+    if route not in ("codex-queue", "claude-task", "manual"):
+        raise ValueError("unsupported receiver route")
+    if (route == "codex-queue") != bool(coordinator):
+        raise ValueError("only codex-queue requires a coordinator UUID")
+    if route == "claude-task" and not receiver:
+        raise ValueError("claude-task requires parent session/task ownership reference")
     values = (identifier(job), identifier(attempt), identifier(sender),
               str(uuid.UUID(coordinator)) if coordinator else None,
               str(Path(root).resolve(strict=True)))
@@ -60,7 +69,14 @@ def register(db, job, attempt, sender, root, coordinator=None):
         old = db.execute('SELECT * FROM attempts WHERE job=? AND attempt=?', values[:2]).fetchone()
         if old and tuple(old) != values:
             raise ValueError('attempt already registered with a different route')
+        old_route = db.execute('SELECT kind,receiver FROM routes WHERE job=? AND attempt=?', values[:2]).fetchone()
+        expected_route = (route, receiver)
+        if old_route and tuple(old_route) != expected_route:
+            raise ValueError('attempt route is immutable')
+        if old and not old_route and route != ('codex-queue' if old['coordinator'] else 'manual'):
+            raise ValueError('legacy route cannot be reinterpreted')
         db.execute('INSERT OR IGNORE INTO attempts VALUES (?,?,?,?,?)', values)
+        db.execute('INSERT OR IGNORE INTO routes VALUES (?,?,?,?)', (job, attempt, route, receiver))
     return {'job': job, 'attempt': attempt, 'registered': True}
 
 
@@ -97,8 +113,10 @@ def notify(db, event_id, executable='codex'):
         if not row:
             raise ValueError('unknown event')
         if not row['coordinator']:
-            db.execute("UPDATE events SET delivery='manual' WHERE id=? AND delivery='pending'", (event_id,))
-            return {'id': event_id, 'delivery': 'manual', 'artifact': row['artifact']}
+            route = db.execute('SELECT kind FROM routes WHERE job=? AND attempt=?', (row['job'], row['attempt'])).fetchone()
+            delivery = 'harness-pending' if route and route['kind'] == 'claude-task' else 'manual'
+            db.execute("UPDATE events SET delivery=? WHERE id=? AND delivery='pending'", (delivery, event_id))
+            return {'id': event_id, 'delivery': delivery, 'artifact': row['artifact'], 'received': bool(row['acknowledged'])}
         if row['delivery'] != 'pending':
             return {'id': event_id, 'delivery': row['delivery'], 'sent_again': False}
         if hashlib.sha256(Path(row['artifact']).read_bytes()).hexdigest() != row['digest']:
@@ -135,7 +153,9 @@ def main():
     reg = sub.add_parser('register')
     for key in ('job','attempt','sender','root'):
         reg.add_argument('--'+key, required=True)
-    reg.add_argument('--coordinator', help='Codex thread UUID; omit for manual inbox')
+    reg.add_argument('--coordinator', help='Codex thread UUID; omit for other receivers')
+    reg.add_argument('--route', choices=['codex-queue','claude-task','manual'])
+    reg.add_argument('--receiver', help='parent Claude session/task ownership reference')
     event = sub.add_parser('emit')
     for key in ('job','attempt','sender','kind','artifact','event-id'):
         event.add_argument('--'+key, required=True)

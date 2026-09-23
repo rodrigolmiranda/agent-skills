@@ -114,3 +114,5 @@ The tests cover existing protocol behavior and the relay/runner. Skill and diagr
 ### Local activity page
 
 Interchange can publish one local HTML dashboard per repository, shared by its linked worktrees and multiple coordinators. Select a project or inspect all activity, with session access commands and continuation records. Run `python3 skills/interchange/scripts/dashboard.py --repo <checkout> --snapshot <continuation.json>` and open the printed file. Updates are explicit snapshots, not live monitoring. See [observability](skills/interchange/references/observability.md#repository-dashboard-and-session-access) for ownership, portability and limits. Refine this first version and its workflow from observed use.
+
+Workspace configuration and non-destructive retention inventory are described in [workspace.md](skills/interchange/references/workspace.md). Superseded policy files are preserved under `archive/interchange/`, outside the installed skill. The runner drains excess output by default and keeps a separate final-artifact receipt; receiver routes explicitly distinguish Codex queue, Claude parent harness and manual return.

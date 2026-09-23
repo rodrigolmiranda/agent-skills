@@ -1,3 +1,5 @@
+> Historical compatibility reference. Not active instructions. New work uses [Interchange](../../../skills/interchange/SKILL.md).
+
 # Runtime adapter and supervision contract
 
 Read this file before launching an external Claude, Grok or OpenCode assignment.

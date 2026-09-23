@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-POLICY = ROOT / "skills" / "interchange" / "references" / "policy.json"
+POLICY = ROOT / "archive" / "interchange" / "references" / "policy.json"
 
 
 class CognitiveRoutingTests(unittest.TestCase):

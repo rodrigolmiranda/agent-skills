@@ -1,3 +1,5 @@
+> Historical compatibility reference. Not active instructions. New work uses [Interchange](../../../skills/interchange/SKILL.md).
+
 # Session reuse and cleanup
 
 Use delivery boundaries from the adopted REG-03: Band A foundation is layer-shaped; Band B business implementation is vertical. A milestone groups slices; a task is an artifact-to-proof checkbox, not automatically a separate agent session.

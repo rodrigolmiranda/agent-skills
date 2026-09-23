@@ -5,6 +5,7 @@ Use the applicable block. Replace placeholders; records hold details. Every mess
 ## Dispatch — Planner → worker
 
 ```text
+For <worker ID> — <project/job>
 DISPATCH project=<id> job=<id> revision=<n> attempt=<id>
 From=<planner ID/generation> To=<worker ID>
 Read <assignment path/revision>, then its required sources.
@@ -17,6 +18,7 @@ Return <deliverable> through <verified route>. Next owner: you.
 ## Startup — worker → Planner
 
 ```text
+For <planner ID> — <project/job>
 RECEIPT project=<id> job=<id> revision=<n> attempt=<id>
 From=<worker ID> To=<planner ID/generation>
 Understanding and baseline recorded: <handover/revision>.
@@ -28,6 +30,7 @@ Next=<authorized action | precise decision needed from Planner>.
 ## Question — worker → Planner
 
 ```text
+For <planner ID> — <project/job>
 QUESTION project=<id> job=<id> revision=<n> attempt=<id>
 From=<worker ID> To=<planner ID/generation>
 <IDs> written at <question file/revision>; event artifact=<immutable snapshot>.
@@ -39,6 +42,7 @@ Next owner=<Planner/owner>; process/resources=<retained or released>.
 ## Answer / resume — Planner → worker
 
 ```text
+For <worker ID> — <project/job>
 RESUME project=<id> job=<id> revision=<n> attempt=<new invocation ID>
 From=<planner ID/generation> To=<worker ID>; previous attempt=<id>
 Answers recorded: <Q IDs and file/revision>. Packet=<updated revision>.
@@ -50,6 +54,7 @@ Return via <route>. Next owner: you.
 ## Return — worker → Planner
 
 ```text
+For <planner ID> — <project/job>
 RETURN project=<id> job=<id> revision=<n> attempt=<id>
 From=<worker ID> To=<planner ID/generation>
 Result=<worker-complete | partial | blocked>; artifact=<PR/head or file/hash>.
@@ -61,6 +66,7 @@ Next owner=Planner for <review | named decision>. No independent acceptance clai
 ## Correction — Planner → worker
 
 ```text
+For <worker ID> — <project/job>
 CORRECT project=<id> job=<id> revision=<n> attempt=<id>
 From=<planner ID/generation> To=<worker ID>
 Review=<path/revision and reviewed head>; findings=<IDs>.

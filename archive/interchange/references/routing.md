@@ -1,3 +1,5 @@
+> Historical compatibility reference. Not active instructions. New work uses [Interchange](../../../skills/interchange/SKILL.md).
+
 # Development routing instructions
 
 Owner revision 2026-09-13; configured profile IDs and evidence status are in `policy.json` version 0.9.0. These are initial preferred pools, not benchmark rankings or interchangeable capability claims.
