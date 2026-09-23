@@ -5,7 +5,7 @@ description: Execute bounded assignments through Codex, Claude Code or external 
 
 # Interchange
 
-The current chat is the **Planner** and accountable coordinator. Keep product decisions here, in a durable plan; use bounded sessions for execution. No extra manager/lead layer by default. The user may override any role, model, effort or assignment. Repository safety and execution permissions still apply.
+The current coordinator supplies an accepted assignment from delivery-orchestrator. Interchange executes that assignment and returns correlated evidence. The user may override any role, model, effort or assignment. Repository safety and execution permissions still apply.
 
 For a visual walkthrough of job types, decision branches and recovery, read [workflow diagrams](references/diagrams.md).
 

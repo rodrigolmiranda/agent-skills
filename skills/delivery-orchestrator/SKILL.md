@@ -9,11 +9,13 @@ Produce a resumable plan and an executable scheduling decision, not a prose prom
 
 ## Dependencies and authority
 
-This skill owns the [delivery workflow](references/workflow.md), [scheduling gate](references/scheduling.md), [plan template](templates/plan.md), [GitHub manifest](templates/github-plan.json), and [scheduling receipt](templates/scheduling.json). This skill selects semantic roles and packet requirements; load the installed `interchange` skill for supported transport, execution envelopes, callbacks and observability. If the checker is missing, report the gate unavailable; do not claim validation passed. For discovery, milestone approval, knowledge intake and re-baselining, read [knowledge and discovery](references/knowledge-and-discovery.md) and applicable repository governance. Do not restart discovery for an already approved plan.
+This skill owns the [delivery workflow](references/workflow.md), [scheduling gate](references/scheduling.md), [plan template](templates/plan.md), [GitHub manifest](templates/github-plan.json), and [scheduling receipt](templates/scheduling.json). This skill selects semantic roles and packet requirements; load the installed `interchange` skill for supported transport, execution envelopes, callbacks and execution evidence. If the checker is missing, report the gate unavailable; do not claim validation passed. For discovery, milestone approval, knowledge intake and re-baselining, read [knowledge and discovery](references/knowledge-and-discovery.md) and applicable repository governance. Do not restart discovery for an already approved plan.
 
 For portfolio assignments, use [portfolio procedures](references/portfolio-procedures.md) and [formats](templates/portfolio-delivery.md) under the adopted central authority.
 
 Use [roles](references/roles.md) for semantic assignment selection and [workflow diagrams](references/diagrams.md) to inspect decision paths.
+
+Use [communication](references/communication.md) for durable questions/answers and [observability](references/observability.md) for status, evaluation, board publication and takeover. The board consumes Interchange execution evidence; it does not replace GitHub.
 
 ## Required checkpoint
 
