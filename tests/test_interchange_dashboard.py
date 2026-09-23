@@ -66,6 +66,7 @@ class DashboardTests(unittest.TestCase):
                 {'job_id': 'job-run', 'attempt_id': 'a2', 'agent_id': 'builder', 'task': 'Current task',
                  'execution_state': 'running', 'outcome': None, 'requested_model': 'gpt-6-luna',
                  'requested_effort': 'xhigh', 'observed_model': 'gpt-6-luna', 'observed_effort': 'xhigh',
+                 'identity_evidence': 'provider response metadata',
                  'started_at': '2026-09-23T08:00:00Z', 'last_observed_at': '2026-09-23T08:05:00Z',
                  'evaluation': {'dimensions': {'correctness': 'Not assessed'}}},
                 {'job_id': 'job-blocked', 'attempt_id': 'a3', 'agent_id': 'builder',
@@ -132,35 +133,77 @@ class DashboardTests(unittest.TestCase):
         self.assertIn('Evaluation dimensions', card)
         self.assertNotIn('<details open class="task-card">', card)
 
-    def test_working_and_done_summaries_show_requested_and_observed_model_effort(self):
+    def test_working_and_done_model_badge_sits_on_top_row_and_marks_its_source(self):
         cases = [
             ({'id': 'working-id', 'title': 'Run export', 'state': 'running',
               'owner': 'export-builder', 'next_action': 'Validate the CSV'},
              {'agent_id': 'export-builder', 'execution_state': 'running', 'outcome': 'in_progress',
               'requested_model': 'gpt-6-luna', 'requested_effort': 'xhigh',
-              'observed_model': 'gpt-6-sol', 'observed_effort': 'high'},
-             'working', 'Working now', 'gpt-6-luna · xhigh', 'gpt-6-sol · high'),
+              'observed_model': 'gpt-6-sol', 'observed_effort': 'high',
+              'identity_evidence': 'provider response metadata'},
+             'working', 'Working now', 'Observed · Sol · high',
+             'gpt-6-luna · xhigh', 'gpt-6-sol · high'),
             ({'id': 'done-id', 'title': 'Publish package', 'state': 'completed',
               'next_action': 'Check the release record'},
              {'agent_id': 'release-builder', 'execution_state': 'completed', 'outcome': 'done',
               'requested_model': 'gpt-6-sol', 'requested_effort': 'high'},
-             'done', 'Done', 'gpt-6-sol · high', 'Unknown'),
+             'done', 'Done', 'Requested · Sol · high', 'gpt-6-sol · high', 'Not exposed'),
+            ({'id': 'deepseek-id', 'title': 'Run repository checks', 'state': 'running',
+              'next_action': 'Review the test output'},
+             {'agent_id': 'deepseek-worker', 'execution_state': 'running',
+              'requested_model': 'deepseek-flash-code', 'requested_effort': 'high'},
+             'working', 'Working now', 'Requested · DeepSeek · high',
+             'deepseek-flash-code · high', 'Not exposed'),
         ]
-        for item, attempt, expected_column, status, requested, observed in cases:
+        for item, attempt, expected_column, status, badge, requested, observed in cases:
             with self.subTest(status=status):
                 card, column = dashboard.task_card(item, [attempt])
                 compact = card.split('</summary>', 1)[0]
                 self.assertEqual(expected_column, column)
                 self.assertTrue(card.startswith('<details class="task-card"><summary class="task-summary">'))
                 self.assertIn(f'<span class="summary-status {dashboard.status_class(column)}">{status}</span>', compact)
-                self.assertIn('<span class="summary-model-label">Requested</span>', compact)
-                self.assertIn(f'<span class="summary-model-value">{requested}</span>', compact)
-                self.assertIn('<span class="summary-model-label">Observed</span>', compact)
-                self.assertIn(f'<span class="summary-model-value">{observed}</span>', compact)
+                top_row = compact.split('<span class="summary-top-row">', 1)[1].split(
+                    '</span><span class="summary-meta">', 1)[0]
+                meta_row = compact.split('<span class="summary-meta">', 1)[1].split(
+                    '</span><span class="summary-detail">', 1)[0]
+                action_row = compact.split('<span class="summary-detail">', 1)[1]
+                self.assertIn(f'<span class="summary-model-badge">{badge}</span>', top_row)
+                self.assertNotIn('summary-model-badge', meta_row)
+                self.assertNotIn('summary-model-badge', action_row)
+                self.assertIn(f'Requested model / effort:</strong> {requested}', card)
+                self.assertIn(f'Observed model / effort:</strong> {observed}', card)
+                if observed != 'Not exposed':
+                    self.assertIn('Model identity evidence:</strong> provider response metadata', card)
                 self.assertEqual(1, compact.count('class="summary-title"'))
                 self.assertEqual(1, compact.count('class="summary-meta"'))
                 self.assertEqual(1, compact.count('class="summary-detail'))
                 self.assertNotIn('<details open class="task-card">', card)
+
+    def test_missing_requested_identity_and_no_agent_are_explicit(self):
+        item = {'id': 'working-id', 'title': 'Run export', 'state': 'running',
+                'owner': None, 'next_action': 'Validate the CSV'}
+        attempt = {'agent_id': 'export-builder', 'execution_state': 'running',
+                   'observed_model': 'gpt-6-sol', 'observed_effort': 'high',
+                   'identity_evidence': 'unknown'}
+        card, column = dashboard.task_card(item, [attempt])
+        compact = card.split('</summary>', 1)[0]
+        self.assertEqual('working', column)
+        self.assertIn('<span class="summary-model-badge">Requested · Not exposed</span>', compact)
+        self.assertIn('Requested model / effort:</strong> Not exposed', card)
+        self.assertIn('Observed model / effort:</strong> Not exposed', card)
+
+        unassigned, column = dashboard.task_card(
+            {'id': 'planned-id', 'title': 'Plan the review', 'state': 'not-started'}, [])
+        compact = unassigned.split('</summary>', 1)[0]
+        self.assertEqual('next', column)
+        self.assertNotIn('summary-model-badge', compact)
+
+        no_agent_done, column = dashboard.task_card(
+            {'id': 'done-id', 'title': 'Record completion', 'state': 'completed'}, [])
+        compact = no_agent_done.split('</summary>', 1)[0]
+        self.assertEqual('done', column)
+        self.assertIn('<span class="summary-model-badge">No agent</span>', compact)
+        self.assertNotIn('summary-model-badge">Unknown', compact)
 
     def test_finished_execution_needs_success_outcome_before_done(self):
         finished = {'execution_state': 'completed'}
@@ -230,8 +273,8 @@ class DashboardTests(unittest.TestCase):
             page = dashboard.publish(repo, record).read_text()
         self.assertIn('Write acceptance notes', page)
         self.assertIn('<strong>Owner:</strong> Unassigned', page)
-        self.assertIn('Requested model / effort:</strong> Unknown', page)
-        self.assertIn('Observed model / effort:</strong> Unknown', page)
+        self.assertIn('Requested model / effort:</strong> Not exposed', page)
+        self.assertIn('Observed model / effort:</strong> Not exposed', page)
         self.assertIn('Current action:</strong> Draft the notes', page)
         self.assertIn('Can run in parallel:</strong> Not supplied', page)
         self.assertIn('Readiness:</strong> Not supplied', page)
@@ -271,8 +314,8 @@ class DashboardTests(unittest.TestCase):
         self.assertIn('&lt;script&gt;task&lt;/script&gt;', page)
         self.assertNotIn('<script>task</script>', page)
         self.assertIn('Working now <span class="count">1</span>', page)
-        self.assertIn('Requested model / effort:</strong> Unknown', page)
-        self.assertIn('Observed model / effort:</strong> Unknown', page)
+        self.assertIn('Requested model / effort:</strong> Not exposed', page)
+        self.assertIn('Observed model / effort:</strong> Not exposed', page)
         self.assertIn('<strong>Execution state:</strong>', page)
         self.assertIn('>Running</span>', page)
         self.assertIn('Started: Unknown', page)

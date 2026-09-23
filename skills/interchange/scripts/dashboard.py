@@ -55,14 +55,61 @@ def status_label(value):
     return re.sub(r'[_-]+', ' ', str(value)).strip().capitalize()
 
 
-def model_effort(agent, requested):
+def compact_model_name(value):
+    label = value.strip()
+    if 'deepseek' in label.casefold():
+        return 'DeepSeek'
+    match = re.search(
+        r'(?:^|[-\s])(?:gpt-\d+(?:\.\d+)?-)?(luna|sol|astra|terra)(?:$|[-\s])',
+        label, re.IGNORECASE)
+    return match.group(1).capitalize() if match else label
+
+
+def has_identity_evidence(agent):
+    if not isinstance(agent, dict):
+        return False
+    evidence = agent.get('identity_evidence')
+    return (isinstance(evidence, str) and bool(evidence.strip())
+            and evidence.strip().casefold() not in {'unknown', 'none', 'n/a', 'not exposed', 'not verified'})
+
+
+def model_effort(agent, requested, compact=False):
     prefix = 'requested' if requested else 'observed'
+    if not isinstance(agent, dict):
+        return 'Not exposed'
+    if not requested and not has_identity_evidence(agent):
+        return 'Not exposed'
     model = agent.get(prefix + '_model')
     effort = agent.get(prefix + '_effort')
     combined = agent.get(prefix + '_model_effort')
     if model is None and effort is None:
-        return esc(combined)
-    return esc(model) + ' · ' + esc(effort)
+        if not isinstance(combined, str) or not combined.strip():
+            return 'Not exposed'
+        if combined.strip().casefold() in {'unknown', 'not exposed', 'n/a'}:
+            return 'Not exposed'
+        if compact:
+            parts = re.split(r'\s*[·/]\s*', combined.strip(), maxsplit=1)
+            if len(parts) == 2:
+                return esc(compact_model_name(parts[0])) + ' · ' + esc(parts[1])
+        return esc(combined.strip())
+    if (not isinstance(model, str) or not model.strip()
+            or not isinstance(effort, str) or not effort.strip()):
+        return 'Not exposed'
+    if model.strip().casefold() in {'unknown', 'not exposed', 'n/a'}:
+        return 'Not exposed'
+    if effort.strip().casefold() in {'unknown', 'not exposed', 'n/a'}:
+        return 'Not exposed'
+    model_label = compact_model_name(model) if compact else model.strip()
+    return esc(model_label) + ' · ' + esc(effort.strip())
+
+
+def summary_model_badge(attempt):
+    if not isinstance(attempt, dict):
+        return 'No agent'
+    observed = model_effort(attempt, False, compact=True)
+    if observed != 'Not exposed':
+        return 'Observed · ' + observed
+    return 'Requested · ' + model_effort(attempt, True, compact=True)
 
 
 def snapshot_details(title, value, missing='Unknown'):
@@ -184,6 +231,8 @@ def task_attempt_card(attempt):
             + esc(status_label(attempt.get('outcome'))) + '</span><div class="attempt-details">'
             + '<span>Requested model / effort: ' + model_effort(attempt, True) + '</span>'
             + '<span>Observed model / effort: ' + model_effort(attempt, False) + '</span>'
+            + ('<span>Model identity evidence: ' + esc(attempt.get('identity_evidence')) + '</span>'
+               if has_identity_evidence(attempt) else '')
             + '<span>Started: ' + esc(readable_time(attempt.get('started_at'))) + '</span>'
             + '<span>Ended: ' + esc(readable_time(attempt.get('ended_at'))) + '</span>'
             + '<span>Last observed: ' + esc(readable_time(attempt.get('last_observed_at'))) + '</span>'
@@ -260,8 +309,8 @@ def task_card(item, attempts):
     else:
         readiness_label = str(readiness)
     order = item.get('order')
-    requested = model_effort(current, True) if current else 'Unknown'
-    observed = model_effort(current, False) if current else 'Unknown'
+    requested = model_effort(current, True)
+    observed = model_effort(current, False)
     links = []
     issue_url = item.get('issue_url') or item.get('source_url')
     parent_url = item.get('parent_url')
@@ -280,26 +329,19 @@ def task_card(item, attempts):
     else:
         summary_detail = action or 'No current action supplied'
     show_models = column in {'working', 'done'}
-    requested_summary = ('<span class="summary-model summary-model-requested">'
-                         + '<span class="summary-model-label">Requested</span><span class="summary-model-value">'
-                         + requested + '</span></span>') if show_models else ''
-    observed_summary = ('<span class="summary-model summary-model-observed">'
-                        + '<span class="summary-model-label">Observed</span><span class="summary-model-value">'
-                        + observed + '</span></span>') if show_models else ''
-    observed_separator = '<span class="summary-model-separator" aria-hidden="true">·</span>' if show_models else ''
+    model_badge = ('<span class="summary-model-badge">' + esc(summary_model_badge(current))
+                   + '</span>') if show_models else ''
     attempts_block = ('<details class="attempt-history"><summary>Attempts and retries ('
                       + str(len(attempts)) + ')</summary>'
                       + (''.join(task_attempt_card(attempt) for attempt in sorted(attempts, key=recency_key, reverse=True))
                          or '<p class="empty">No attempts recorded.</p>') + '</details>')
     content = ('<details class="task-card"><summary class="task-summary">'
-               + '<span class="summary-title">' + esc(title) + '</span>'
+               + '<span class="summary-top-row"><span class="summary-title">' + esc(title) + '</span>'
+               + model_badge + '</span>'
                + '<span class="summary-meta"><span class="summary-owner">' + esc(summary_owner)
                + '</span><span aria-hidden="true">·</span><span class="summary-status '
-               + status_class(column) + '">' + esc(logical_status) + '</span>'
-               + ('<span aria-hidden="true">·</span>' + requested_summary if show_models else '') + '</span>'
-               + ('<span class="summary-detail summary-detail-with-model"><span class="summary-action">'
-                  + esc(summary_detail) + '</span>' + observed_separator + observed_summary + '</span>'
-                  if show_models else '<span class="summary-detail">' + esc(summary_detail) + '</span>')
+               + status_class(column) + '">' + esc(logical_status) + '</span></span>'
+               + '<span class="summary-detail">' + esc(summary_detail) + '</span>'
                + '</summary>'
                + '<div class="task-card-body"><div class="card-title"><strong>' + esc(title)
                + '</strong><span class="badge ' + status_class(column) + '">'
@@ -311,6 +353,8 @@ def task_card(item, attempts):
                + '<p><strong>Requested model / effort:</strong> ' + requested + '</p>'
                + '<p><strong>Observed model / effort:</strong> ' + observed + '</p>'
                + '<p><strong>Current action:</strong> ' + esc(action) + '</p>')
+    if has_identity_evidence(current):
+        content += '<p><strong>Model identity evidence:</strong> ' + esc(current.get('identity_evidence')) + '</p>'
     if column == 'blocked':
         content += '<p><strong>Blocker:</strong> ' + esc(blocker or outcome or 'Unknown') + '</p>'
     content += ('<p><strong>Execution state:</strong> <span class="status-text '
@@ -407,7 +451,7 @@ def render(root):
 main{max-width:1400px;margin:auto;padding:12px 20px}h1{font-size:19px;letter-spacing:-.3px;margin:0}h2{font-size:19px;letter-spacing:-.3px;margin:2px 0}h3{font-size:14px;margin:0 0 10px}h4{font-size:13px;margin:24px 0 4px}p{margin:5px 0 8px}.muted,footer{color:var(--muted);font-size:12px}
 .toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}.toolbar p{display:none}select,.button,button{font:inherit;border:1px solid var(--line);border-radius:6px;padding:6px 10px;background:transparent;color:var(--ink)}a{color:var(--accent);overflow-wrap:anywhere}.button{text-decoration:none;font-size:12px;white-space:nowrap}.button:hover,button:hover{background:#edf2f1}button{cursor:pointer}select:focus-visible,a:focus-visible,summary:focus-visible,button:focus-visible{outline:3px solid #71a7a1;outline-offset:3px}
 section{border:1px solid var(--line);border-radius:9px;margin:0 0 16px;overflow:hidden;background:#fcfcfc}.project-head{padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:12px}.eyebrow{font-size:10px;letter-spacing:1px;font-weight:700;color:var(--muted)}.count,.badge{font-size:11px;background:#edf0f2;padding:2px 6px;border-radius:4px;font-weight:600;display:inline-block}.count{margin-left:4px}.empty{padding:12px;border:1px dashed var(--line);border-radius:6px;color:var(--muted);font-size:12px}.board{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding:0 12px 12px}.board-column{border:1px solid var(--line);border-radius:7px;padding:8px;background:#f7f8f8;min-width:0}.board-column h3{display:flex;justify-content:space-between;align-items:center}.column-working{border-top:3px solid #248457}.column-blocked{border-top:3px solid #bf7400}.column-next{border-top:3px solid #4677a8}.column-done{border-top:3px solid #718079}.task-card{background:white;border:1px solid var(--line);border-radius:6px;padding:9px;margin:0 0 8px;min-width:0;overflow-wrap:anywhere}.card-title{display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:6px}.card-title strong{font-size:13px;line-height:1.3}.task-card p{font-size:11.5px;margin:4px 0}.task-card .badge{white-space:normal;text-align:left}.status-text{font-weight:700}.status-good{color:#176b45}.status-attention{color:#8a4b00}.status-terminal{color:#545c65}.status-unknown{color:#586674}.attempt-history{border-top:1px solid var(--line);margin-top:7px;padding-top:4px}.attempt-record{border-top:1px solid var(--line);padding:7px 0;font-size:11px;overflow-wrap:anywhere}.attempt-details{display:grid;gap:4px;margin:5px 0 0}.attempt-details>span{font-size:11px}.attempt-details pre{max-height:200px;overflow:auto}.attempt-history details,.attempt-history summary,.agent-details details{font-size:11px}.show-all{grid-column:1/-1;background:white;border:1px solid var(--line);padding:4px 8px;border-radius:6px}.show-all .task-card{max-width:360px}.unmapped{margin:0 12px 12px;padding:4px 8px;background:#fff8e8;border:1px solid #ead6af;border-radius:6px}.history{padding:0 14px 8px}.coordination{padding:4px 14px 10px;border-top:1px solid var(--line)}.agent-details{display:grid;gap:6px;margin-top:6px}details{font-size:12px}summary{cursor:pointer;color:var(--accent);padding:6px 0}code,pre{font:11px/1.5 ui-monospace,monospace;overflow-wrap:anywhere;white-space:pre-wrap}footer{padding:10px 14px;border-top:1px solid var(--line);font-size:11px}.raw{padding:0 14px 10px}.raw summary{color:var(--muted)}.note{font-size:11px;color:var(--muted)}[hidden]{display:none!important}
-.task-card>summary.task-summary{padding:0;color:var(--ink)}.task-card>summary.task-summary::marker{color:var(--accent)}.summary-title,.summary-detail{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.summary-title{font-size:13px;line-height:1.3;font-weight:700}.summary-meta{display:flex;align-items:center;gap:5px;min-width:0;font-size:11px;line-height:1.3;overflow:hidden;white-space:nowrap}.summary-owner{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.summary-status{flex:none;font-weight:700}.summary-model{display:flex;align-items:center;gap:3px;min-width:0;font-size:10px;line-height:1.3;color:var(--muted);white-space:nowrap}.summary-model-requested{flex:0 1 auto}.summary-model-value{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.summary-model-separator{flex:none}.summary-detail{font-size:11px;line-height:1.3;color:var(--muted)}.summary-detail-with-model{display:flex;align-items:center;gap:5px;overflow:hidden;white-space:nowrap}.summary-action{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.summary-model-observed{flex:0 1 auto}.task-card[open]>summary.task-summary{padding-bottom:6px;border-bottom:1px solid var(--line)}.task-card-body{padding-top:6px}
+.task-card>summary.task-summary{padding:0;color:var(--ink)}.task-card>summary.task-summary::marker{color:var(--accent)}.summary-top-row{display:flex;align-items:center;gap:6px;min-width:0;line-height:1.3}.summary-title{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:700}.summary-model-badge{flex:none;max-width:52%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:1px solid var(--line);border-radius:4px;background:#f2f5f5;padding:1px 5px;color:var(--muted);font-size:10px;line-height:1.4}.summary-meta{display:flex;align-items:center;gap:5px;min-width:0;font-size:11px;line-height:1.3;overflow:hidden;white-space:nowrap}.summary-owner{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.summary-status{flex:none;font-weight:700}.summary-detail{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;line-height:1.3;color:var(--muted)}.task-card[open]>summary.task-summary{padding-bottom:6px;border-bottom:1px solid var(--line)}.task-card-body{padding-top:6px}
 @media(max-width:1100px){.board{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:650px){main{padding:8px}.top{padding:8px 12px}.toolbar{margin-bottom:7px}.toolbar,.project-head{align-items:flex-start;flex-direction:column}.board{grid-template-columns:1fr;padding:0 8px 8px;gap:8px}.board-column{padding:9px}.project-head{padding:10px}.card-title{align-items:flex-start}.top span{display:none}}
 </style><div class="top"><div class="brand">Interchange <span> / snapshot activity</span></div><button onclick="location.reload()">Refresh</button></div>
