@@ -7,11 +7,11 @@ description: Execute bounded assignments through Codex, Claude Code or external 
 
 The current coordinator supplies an accepted assignment from delivery-orchestrator. Interchange executes that assignment and returns correlated evidence. The user may override any role, model, effort or assignment. Repository safety and execution permissions still apply.
 
-For a visual walkthrough of job types, decision branches and recovery, read [workflow diagrams](references/diagrams.md).
+For a visual walkthrough of job types, decision branches and recovery, read [workflow diagrams](../delivery-orchestrator/references/diagrams.md).
 
-Use [principles.md](references/principles.md) to choose when coordination is worthwhile and keep implementation proportionate. Resolve shared records and retention through [workspace.md](references/workspace.md). For status reports, dispatch evaluation, GitHub provenance or moving to another account/client, use [observability.md](references/observability.md).
+Use [principles.md](../delivery-orchestrator/references/principles.md) to choose when coordination is worthwhile and keep implementation proportionate. Resolve shared records and retention through [workspace.md](references/workspace.md). For status reports, dispatch evaluation, GitHub provenance or moving to another account/client, use [observability.md](../delivery-orchestrator/references/observability.md).
 
-Before sending a worker dispatch, question, answer or correction, use [communication.md](references/communication.md) and its compact message templates; decisions must be recorded in the packet, not left only in chat.
+Before sending a worker dispatch, question, answer or correction, use [communication.md](../delivery-orchestrator/references/communication.md) and its compact message templates; decisions must be recorded in the packet, not left only in chat.
 
 For capability inventory, technical exchange agreements, event logging, board freshness and communication recovery, use [execution operations](references/execution-operations.md). Interchange maintains execution facts; the orchestrator owns plan, priority, evaluation and acceptance.
 
@@ -27,6 +27,6 @@ For capability inventory, technical exchange agreements, event logging, board fr
 
 Review selection, test allocation, correction ownership and subsequent dispatch belong to delivery-orchestrator. This skill may carry a review or correction packet but does not decide the outcome.
 
-## Customization and migration
+## Configuration
 
-This skill runs without an organization vault. Customize profile, templates and repository-specific adapters; do not embed personal paths, account quotas or product names in the portable core. Local instructions may add stronger rules. [adoption.md](references/adoption.md) describes adopting this revision without disrupting active assignments. Older reference files live outside the installed skill under repository `archive/interchange/references/`; protocol helpers are compatibility material for already-dispatched jobs, not extra rules to load for new assignments.
+Configure supported provider profiles and project-specific authority. Keep personal paths, quotas and product names out of the portable core. Delivery-orchestrator owns workflow; Interchange owns execution operations. Active attempts keep their recorded protocol and evidence until completion.

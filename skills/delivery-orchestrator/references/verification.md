@@ -27,7 +27,7 @@ The plan maps each accepted outcome to its evidence, owner and checkpoint. Task/
 
 Reuse valid earlier evidence at later boundaries when source, package, consumer wiring and environment still support the claim. Independent review may inspect/reproduce targeted evidence; it need not rerun every suite or journey. Re-run for a changed contract/integration/environment, a concrete risk, failed proof or applicable repository requirement. Explain the reason; passing the same test in three phases is not three different acceptance criteria. A consumer harness can prove the SDK contract but cannot prove adoption in a named product. Product adoption remains unverified until its actual integration is proven. Name the consumers and scenarios in the plan; “multiple consumers” does not authorize testing every portfolio repository.
 
-For Claude-led navigation that needs credential entry, use the bounded Codex helper in [communication.md](../../interchange/references/communication.md); preserve the same intended browser and explicit ownership transfer.
+For Claude-led navigation that needs credential entry, use the bounded Codex helper in [communication.md](communication.md); preserve the same intended browser and explicit ownership transfer.
 
 ## Base and CI changes
 

@@ -32,7 +32,7 @@ Exact full head commit ID: <unabbreviated ID> · Live base: <ref/SHA> · Checks 
 
 ## Dispatch evaluation
 
-Apply [observability.md](../references/observability.md): C correctness / B boundary discipline / E evidence reliability / M maintainability / A autonomy, each 0–3 or not assessed, with brief evidence. Keep initial scores and correction outcomes separate.
+Apply [observability.md](../../delivery-orchestrator/references/observability.md): C correctness / B boundary discipline / E evidence reliability / M maintainability / A autonomy, each 0–3 or not assessed, with brief evidence. Keep initial scores and correction outcomes separate.
 
 - Attempt / evaluator IDs and role: <IDs>; assessment time: <UTC>
 - C/B/E/M/A: <scores and reasons>; disposition: <accepted/correction/blocked/canceled/not assessable>

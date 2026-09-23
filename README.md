@@ -2,7 +2,7 @@
 
 Two skills work together: **delivery-orchestrator** turns accepted specifications into a dependency-aware plan, GitHub work, safe parallel assignments and independent acceptance. **Interchange** carries those assignments across Codex, Claude and external providers, verifies startup/returns and preserves portable session evidence. Governance retains principles and authorization; neither skill grants merge or deployment permission.
 
-Start with [delivery-orchestrator](skills/delivery-orchestrator/SKILL.md). Its [workflow](skills/delivery-orchestrator/references/workflow.md), [visual maps](skills/delivery-orchestrator/references/diagrams.md) and [mandatory scheduling receipt](skills/delivery-orchestrator/references/scheduling.md) explain what runs next and why. Existing approved work resumes from its checkpoint, without repeating discovery. The old `orchestrate-product-delivery` name is a compatibility entry point.
+Start with [delivery-orchestrator](skills/delivery-orchestrator/SKILL.md). Its [workflow](skills/delivery-orchestrator/references/workflow.md), [visual maps](skills/delivery-orchestrator/references/diagrams.md) and [mandatory scheduling receipt](skills/delivery-orchestrator/references/scheduling.md) explain what runs next and why. Existing approved work resumes from its checkpoint, without repeating discovery.
 
 # Agent Skills
 
@@ -61,7 +61,7 @@ Every report uses the same six sections: **outcome; changes since the last repor
 
 You can identify the project, Planner, worker, reviewer, requested versus observed model, current attempt, prior interactions, elapsed time, last observation and next owner. Unknown or stale information is labelled. Evaluations distinguish quality from execution and external waiting time. GitHub owns live delivery state; reports link to it rather than becoming another backlog.
 
-[Status template](skills/interchange/templates/status-report.md) · [Observability and provenance](skills/interchange/references/observability.md) · [Portable continuation index](skills/interchange/templates/continuation.json)
+[Status template](skills/interchange/templates/status-report.md) · [Observability and provenance](skills/delivery-orchestrator/references/observability.md) · [Portable continuation index](skills/interchange/templates/continuation.json)
 
 Unit/integration and simple navigation checks belong to the relevant development dispatch. Broader multi-consumer SDK and milestone journeys are allocated in the plan, reusing valid evidence rather than repeating every test at every checkpoint. Claude testers hand browser credential entry to a bounded Codex helper; that cross-client browser route must be verified before it is claimed usable.
 
@@ -96,11 +96,11 @@ See [transport](skills/interchange/references/transport.md) for actual commands,
 | [`skills/interchange/SKILL.md`](skills/interchange/SKILL.md) | Agent entrypoint and routing to the relevant detail |
 | [`references/workflow.md`](skills/delivery-orchestrator/references/workflow.md) | New work, WIP, maintenance, investigations, incidents and scope triage |
 | [`references/diagrams.md`](skills/delivery-orchestrator/references/diagrams.md) | Visual validation of job and decision paths |
-| [`references/principles.md`](skills/interchange/references/principles.md) | Smallest sound solution, evidence, clarity and justified roadmap preparation |
+| [`references/principles.md`](skills/delivery-orchestrator/references/principles.md) | Smallest sound solution, evidence, clarity and justified roadmap preparation |
 | [`references/roles.md`](skills/interchange/references/roles.md) + [`profile.example.json`](skills/interchange/references/profile.example.json) | Responsibility, model/effort selection and escalation |
 | [`references/verification.md`](skills/delivery-orchestrator/references/verification.md) | Proportionate tests, independent review, UX and journey evidence |
-| [`references/observability.md`](skills/interchange/references/observability.md) | Identity, comparable reports, evaluation, transfer and GitHub provenance |
-| [`references/communication.md`](skills/interchange/references/communication.md) + [`templates/messages.md`](skills/interchange/templates/messages.md) | Understand/confirm/ask/answer/resume/return, with questions and answers stored in files |
+| [`references/observability.md`](skills/delivery-orchestrator/references/observability.md) | Identity, comparable reports, evaluation, transfer and GitHub provenance |
+| [`references/communication.md`](skills/delivery-orchestrator/references/communication.md) + [`templates/messages.md`](skills/interchange/templates/messages.md) | Understand/confirm/ask/answer/resume/return, with questions and answers stored in files |
 | [`references/transport.md`](skills/interchange/references/transport.md) | Launching, return routes, timeouts and uncertain delivery |
 | [`templates/`](skills/interchange/templates/) | Plan, assignment, question, handover, review, status and continuation records |
 | [`scripts/run_job.py`](skills/interchange/scripts/run_job.py) + [`relay.py`](skills/interchange/scripts/relay.py) | Deterministic process supervision and callback delivery |
@@ -119,6 +119,6 @@ The tests cover existing protocol behavior and the relay/runner. Skill and diagr
 
 ### Local activity page
 
-Interchange can publish a local four-column activity board per repository, shared by linked worktrees and multiple coordinators. It puts current work first, groups retries inside one task, and keeps completed/stopped history collapsed. Optional workflow steps are the task-card source; without them older snapshots still render from attempts grouped by job. Select a project or inspect all activity, with issue/parent links and expandable evidence. Run `python3 skills/interchange/scripts/dashboard.py --repo <checkout> --snapshot <continuation.json>` and open the printed file. Updates are explicit snapshots, not live monitoring, and GitHub remains the backlog authority. See [observability](skills/interchange/references/observability.md#repository-dashboard-and-session-access) for the snapshot contract and limits.
+Interchange can publish a local four-column activity board per repository, shared by linked worktrees and multiple coordinators. It puts current work first, groups retries inside one task, and keeps completed/stopped history collapsed. Optional workflow steps are the task-card source; without them older snapshots still render from attempts grouped by job. Select a project or inspect all activity, with issue/parent links and expandable evidence. Run `python3 skills/interchange/scripts/dashboard.py --repo <checkout> --snapshot <continuation.json>` and open the printed file. Updates are explicit snapshots, not live monitoring, and GitHub remains the backlog authority. See [observability](skills/delivery-orchestrator/references/observability.md#repository-dashboard-and-session-access) for the snapshot contract and limits.
 
 Workspace configuration and non-destructive retention inventory are described in [workspace.md](skills/interchange/references/workspace.md). Superseded policy files are preserved under `archive/interchange/`, outside the installed skill. The runner drains excess output by default and keeps a separate final-artifact receipt; receiver routes explicitly distinguish Codex queue, Claude parent harness and manual return.
