@@ -1,0 +1,16 @@
+{
+  "repository": "<repository URL>",
+  "approved_commit": "<full commit SHA>",
+  "clients": [
+    {
+      "client": "<codex or claude>",
+      "skills": {
+        "delivery-orchestrator": "<resolved installed directory at approved_commit>",
+        "interchange": "<resolved installed directory at approved_commit>"
+      }
+    }
+  ],
+  "optional_adapters": [],
+  "verified_at": "<ISO-8601 time with offset>",
+  "verification": "<evidence that installed content matches approved_commit>"
+}

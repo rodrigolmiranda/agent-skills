@@ -1,6 +1,6 @@
-# Interchange workflow diagrams
+# Delivery workflow diagrams
 
-Read top to bottom. Diamonds are decisions; labelled arrows are their outcomes. These maps explain the workflow in [workflow.md](workflow.md), role selection in [roles.md](roles.md), checks in [verification.md](verification.md), and delivery in [transport.md](transport.md). Those references own the detailed rules. Profile and repository authority determine who may approve an action.
+Read top to bottom. Diamonds are decisions; labelled arrows are their outcomes. These maps explain the workflow in [workflow.md](workflow.md), role selection in [roles.md](roles.md), checks in [verification.md](verification.md), and delivery in [transport.md](../../interchange/references/transport.md). Those references own the detailed rules. Profile and repository authority determine who may approve an action.
 
 ## 1. Choose the job
 

@@ -1,15 +1,12 @@
 {
   "schema_version": 2,
-  "status": "editable example; verify availability before dispatch",
+  "status": "illustrative example only; copy and approve an adopter profile before dispatch",
+  "routing_policy": "one explicitly selected route per attempt; this example authorizes no automatic fallback",
   "default_role": "builder",
   "coordinator": "current_chat",
   "model_resolution": "explicit version first; approved documented successor within family allowed before attempt; pin and record",
   "roles": {
     "builder": {
-      "preference": [
-        "deepseek",
-        "native"
-      ],
       "codex": {
         "model": "gpt-6-luna",
         "effort": "xhigh",

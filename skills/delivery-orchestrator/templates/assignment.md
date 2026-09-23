@@ -1,0 +1,43 @@
+# Assignment <job ID> — <observable outcome>
+
+Revision: <n> · Kind: <coding | inspection | research | other>
+Project: <stable ID> · Coordinator: <agent ID / ownership generation> · Writer: <agent ID/profile> · Issued: <date/time and zone>
+Omit inapplicable sections; do not leave blank ceremony.
+
+## Outcome and startup
+
+- Required result: <observable outcome>
+- Startup state: <proceed | startup-held>; held only when explicitly stated here
+- Startup receipt: record this packet and sources read, baseline, understood scope, and open questions in the handover. If no unresolved question and not startup-held, notify the coordinator that all is clear and work is starting (actual local timestamp, UTC offset and timezone), then proceed immediately; do not wait for acknowledgement.
+- Unresolved questions / holds: <IDs and exact dependent actions, or none>
+- Bugs outside acceptance: capture evidence and propose a backlog item; never expand this assignment automatically.
+
+## Read and apply
+
+Read in order before dependent work. Use task-supplied links or paths; include the relevant contract text below so the assignment survives context loss.
+
+1. <repository instructions and governing decision, revision>
+2. <product, milestone, contract, and implementation baseline>
+3. <issue, PR, accepted clarification, and validation instructions>
+
+- Clarified behavior/contracts: <full applicable clauses, field/error/state semantics, allowed variance>
+- UX/journey and conventions: <actor, trigger, states, accessibility/content/design conventions>
+- Clarification records incorporated: <question IDs, answer, packet revision>
+
+## Acceptance and workspace
+
+| Acceptance ID | Expected result | Required proof | Owner |
+|---|---|---|---|
+| <A1> | <observable, testable result> | <command, artifact, screenshot, or runtime evidence> | <role> |
+
+- Repository/ref/base and drift rule: <URL/path, commit/ref, how to handle movement>
+- Assigned worktree/branch and resume instructions: <location, preserve/reuse steps>
+- Owned paths; read-only dependencies; shared/generated paths: <explicit map>
+- Resources/credentials/data allowed: <named resources and limits; never include secrets>
+
+## Validation and delivery decisions
+
+- Required checks and review/UX/journey checkpoints: <selected proportionately for this assignment>
+- Stop/escalation conditions and allowed variance: <explicit boundaries>
+- Expected artifact and PR base/readiness/merge authority: <exact contract>
+- Execution: bind this semantic revision to Interchange's execution envelope; do not duplicate it there.

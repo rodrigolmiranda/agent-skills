@@ -1,4 +1,4 @@
-> Historical generated policy view. Current workflow: [Interchange](../skills/interchange/SKILL.md).
+> Historical generated policy view. Current workflow: [Delivery Orchestrator](../skills/delivery-orchestrator/SKILL.md); execution operations: [Interchange](../skills/interchange/SKILL.md).
 
 # Interchange decision diagrams
 
@@ -119,7 +119,7 @@ explicitly classified human-controlled `hotfix` or `release_promotion` packet
 may target `main`, and it must carry `human_only_merge: true` plus full,
 matching base/head ref and commit-SHA evidence. The reusable implementation is
 `skills/interchange/scripts/pr_base_guard.py`; it is an adapter boundary rather
-than remote GitHub enforcement. See [the guard contract](../archive/interchange/references/pr-base-guard.md).
+than remote GitHub enforcement. See [the guard contract](../skills/interchange/references/pr-base-guard.md).
 
 ```mermaid
 flowchart TD

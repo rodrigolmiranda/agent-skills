@@ -1,6 +1,6 @@
 # Agent Skills
 
-Reusable skills live under `skills/<name>/SKILL.md`. For new Interchange assignments, start at `skills/interchange/SKILL.md`; workflow, verification, transport and editable profiles are routed there. Legacy policy/operating-model files in archive/interchange/references apply only to unreconciled assignments. Existing generated views describe that legacy policy until explicitly regenerated.
+Reusable skills live under `skills/<name>/SKILL.md`. For planning, scheduling and acceptance, start at `skills/delivery-orchestrator/SKILL.md`. For execution transport, callbacks and provider profiles use `skills/interchange/SKILL.md`. The two skill entrypoints are the current operating instructions; archived experiment records do not authorize dispatch.
 
 Use Interchange for cross-house delivery. Workers are bounded leaves unless explicitly designated leads. Preserve other writers' work. Validate protocol changes with `python3 -m unittest discover -s tests`.
 

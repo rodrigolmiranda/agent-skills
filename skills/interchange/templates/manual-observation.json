@@ -1,0 +1,18 @@
+{
+  "observation_id": "project-job-report-001",
+  "project_id": "example-project",
+  "workflow_step_id": "example-step-001",
+  "observed_at": "2026-09-23T12:00:00+00:00",
+  "observer_id": "coordinator-001",
+  "observer_role": "coordinator",
+  "provenance": {
+    "kind": "manual",
+    "source": "<durable report path or URL>"
+  },
+  "summary": "Worker reported startup; process liveness has not been independently verified.",
+  "reported_activity": {
+    "status": "running",
+    "current_action": "Implement accepted assignment",
+    "owner": "worker-001"
+  }
+}
