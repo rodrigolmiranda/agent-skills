@@ -1,0 +1,182 @@
+#!/usr/bin/env python3
+"""Check scheduling-receipt consistency without querying external sources.
+
+This validates the receipt's own coverage and required references. It cannot
+prove that a source query was complete, an evidence pointer is true, or a
+dependency, conflict, capacity limit, authority hold, or running job is real.
+"""
+import argparse
+from collections import Counter
+from datetime import datetime
+import json
+from pathlib import Path
+import sys
+from urllib.parse import urlparse
+
+
+DISPOSITIONS = {
+    'active', 'dispatched', 'dependency-blocked', 'conflict-blocked',
+    'capacity-blocked', 'authority-held', 'coordinator-action',
+}
+HELD_DISPOSITIONS = {
+    'dependency-blocked', 'conflict-blocked', 'capacity-blocked',
+    'authority-held', 'coordinator-action',
+}
+READY_EXCLUSIONS = {'conflict-blocked', 'capacity-blocked', 'authority-held'}
+READY_DISPOSITIONS = {'active', 'dispatched'} | READY_EXCLUSIONS
+
+
+def nonempty_text(value):
+    return isinstance(value, str) and bool(value.strip())
+
+
+def evidence_pointer(value):
+    if not nonempty_text(value):
+        return False
+    text = value.strip()
+    if text.casefold() in {
+        'unknown', 'none', 'n/a', 'todo', 'tbd', 'placeholder',
+        'artifact or github url', 'evidence pointer',
+    }:
+        return False
+    try:
+        parsed = urlparse(text)
+    except ValueError:
+        return False
+    if parsed.scheme in {'http', 'https'}:
+        return bool(parsed.netloc and parsed.path not in {'', '/'})
+    if parsed.scheme == 'artifact':
+        return bool(parsed.netloc or parsed.path.strip('/'))
+    if parsed.scheme == 'file':
+        return bool(parsed.path)
+    return '/' in text or '#' in text
+
+
+def validate_schedule(receipt):
+    """Return consistency errors for one scheduling receipt."""
+    errors = []
+    if not isinstance(receipt, dict):
+        return ['receipt must be a JSON object']
+
+    scope_url = receipt.get('scope_url')
+    try:
+        parsed_scope = urlparse(scope_url) if nonempty_text(scope_url) else None
+    except ValueError:
+        parsed_scope = None
+    if parsed_scope is None or parsed_scope.scheme not in {'http', 'https'} or not parsed_scope.netloc:
+        errors.append('scope_url must be an absolute HTTP(S) link to the approved source scope')
+
+    checked_at = receipt.get('checked_at')
+    try:
+        checked = datetime.fromisoformat(checked_at.replace('Z', '+00:00'))
+        if checked.tzinfo is None:
+            errors.append('checked_at must include a timezone')
+    except (TypeError, ValueError, AttributeError):
+        errors.append('checked_at must be a valid timezone-aware ISO-8601 timestamp')
+
+    if receipt.get('source_complete') is not True:
+        errors.append('source_complete must be true; incomplete or failed source retrieval cannot be certified')
+
+    source_ids = receipt.get('source_ids')
+    if not isinstance(source_ids, list):
+        errors.append('source_ids must be an array of source item IDs')
+        source_ids = []
+    valid_source_ids = []
+    for index, source_id in enumerate(source_ids):
+        if not nonempty_text(source_id) or source_id != source_id.strip():
+            errors.append(f'source_ids[{index}] must be a non-empty trimmed string')
+        else:
+            valid_source_ids.append(source_id)
+    for source_id, count in Counter(valid_source_ids).items():
+        if count > 1:
+            errors.append(f'source_ids contains duplicate ID {source_id!r}')
+
+    items = receipt.get('items')
+    if not isinstance(items, list):
+        errors.append('items must be an array of disposition rows')
+        items = []
+
+    item_ids = []
+    normalized_items = []
+    for index, item in enumerate(items):
+        if not isinstance(item, dict):
+            errors.append(f'items[{index}] must be an object')
+            continue
+        item_id = item.get('id')
+        if not nonempty_text(item_id) or item_id != item_id.strip():
+            errors.append(f'items[{index}].id must be a non-empty trimmed string')
+        else:
+            item_ids.append(item_id)
+        normalized_items.append((index, item, item_id))
+
+    for item_id, count in Counter(item_ids).items():
+        if count > 1:
+            errors.append(f'items contains duplicate ID {item_id!r}')
+
+    source_set = set(valid_source_ids)
+    item_set = set(item_ids)
+    missing_rows = sorted(source_set - item_set)
+    extra_rows = sorted(item_set - source_set)
+    if missing_rows:
+        errors.append('source IDs missing disposition rows: ' + ', '.join(missing_rows))
+    if extra_rows:
+        errors.append('disposition rows absent from source_ids: ' + ', '.join(extra_rows))
+
+    for index, item, item_id in normalized_items:
+        prefix = f'items[{index}]'
+        ready = item.get('ready')
+        if not isinstance(ready, bool):
+            errors.append(f'{prefix}.ready must be true or false')
+
+        disposition = item.get('disposition')
+        if not isinstance(disposition, str) or disposition not in DISPOSITIONS:
+            errors.append(f'{prefix}.disposition is unknown: {disposition!r}')
+            continue
+
+        if disposition in {'active', 'dispatched'}:
+            if not nonempty_text(item.get('job')):
+                errors.append(f'{prefix}.job is required for {disposition} work')
+            if not evidence_pointer(item.get('evidence')):
+                errors.append(f'{prefix}.evidence must be a concrete pointer for {disposition} work')
+
+        if disposition in HELD_DISPOSITIONS:
+            for field in ('reason', 'next_owner', 'next_event'):
+                if not nonempty_text(item.get(field)):
+                    errors.append(f'{prefix}.{field} is required for held work ({disposition})')
+            if not evidence_pointer(item.get('evidence')):
+                errors.append(f'{prefix}.evidence must be a concrete pointer for held work ({disposition})')
+
+        if disposition == 'dependency-blocked' and ready is True:
+            errors.append(f'{prefix} cannot be ready and dependency-blocked')
+
+        if ready is True and disposition not in READY_DISPOSITIONS:
+            errors.append(
+                f'{prefix} is ready but idle; use active/dispatched or an evidence-backed '
+                'conflict-blocked, capacity-blocked, or authority-held exclusion')
+
+    return errors
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('receipt', help='path to a scheduling receipt JSON file')
+    args = parser.parse_args(argv)
+    try:
+        receipt = json.loads(Path(args.receipt).read_text(encoding='utf-8'))
+    except (OSError, json.JSONDecodeError) as error:
+        print(f'invalid schedule receipt: {error}', file=sys.stderr)
+        return 2
+
+    errors = validate_schedule(receipt)
+    if errors:
+        print('invalid schedule receipt:')
+        for error in errors:
+            print(f'- {error}')
+        return 1
+
+    print('schedule receipt is internally consistent; source completeness and evidence truth were not verified')
+    return 0
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

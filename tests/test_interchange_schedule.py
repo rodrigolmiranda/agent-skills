@@ -1,0 +1,182 @@
+import importlib.util
+import json
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+import unittest
+
+spec = importlib.util.spec_from_file_location(
+    'check_schedule', Path(__file__).parents[1] / 'skills/plan-delivery/scripts/check_schedule.py')
+check_schedule = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(check_schedule)
+
+
+def dispatched_item(item_id):
+    return {
+        'id': item_id,
+        'ready': True,
+        'disposition': 'dispatched',
+        'job': 'job-' + item_id,
+        'evidence': 'https://github.com/example/project/actions/runs/123',
+    }
+
+
+def receipt(items=None, source_ids=None):
+    if items is None:
+        items = [dispatched_item('PROJECT#1'), dispatched_item('PROJECT#2')]
+    if source_ids is None:
+        source_ids = [item['id'] for item in items]
+    return {
+        'scope_url': 'https://github.com/example/project/milestone/4',
+        'checked_at': '2026-09-23T09:10:00Z',
+        'source_complete': True,
+        'source_ids': source_ids,
+        'items': items,
+    }
+
+
+class ScheduleReceiptTests(unittest.TestCase):
+    def test_complete_parallel_dispatch_is_consistent(self):
+        items = [
+            {'id': 'PROJECT#1', 'ready': True, 'disposition': 'active',
+             'job': 'job-one', 'evidence': 'artifact://worker/one-started'},
+            {'id': 'PROJECT#2', 'ready': True, 'disposition': 'dispatched',
+             'job': 'job-two', 'evidence': 'https://github.com/example/project/actions/runs/234'},
+        ]
+        self.assertEqual([], check_schedule.validate_schedule(receipt(items)))
+
+    def test_incomplete_source_duplicate_and_missing_or_extra_ids_are_rejected(self):
+        items = [dispatched_item('PROJECT#1'), dispatched_item('PROJECT#3')]
+        record = receipt(items, ['PROJECT#1', 'PROJECT#1', 'PROJECT#2'])
+        record['source_complete'] = False
+
+        errors = check_schedule.validate_schedule(record)
+
+        self.assertTrue(any('source_complete must be true' in error for error in errors))
+        self.assertTrue(any('duplicate ID' in error for error in errors))
+        self.assertTrue(any('missing disposition rows: PROJECT#2' in error for error in errors))
+        self.assertTrue(any('absent from source_ids: PROJECT#3' in error for error in errors))
+
+    def test_duplicate_item_ids_are_rejected(self):
+        first = dispatched_item('PROJECT#1')
+        duplicate = dispatched_item('PROJECT#1')
+        errors = check_schedule.validate_schedule(receipt([first, duplicate], ['PROJECT#1']))
+        self.assertTrue(any('items contains duplicate ID' in error for error in errors))
+
+    def test_unknown_disposition_is_rejected_without_crashing_on_non_string(self):
+        item = {'id': 'PROJECT#1', 'ready': False, 'disposition': {'state': 'maybe'}}
+        errors = check_schedule.validate_schedule(receipt([item], ['PROJECT#1']))
+        self.assertTrue(any('disposition is unknown' in error for error in errors))
+
+    def test_ready_idle_requires_evidence_backed_allowed_exclusion(self):
+        item = {'id': 'PROJECT#1', 'ready': True, 'disposition': 'conflict-blocked',
+                'reason': 'Conflicts with the shared migration test database',
+                'next_owner': 'coordinator', 'next_event': 'database lock released'}
+        errors = check_schedule.validate_schedule(receipt([item], ['PROJECT#1']))
+        self.assertTrue(any('.evidence must be a concrete pointer for held work' in error
+                            for error in errors))
+
+        placeholder_evidence = {
+            'id': 'PROJECT#1', 'ready': True, 'disposition': 'conflict-blocked',
+            'reason': 'Conflicts with the shared migration test database',
+            'evidence': 'artifact or GitHub URL',
+            'next_owner': 'coordinator', 'next_event': 'database lock released',
+        }
+        errors = check_schedule.validate_schedule(receipt([placeholder_evidence], ['PROJECT#1']))
+        self.assertTrue(any('.evidence must be a concrete pointer for held work' in error
+                            for error in errors))
+
+        malformed_evidence = dict(placeholder_evidence, evidence='https://[')
+        errors = check_schedule.validate_schedule(receipt([malformed_evidence], ['PROJECT#1']))
+        self.assertTrue(any('.evidence must be a concrete pointer for held work' in error
+                            for error in errors))
+
+        coordinator_action = {
+            'id': 'PROJECT#1', 'ready': True, 'disposition': 'coordinator-action',
+            'reason': 'Coordinator must select the task owner',
+            'evidence': 'https://github.com/example/project/issues/1',
+            'next_owner': 'coordinator', 'next_event': 'owner selected',
+        }
+        errors = check_schedule.validate_schedule(receipt([coordinator_action], ['PROJECT#1']))
+        self.assertTrue(any('ready but idle' in error for error in errors))
+
+    def test_measured_capacity_exclusion_with_evidence_is_consistent(self):
+        item = {
+            'id': 'PROJECT#1', 'ready': True, 'disposition': 'capacity-blocked',
+            'reason': 'Both authorized DeepSeek slots are running; one slot is available after either returns',
+            'evidence': 'artifact://capacity/snapshot-17',
+            'next_owner': 'coordinator', 'next_event': 'first worker return or capacity change',
+        }
+        self.assertEqual([], check_schedule.validate_schedule(receipt([item], ['PROJECT#1'])))
+
+    def test_held_rows_require_resolution_owner_and_next_event(self):
+        item = {
+            'id': 'PROJECT#1', 'ready': False, 'disposition': 'dependency-blocked',
+            'reason': 'Wait for PROJECT#2 to merge', 'evidence': 'https://github.com/example/project/issues/2',
+        }
+        errors = check_schedule.validate_schedule(receipt([item], ['PROJECT#1']))
+        self.assertTrue(any('next_owner is required for held work' in error for error in errors))
+        self.assertTrue(any('next_event is required for held work' in error for error in errors))
+
+    def test_coordinator_action_needs_a_concrete_evidence_backed_next_check(self):
+        unverified = {'id': 'PROJECT#1', 'ready': False, 'disposition': 'coordinator-action'}
+        errors = check_schedule.validate_schedule(receipt([unverified], ['PROJECT#1']))
+        self.assertTrue(any('reason is required for held work' in error for error in errors))
+        self.assertTrue(any('.evidence must be a concrete pointer for held work' in error
+                            for error in errors))
+        self.assertTrue(any('next_owner is required for held work' in error for error in errors))
+        self.assertTrue(any('next_event is required for held work' in error for error in errors))
+
+        verified = {
+            'id': 'PROJECT#1', 'ready': False, 'disposition': 'coordinator-action',
+            'reason': 'Readiness is not established; inspect the issue dependency state',
+            'evidence': 'https://github.com/example/project/issues/1',
+            'next_owner': 'coordinator', 'next_event': 'dependency state checked',
+        }
+        self.assertEqual([], check_schedule.validate_schedule(receipt([verified], ['PROJECT#1'])))
+
+    def test_active_and_dispatched_rows_require_job_and_evidence(self):
+        for disposition in ('active', 'dispatched'):
+            with self.subTest(disposition=disposition):
+                item = {'id': 'PROJECT#1', 'ready': True, 'disposition': disposition}
+                errors = check_schedule.validate_schedule(receipt([item], ['PROJECT#1']))
+                self.assertTrue(any(f'.job is required for {disposition} work' in error for error in errors))
+                self.assertTrue(any(f'.evidence must be a concrete pointer for {disposition} work' in error
+                                    for error in errors))
+
+    def test_dependency_blocked_cannot_be_marked_ready(self):
+        item = {
+            'id': 'PROJECT#1', 'ready': True, 'disposition': 'dependency-blocked',
+            'reason': 'Wait for PROJECT#2', 'evidence': 'https://github.com/example/project/issues/2',
+            'next_owner': 'coordinator', 'next_event': 'PROJECT#2 resolves',
+        }
+        errors = check_schedule.validate_schedule(receipt([item], ['PROJECT#1']))
+        self.assertTrue(any('cannot be ready and dependency-blocked' in error for error in errors))
+
+    def test_checker_rejects_source_metadata_that_cannot_be_audited(self):
+        record = receipt()
+        record['scope_url'] = 'https://['
+        record['checked_at'] = 'yesterday'
+        errors = check_schedule.validate_schedule(record)
+        self.assertTrue(any('scope_url must be an absolute HTTP(S) link' in error for error in errors))
+        self.assertTrue(any('checked_at must be a valid timezone-aware ISO-8601 timestamp' in error
+                            for error in errors))
+
+    def test_cli_labels_success_as_consistency_only(self):
+        record = receipt()
+        script = Path(__file__).parents[1] / 'skills/plan-delivery/scripts/check_schedule.py'
+        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', suffix='.json') as receipt_file:
+            json.dump(record, receipt_file)
+            receipt_file.flush()
+            result = subprocess.run(
+                [sys.executable, str(script), receipt_file.name],
+                capture_output=True, text=True, check=False,
+            )
+
+        self.assertEqual(0, result.returncode, result.stderr + result.stdout)
+        self.assertIn('source completeness and evidence truth were not verified', result.stdout)
+
+
+if __name__ == '__main__':
+    unittest.main()
