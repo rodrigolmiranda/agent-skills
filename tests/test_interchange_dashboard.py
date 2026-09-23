@@ -45,7 +45,7 @@ class DashboardTests(unittest.TestCase):
                 self.assertEqual('2000-01-01T00:00:00Z', record['updated_at'])
                 self.assertNotEqual(record['updated_at'], record['published_at'])
 
-    def test_workflow_board_groups_one_logical_job_and_shows_current_state_first(self):
+    def test_workflow_board_groups_one_logical_job_in_requested_column_order(self):
         record = {
             'project_id': 'board',
             'coordinator': {'agent_id': 'planner'},
@@ -82,12 +82,13 @@ class DashboardTests(unittest.TestCase):
             page = dashboard.publish(repo, record).read_text()
 
         board = page[page.index('<div class="board"'):]
-        self.assertLess(board.index('Working now'), board.index('Blocked'))
-        self.assertLess(board.index('Blocked'), board.index('Next'))
-        self.assertLess(board.index('Next'), board.index('Done'))
+        self.assertLess(board.index('Next'), board.index('Blocked'))
+        self.assertLess(board.index('Blocked'), board.index('Working now'))
+        self.assertLess(board.index('Working now'), board.index('Done'))
         self.assertIn('Working now <span class="count">1</span>', board)
         self.assertIn('Blocked <span class="count">1</span>', board)
-        self.assertIn('Snapshot status: Running', page)
+        self.assertIn('Board status: Working now', page)
+        self.assertIn('summary-status status-good">Working now</span>', page)
         self.assertIn('Plan status:</strong> Blocked', page)
         self.assertIn('<strong>Outcome:</strong>', page)
         self.assertIn('>Provider quota</span>', page)
@@ -99,6 +100,36 @@ class DashboardTests(unittest.TestCase):
         self.assertIn('Attempts and retries (2)', page)
         self.assertIn('Evaluation dimensions', page)
         self.assertLess(page.index('Issue:'), page.index('Parent:'))
+
+    def test_task_cards_are_collapsed_with_compact_column_status_and_full_details(self):
+        item = {'id': 'private-step-42', 'title': 'Check supplier access',
+                'state': 'blocked', 'owner': None, 'blocker': 'Provider quota',
+                'next_action': 'Wait for quota reset and retry the export'}
+        attempt = {'attempt_id': 'attempt-7', 'agent_id': 'builder',
+                   'execution_state': 'completed', 'outcome': None,
+                   'requested_model': 'gpt-6-luna', 'requested_effort': 'xhigh',
+                   'evaluation': {'dimensions': {'correctness': 'Not assessed'}}}
+        card, column = dashboard.task_card(item, [attempt])
+
+        self.assertEqual('blocked', column)
+        self.assertTrue(card.startswith('<details class="task-card"><summary class="task-summary">'))
+        compact = card.split('</summary>', 1)[0]
+        self.assertIn('<span class="summary-title">Check supplier access</span>', compact)
+        self.assertIn('<span class="summary-owner">builder</span>', compact)
+        self.assertIn('<span class="summary-status status-attention">Blocked</span>', compact)
+        self.assertIn('<span class="summary-detail">Provider quota</span>', compact)
+        for technical_value in ('private-step-42', 'Snapshot status', 'Execution state', 'Completed'):
+            self.assertNotIn(technical_value, compact)
+        self.assertIn('</summary><div class="task-card-body">', card)
+        self.assertIn('<strong>Activity:</strong> private-step-42', card)
+        self.assertIn('Board status: Blocked', card)
+        self.assertIn('Plan status:</strong> Blocked', card)
+        self.assertIn('Execution state:</strong>', card)
+        self.assertIn('Requested model / effort:</strong> gpt-6-luna · xhigh', card)
+        self.assertIn('Current action:</strong> Wait for quota reset and retry the export', card)
+        self.assertIn('Attempts and retries (1)', card)
+        self.assertIn('Evaluation dimensions', card)
+        self.assertNotIn('<details open class="task-card">', card)
 
     def test_finished_execution_needs_success_outcome_before_done(self):
         finished = {'execution_state': 'completed'}
