@@ -118,6 +118,7 @@ class DashboardTests(unittest.TestCase):
         self.assertIn('<span class="summary-owner">builder</span>', compact)
         self.assertIn('<span class="summary-status status-attention">Blocked</span>', compact)
         self.assertIn('<span class="summary-detail">Provider quota</span>', compact)
+        self.assertNotIn('summary-model', compact)
         for technical_value in ('private-step-42', 'Snapshot status', 'Execution state', 'Completed'):
             self.assertNotIn(technical_value, compact)
         self.assertIn('</summary><div class="task-card-body">', card)
@@ -130,6 +131,36 @@ class DashboardTests(unittest.TestCase):
         self.assertIn('Attempts and retries (1)', card)
         self.assertIn('Evaluation dimensions', card)
         self.assertNotIn('<details open class="task-card">', card)
+
+    def test_working_and_done_summaries_show_requested_and_observed_model_effort(self):
+        cases = [
+            ({'id': 'working-id', 'title': 'Run export', 'state': 'running',
+              'owner': 'export-builder', 'next_action': 'Validate the CSV'},
+             {'agent_id': 'export-builder', 'execution_state': 'running', 'outcome': 'in_progress',
+              'requested_model': 'gpt-6-luna', 'requested_effort': 'xhigh',
+              'observed_model': 'gpt-6-sol', 'observed_effort': 'high'},
+             'working', 'Working now', 'gpt-6-luna · xhigh', 'gpt-6-sol · high'),
+            ({'id': 'done-id', 'title': 'Publish package', 'state': 'completed',
+              'next_action': 'Check the release record'},
+             {'agent_id': 'release-builder', 'execution_state': 'completed', 'outcome': 'done',
+              'requested_model': 'gpt-6-sol', 'requested_effort': 'high'},
+             'done', 'Done', 'gpt-6-sol · high', 'Unknown'),
+        ]
+        for item, attempt, expected_column, status, requested, observed in cases:
+            with self.subTest(status=status):
+                card, column = dashboard.task_card(item, [attempt])
+                compact = card.split('</summary>', 1)[0]
+                self.assertEqual(expected_column, column)
+                self.assertTrue(card.startswith('<details class="task-card"><summary class="task-summary">'))
+                self.assertIn(f'<span class="summary-status {dashboard.status_class(column)}">{status}</span>', compact)
+                self.assertIn('<span class="summary-model-label">Requested</span>', compact)
+                self.assertIn(f'<span class="summary-model-value">{requested}</span>', compact)
+                self.assertIn('<span class="summary-model-label">Observed</span>', compact)
+                self.assertIn(f'<span class="summary-model-value">{observed}</span>', compact)
+                self.assertEqual(1, compact.count('class="summary-title"'))
+                self.assertEqual(1, compact.count('class="summary-meta"'))
+                self.assertEqual(1, compact.count('class="summary-detail'))
+                self.assertNotIn('<details open class="task-card">', card)
 
     def test_finished_execution_needs_success_outcome_before_done(self):
         finished = {'execution_state': 'completed'}
