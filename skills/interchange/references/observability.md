@@ -72,3 +72,29 @@ Use the same footer in the PR body with links to packet/handover and an explicit
 ## Keep the layer small
 
 Start with linked records and on-demand reports. Automate only measured repetitive work: rendering the same report, reconciling a known GitHub mapping, or detecting a missing return. No agent heartbeat chat, speculative dashboards, per-tool scoring, transcript mirroring or per-minute status spam. Record important transitions once and link them everywhere else.
+
+## Repository dashboard and session access
+
+First version: one local HTML page shared by all coordinators and linked worktrees of a Git repository. Publish each coordinator's continuation snapshot at meaningful transitions:
+
+```sh
+python3 <skill-root>/scripts/dashboard.py --repo <checkout-or-worktree> --snapshot <continuation.json>
+```
+
+The command prints the page path. Open that file in a browser (on macOS, `open <printed-path>`). The primary checkout contains `.interchange/observability/index.html`; linked worktrees resolve the same Git common directory. Separate clones remain separate: this is same-computer coordination, not synchronization. Bare repositories store it inside the common Git directory. Local records are ignored by Git; the renderer and templates are versioned in the skill.
+
+Each project/coordinator pair owns one snapshot; publishing replaces only that snapshot. A file lock serializes publication and rendering; atomic replacements prevent partial pages. Other coordinators remain visible in All activity or the project selector. Give a replacement coordinator a new ID and retain the outgoing record with its transferred status. This renderer is POSIX-only, uses no server, and does not fetch GitHub, watch processes or infer progress. Reload to see a later publication. The initial page exposes the structured continuation record, including attempts, evidence, session commands and takeover state; refine presentation after real use rather than add a second tracking system.
+
+Store session access in `session_access` for the coordinator and each attempt: provider session ID, native task/background ID separately, host/account alias, inspect/open command or supported app action, resume command, verification date/client version/proof level, and artifact fallback. Use literal argv arrays when recording commands. No credentials, authenticated URLs, raw transcripts or browser sessions. Unknown routes stay null; never invent a session ID from an agent name.
+
+Examples of supported CLI surfaces (help verified; actual attachment must be verified per host/session):
+
+| Client | Inspect/open | Resume/control boundary |
+|---|---|---|
+| Codex | `codex agents`; app navigation tool for a known task UUID | `codex resume <session-id>` continues work; do not use on an active writer just to inspect |
+| Claude Code | `claude logs <background-id>`; `claude attach <background-id>` for a background session | Attach is interactive, not read-only. `claude --resume <session-id>` is a continuation, not a callback to a live coordinator |
+| OpenCode | `opencode export <session-id>` for history; `opencode attach <server-url> --session <session-id>` for an existing server | `opencode --session <session-id>` continues the session; attaching can control it. Keep authentication in the supported environment mechanism |
+
+The HTML displays commands, never executes them. An internal child-agent name may have no independently openable session; link its handover/evidence instead. Cross-client takeover uses the portable transfer steps above and the same worktree ownership record, **not** a claim that Claude can resume a Codex-native conversation or vice versa. Inspect first; interactive control requires explicit ownership transfer or agreement. Do not start a second writer.
+
+Treat the initial dashboard and workflow as a trial: record friction and proposed improvements against the existing job, adjust one proven need at a time, and preserve accepted scope, evidence and ownership through a revision. No automatic purge or background refresh is introduced by this feature.

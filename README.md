@@ -110,3 +110,7 @@ python3 -m unittest discover -s tests
 ```
 
 The tests cover existing protocol behavior and the relay/runner. Skill and diagram checks complement them; they do not prove that a provider integration or a product's acceptance journey has run. Preserve the distinction between a documented procedure, a passing test and an observed end-to-end result.
+
+### Local activity page
+
+Interchange can publish one local HTML dashboard per repository, shared by its linked worktrees and multiple coordinators. Select a project or inspect all activity, with session access commands and continuation records. Run `python3 skills/interchange/scripts/dashboard.py --repo <checkout> --snapshot <continuation.json>` and open the printed file. Updates are explicit snapshots, not live monitoring. See [observability](skills/interchange/references/observability.md#repository-dashboard-and-session-access) for ownership, portability and limits. Refine this first version and its workflow from observed use.

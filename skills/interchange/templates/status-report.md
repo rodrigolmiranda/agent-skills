@@ -40,7 +40,9 @@ C correctness; B boundary discipline; E evidence reliability; M maintainability;
 
 ## 6. Continuation
 
+- Scheduling: <ready work; safe parallel opportunities; reused/new agent or reason held>
 - Next expected event and responsible agent: <event / owner / deadline or unknown>
 - User action required: <specific decision or none>
 - GitHub reconciliation: <current as of time or pending exact updates>
+- Repository dashboard: <shared index.html path; last publication>
 - Restart index: <continuation.json path/URL + revision>; portability gaps: <none or exact inaccessible artifacts>
