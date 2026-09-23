@@ -63,3 +63,5 @@ Before implementation and acceptance, reconcile requirement IDs → issue/task I
 ## Portable continuation
 
 Persist coordinator identity, adopted workflow revision, source references, ownership, packet revisions, returns/questions, scheduling receipt, evidence and next wake in the project's shared coordination root. Paths are relative to repository/artifact roots resolved by the machine map. GitHub owns live delivery state; the dashboard is a projection of the same records. New Codex/Claude/OpenCode coordinators refresh mutable facts and resume without requiring the old chat. Interchange owns client-specific transport/session resumption and callback correlation.
+
+For adopted Portfolio Standard projects, read [portfolio-workflow.md](portfolio-workflow.md) for the authoritative GitHub breakdown and coordinator procedure. Its task/checklist mapping overrides generic examples; preserve existing accepted deviations.
