@@ -7,3 +7,5 @@ Use Interchange for cross-house delivery. Workers are bounded leaves unless expl
 Target `test`. Only designated leads and delivery manager may merge, after independent current-head review and green gates. Required approval bypass needs a passing independent Codex PR review, all other requirements and a recorded reason/SHA. For an owner-enabled session, apply `skills/delivery-orchestrator/references/coordinator-merge.md`; a pending review request alone is not an additional hold. Workers never merge. No direct push to protected targets. Other branches/releases remain human-controlled.
 
 Shared portfolio authority is MarvinaMiranda, resolved through local configuration. Do not hardcode another user's checkout path or assume uncommitted central rules exist in a fresh clone.
+
+For delivery scheduling and repeated waits, use the installed `delivery-orchestrator` scheduling/progress checkpoint before yielding; this applies equally to Codex and Claude. Workflow rules live in that skill, not this router.

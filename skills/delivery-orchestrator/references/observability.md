@@ -114,3 +114,8 @@ Done activities must retain an issue, PR or source/evidence URL in the activity 
 For Done activities linked to an issue, declare `completion_scope: step` or `issue`. Step completion must be named as such and does not close the issue. Issue completion requires a fresh GitHub query recorded as `github_issue_state: CLOSED` with `github_checked_at`; the renderer validates the record, not GitHub itself. Never close an issue merely to match a finished review.
 
 Review is for delivery awaiting independent acceptance. Completed intermediate checks belong in `review_history` of their delivery activity, not separate Done cards. Done is reserved for completed deliveries with GitHub reconciliation; an open issue cannot become Done because a review or implementation step finished.
+
+
+## Completed slices and progress
+
+Publish each independently accepted delivery slice as a stable activity linked to its PR/evidence and parent issue. Use `completion_scope: step` while the parent remains open; keep the parent as its own unfinished activity. Do not count a finished reviewer invocation as a delivered slice. This preserves visible delivery without closing partially completed issues. Orchestrator supplies acceptance, last meaningful progress and follow-up deadlines from the scheduling checkpoint; Interchange renders these facts without assigning readiness or acceptance. Never refresh progress time merely because the snapshot was republished.

@@ -18,6 +18,7 @@ Together, Delivery Orchestrator and Interchange provide:
 
 - **Clear scope:** outcomes, contracts, ownership, dependencies and proof before implementation; questions go back to the Planner when a material decision is missing.
 - **Appropriate agents:** economical builders for settled work, independent reviewers, and specialist escalation when justified. Models and effort are editable preferences, not hardcoded vendor rules.
+- **Progress accountability:** full parent/child scheduling, recovery after repeated unchanged waits, and writing reservations separate from acceptance waits; no fixed worker-count target.
 - **Reliable returns:** bounded process execution, retained artifacts and correlated callbacks; queued, received and accepted are separate states.
 - **Comparable status:** the same report structure for active agents, timing, changes, blockers, evaluations and next actions across projects.
 - **Restartable work:** plans, decisions and handovers indexed for a fresh session, another account or another coordinator client; active ownership must be reconciled before takeover.

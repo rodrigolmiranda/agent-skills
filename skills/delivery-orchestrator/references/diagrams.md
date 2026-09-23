@@ -304,3 +304,21 @@ flowchart TD
   I --> J
   J --> K[Record scheduling decision; no polling]
 ```
+
+
+## Wake, progress and safe parallel work
+
+```mermaid
+flowchart TD
+  A[Wake or worker return] --> B[Reconcile execution and release verified stopped writers]
+  B --> C[Refresh affected dependencies across full approved parent and child inventory]
+  C --> D{Two unchanged checks?}
+  D -- Yes --> E[Recheck cause, authorized alternatives and independent work]
+  D -- No --> F[Select every safe ready assignment]
+  E --> F
+  F --> G[Dispatch and verify startup; complete readiness actions]
+  G --> H{Only supervised waits or concrete owner decisions remain?}
+  H -- No --> C
+  H -- Yes --> I[Validate receipt; publish slices, progress and next event owner]
+  I --> J[Yield to verified wake]
+```

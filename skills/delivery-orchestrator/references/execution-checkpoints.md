@@ -4,7 +4,7 @@ Delivery-orchestrator owns these decisions; Interchange supplies transport evide
 
 ## Coordinator turn-exit check
 
-Complete the [scheduling gate](scheduling.md) and validate its receipt before yielding; checking a sample of tasks is insufficient.
+Complete the [scheduling gate and progress checkpoint](scheduling.md) and validate its receipt with `check_schedule.py <receipt> --before-yield` before yielding; checking a sample of tasks is insufficient.
 
 Keep progressing through the approved dependency graph; an owner reply is not needed merely to start the next ready assignment. Before ending a turn:
 

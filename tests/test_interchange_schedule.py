@@ -33,6 +33,17 @@ def receipt(items=None, source_ids=None):
         'source_complete': True,
         'source_ids': source_ids,
         'items': items,
+        'write_leases': [],
+        'checkpoint': {
+            'trigger': 'return', 'next_owner': 'coordinator', 'next_event': 'worker return',
+            'assessment_evidence': 'artifact://schedule/current',
+            'last_progress_at': '2026-09-23T09:00:00Z',
+            'last_progress_evidence': 'artifact://dispatch/startup',
+            'source_query': 'artifact://inventory/query',
+            'hierarchy_evidence': 'artifact://inventory/parents-and-children',
+            'source_retrieved_at': '2026-09-23T09:00:00Z',
+            'unchanged_checks': 0,
+        },
     }
 
 
@@ -176,6 +187,106 @@ class ScheduleReceiptTests(unittest.TestCase):
 
         self.assertEqual(0, result.returncode, result.stderr + result.stdout)
         self.assertIn('source completeness and evidence truth were not verified', result.stdout)
+
+
+class ProgressCheckpointTests(unittest.TestCase):
+    def test_old_inventory_alone_cannot_certify_progress(self):
+        record = receipt()
+        del record['checkpoint']
+        self.assertTrue(any('checkpoint is required' in e for e in check_schedule.validate_schedule(record)))
+
+    def test_two_unchanged_checks_require_recovery_across_all_work(self):
+        record = receipt()
+        record['checkpoint']['unchanged_checks'] = 2
+        self.assertTrue(any('recovery is required' in e for e in check_schedule.validate_schedule(record)))
+        record['checkpoint']['recovery'] = {
+            'blocker_recheck': 'artifact://recovery/current-cause',
+            'authorized_alternatives': 'artifact://recovery/alternatives',
+            'independent_work': 'artifact://recovery/full-backlog',
+            'next_check_at': '2026-09-23T09:30:00Z',
+        }
+        self.assertEqual([], check_schedule.validate_schedule(record))
+        record['checkpoint']['recovery']['next_check_at'] = record['checked_at']
+        self.assertTrue(any('next_check_at' in e for e in check_schedule.validate_schedule(record)))
+
+    def test_inventory_needs_children_and_retrieval_provenance(self):
+        record = receipt()
+        del record['checkpoint']['hierarchy_evidence']
+        record['checkpoint']['source_retrieved_at'] = 'tomorrow'
+        self.assertTrue(any('hierarchy_evidence' in e for e in check_schedule.validate_schedule(record)))
+        self.assertTrue(any('source_retrieved_at' in e for e in check_schedule.validate_schedule(record)))
+
+    def test_stopped_writer_does_not_reserve_acceptance_surface(self):
+        record = receipt()
+        record['write_leases'] = [{
+            'id': 'writer', 'job': 'job-one', 'owner': 'coder', 'surface': 'src/view.py',
+            'evidence': 'artifact://writer/exit', 'state': 'held', 'writer_state': 'exited',
+            'recheck_at': '2026-09-23T09:30:00Z',
+        }]
+        self.assertTrue(any('stopped writer' in e for e in check_schedule.validate_schedule(record)))
+        record['write_leases'][0]['state'] = 'released'
+        self.assertEqual([], check_schedule.validate_schedule(record))
+
+    def test_unknown_writer_requires_recheck_not_automatic_release(self):
+        record = receipt()
+        record['write_leases'] = [{
+            'id': 'writer', 'job': 'job-one', 'owner': 'coder', 'surface': 'src/view.py',
+            'evidence': 'artifact://writer/timeout', 'state': 'held', 'writer_state': 'unknown',
+            'recheck_at': record['checked_at'],
+        }]
+        self.assertTrue(any('never auto-release' in e for e in check_schedule.validate_schedule(record)))
+        record['write_leases'][0]['recheck_at'] = '2026-09-23T09:30:00Z'
+        self.assertEqual([], check_schedule.validate_schedule(record))
+
+    def test_released_lease_cannot_block_a_ready_item(self):
+        item = {'id': 'PROJECT#1', 'ready': True, 'disposition': 'conflict-blocked',
+                'reason': 'shared file', 'next_owner': 'coordinator', 'next_event': 'release',
+                'evidence': 'artifact://conflict/source', 'conflict_surface': 'src/view.py',
+                'write_lease': 'released'}
+        self.assertTrue(any('released or absent' in e for e in check_schedule.validate_schedule(receipt([item]))))
+
+    def test_yield_cannot_leave_an_unowned_readiness_action(self):
+        item = {'id': 'PROJECT#1', 'ready': False, 'disposition': 'coordinator-action',
+                'reason': 'publish accepted platform request', 'next_owner': 'coordinator',
+                'next_event': 'request filed', 'evidence': 'artifact://packet/request'}
+        record = receipt([item])
+        record['checkpoint']['trigger'] = 'yield'
+        self.assertTrue(any('executable coordinator-action' in e for e in check_schedule.validate_schedule(record)))
+        item['supervised_wait'] = 'artifact://supervisor/request-owner'
+        self.assertEqual([], check_schedule.validate_schedule(record))
+
+    def test_exit_validation_applies_to_reused_worker_return_receipt(self):
+        item = {'id': 'PROJECT#1', 'ready': False, 'disposition': 'coordinator-action',
+                'reason': 'publish accepted request', 'next_owner': 'coordinator',
+                'next_event': 'request filed', 'evidence': 'artifact://packet/request'}
+        record = receipt([item])
+        self.assertEqual([], check_schedule.validate_schedule(record))
+        self.assertTrue(any('executable coordinator-action' in e for e in
+                            check_schedule.validate_schedule(record, before_yield=True)))
+        script = Path(check_schedule.__file__)
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json') as f:
+            json.dump(record, f)
+            f.flush()
+            result = subprocess.run([sys.executable, str(script), f.name, '--before-yield'],
+                                    capture_output=True, text=True)
+        self.assertEqual(1, result.returncode)
+        self.assertIn('executable coordinator-action', result.stdout)
+
+    def test_malformed_lease_references_return_errors_not_exceptions(self):
+        record = receipt()
+        record['write_leases'] = [None, {'id': []}]
+        self.assertTrue(check_schedule.validate_schedule(record))
+        record['items'][0].update(disposition='conflict-blocked', write_lease=[],
+                                 conflict_surface='src/view.py')
+        self.assertTrue(check_schedule.validate_schedule(record))
+
+    def test_progress_cannot_be_future_or_counter_boolean(self):
+        record = receipt()
+        record['checkpoint']['last_progress_at'] = '2026-09-24T09:00:00Z'
+        record['checkpoint']['unchanged_checks'] = True
+        errors = check_schedule.validate_schedule(record)
+        self.assertTrue(any('last_progress_at' in e for e in errors))
+        self.assertTrue(any('unchanged_checks' in e for e in errors))
 
 
 if __name__ == '__main__':

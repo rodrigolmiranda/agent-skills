@@ -16,5 +16,18 @@
       "next_owner": "worker",
       "next_event": "correlated return"
     }
-  ]
+  ],
+  "write_leases": [],
+  "checkpoint": {
+    "trigger": "yield",
+    "assessment_evidence": "artifact://scheduling/current-assessment",
+    "source_query": "artifact://inventory/paginated-query",
+    "hierarchy_evidence": "artifact://inventory/parents-and-children",
+    "source_retrieved_at": "ISO-8601 timestamp",
+    "last_progress_at": "ISO-8601 timestamp",
+    "last_progress_evidence": "artifact://execution/latest-startup-or-delivery",
+    "unchanged_checks": 0,
+    "next_owner": "coordinator",
+    "next_event": "verified worker return"
+  }
 }
