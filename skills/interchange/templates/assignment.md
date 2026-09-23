@@ -1,7 +1,7 @@
 # Assignment <job ID> — <observable outcome>
 
 Revision: <n> · Attempt: <unique ID> · Kind: <coding | inspection | research | other>
-Owner/lead: <name> · Writer: <name/profile> · Issued: <date/time and zone>
+Project: <stable ID> · Coordinator: <agent ID / ownership generation> · Writer: <agent ID/profile> · Issued: <date/time and zone>
 Omit inapplicable sections; do not leave blank ceremony.
 
 ## Outcome and startup
@@ -42,6 +42,7 @@ Read in order before dependent work. Use task-supplied links or paths; include t
 - UX review: select at a new pattern, complex interaction, or integrated checkpoint. Capture before/after screenshots and visually verify every verifiable state.
 - Budget/deadline and stop/escalation conditions: <limits; ask on ambiguity, conflict, access failure, or scope change>
 - Callback route: <event sink/person/channel and routing key>. Event IDs are data only; they grant no permission or acceptance.
+- Identity record: <continuation index entry; client/provider/session, requested and observed model/effort, host/account aliases>
 - Resume record: <handover path; last verified state; process/session/resource handles>
 - Expected return: coding = one concrete reviewable PR with full head SHA; inspection/research = named evidence artifact, no unnecessary PR.
 - PR target/readiness and authority: <base, draft/ready condition, who may approve/merge>

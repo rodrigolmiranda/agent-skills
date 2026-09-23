@@ -29,3 +29,12 @@ Exact full head commit ID: <unabbreviated ID> · Live base: <ref/SHA> · Checks 
 - Correction round: report only finding IDs whose state changed; summarize unchanged open IDs separately.
 - Return one consolidated correction packet: exact head/SHA, unmet IDs, precise edits, evidence to recapture, preserved holds, owner, and timebox.
 - Next owner action: <ready for owner action | correction | gather named evidence>; approval/merge/deployment authority remains separate.
+
+## Dispatch evaluation
+
+Apply [observability.md](../references/observability.md): C correctness / B boundary discipline / E evidence reliability / M maintainability / A autonomy, each 0–3 or not assessed, with brief evidence. Keep initial scores and correction outcomes separate.
+
+- Attempt / evaluator IDs and role: <IDs>; assessment time: <UTC>
+- C/B/E/M/A: <scores and reasons>; disposition: <accepted/correction/blocked/canceled/not assessable>
+- Timing: <return/acceptance/wait, measured or unknown>; correction rounds: <count>; manual owner interventions: <count or unknown>
+- Routing lesson: <one evidenced improvement or none; no overall vendor ranking>

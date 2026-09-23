@@ -204,6 +204,32 @@ flowchart TD
   O --> P[Reconcile active packets before changing their contracts]
 ```
 
+## 9. Observe, evaluate and transfer
+
+```mermaid
+flowchart TD
+  A[Dispatch with project, agent and attempt IDs] --> B[Link packet and execution receipts in continuation index]
+  B --> C{Status request or meaningful transition?}
+  C -->|Status request| D[Read sources once; mark stale and unknown values]
+  D --> E[Same report template plus delta from prior snapshot]
+  C -->|Transition| F[Update owning artifact and GitHub summary]
+  F --> G{Dispatch terminal?}
+  G -->|No| B
+  G -->|Yes| H[Independent disposition and role-relevant evaluation]
+  H --> E
+  E --> I{Move coordinator or account?}
+  I -->|No| J[Continue authorized work; no polling model]
+  I -->|Yes| K[Checkpoint portable plan, decisions, evidence and ownership]
+  K --> L[Outgoing coordinator stops dispatching]
+  L --> M[Incoming verifies access, live state, workers and holds]
+  M --> N{Ownership and required artifacts reconciled?}
+  N -->|No| O[Hold affected work; recover missing facts]
+  O --> M
+  N -->|Yes| P[Drain or reconcile old callback routes; prove new receiver]
+  P --> Q[Record new coordinator generation and acknowledgement]
+  Q --> J
+```
+
 ## Walkthrough checklist
 
 Validate at least one path through each diagram before adoption: feature; WIP; known bug; investigation; incident; mechanical GitHub work; role escalation; question/resume; duplicate or uncertain callback; timeout; UX repair; failed review; shared-file handoff; restart; merge with a separate deployment hold. A diagram is explanatory evidence, not proof that a transport or product journey has run successfully.

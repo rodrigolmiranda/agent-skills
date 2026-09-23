@@ -9,6 +9,10 @@ The current chat is the **Planner** and accountable coordinator. Keep product de
 
 For a visual walkthrough of job types, decision branches and recovery, read [workflow diagrams](references/diagrams.md).
 
+Use [principles.md](references/principles.md) to choose when coordination is worthwhile and keep implementation proportionate. For status reports, dispatch evaluation, GitHub provenance or moving to another account/client, use [observability.md](references/observability.md).
+
+Before sending a worker dispatch, question, answer or correction, use [communication.md](references/communication.md) and its compact message templates; decisions must be recorded in the packet, not left only in chat.
+
 ## Plan → dispatch → receive → accept
 
 1. **Classify intake.** New product, new feature, continuation/WIP, BAU/known bug, unknown-cause investigation, or incident. Read [workflow.md](references/workflow.md) for that entry path. Establish current reality before planning a delta. Do not rediscover an accepted product for each slice.

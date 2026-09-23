@@ -37,3 +37,13 @@ Omit inapplicable sections; do not leave blank ceremony.
 - Resources, credentials, data, locks, or artifacts retained: <owner/location/state>
 - Next owner action: <one concrete action, prerequisite, and owner>
 - Escalations/unanswered questions: <IDs and blocked work, or none>
+
+## Interaction history and evaluation facts
+
+| UTC time | Event / attempt | Decision, evidence and next owner |
+|---|---|---|
+| <time> | <dispatch/question/answer/correction/return> | <durable link; brief change> |
+
+- Timing: <start/return, process duration, external wait and sources; unknown where unmeasured>
+- Usage: <measured tokens/cost and source, or unknown>; owner interventions: <count/evidence or unknown>
+- Evaluation: <independent review link and disposition, or pending>; prior attempt: <link or none>

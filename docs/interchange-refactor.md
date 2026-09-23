@@ -15,6 +15,7 @@ Browse the [workflow diagrams](../skills/interchange/references/diagrams.md) for
 - Portable entrypoint and workflow, role/verification/transport guides.
 - Editable example profile; specific provider IDs are dated preferences, not availability promises.
 - Plan, assignment, questions, handover, review and GitHub upsert-manifest templates.
+- [Observability contract](../skills/interchange/references/observability.md), consistent status report and portable continuation index; explicit agent/provenance attribution and dispatch evaluations. These are Planner-maintained records, not an implemented dashboard or automatic GitHub synchronizer.
 - Correlated local outbox with artifact hashes, duplicate protection and separate queue/receipt state.
 - One-process non-LLM supervisor with deadline/output bounds and exclusive attempt receipt. It does not parse provider exit0 as success, install a resident service, or guarantee escaped-child termination.
 - Compatibility for old protocol/policy files and already-dispatched jobs. No active installation or existing packet was changed.
