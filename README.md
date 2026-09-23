@@ -32,9 +32,9 @@ flowchart LR
   E -->|Pass| F[Authorized delivery and GitHub reconciliation]
 ```
 
-The worker records a startup receipt and proceeds when the assignment is clear and its gates are open. It asks about material gaps and keeps unrelated bugs in the backlog. The Planner does not spend model turns polling workers. After a result returns, independent acceptance checks the exact artifact or commit. Merge, deployment and publication still require their own applicable authority.
+The worker records its understanding, reports “all clear — work starting” with local time/timezone, and proceeds when its gates are open without waiting for acknowledgement. It asks about material gaps and keeps unrelated bugs in the backlog. The Planner does not spend model turns polling workers. After a result returns, independent acceptance checks the exact artifact or commit. Merge, deployment and publication still require their own applicable authority.
 
-See the [nine detailed workflow maps](skills/interchange/references/diagrams.md) for entry paths, planning, agent selection, questions/resume, callback recovery, verification, correction/closure, parallel work and coordinator transfer.
+See the [ten detailed workflow maps](skills/interchange/references/diagrams.md) for entry paths, planning, agent selection, questions/resume, callback recovery, verification, correction/closure, parallel work and coordinator transfer.
 
 ## Who does what
 
@@ -56,6 +56,8 @@ Every report uses the same six sections: **outcome; changes since the last repor
 You can identify the project, Planner, worker, reviewer, requested versus observed model, current attempt, prior interactions, elapsed time, last observation and next owner. Unknown or stale information is labelled. Evaluations distinguish quality from execution and external waiting time. GitHub owns live delivery state; reports link to it rather than becoming another backlog.
 
 [Status template](skills/interchange/templates/status-report.md) · [Observability and provenance](skills/interchange/references/observability.md) · [Portable continuation index](skills/interchange/templates/continuation.json)
+
+Unit/integration and simple navigation checks belong to the relevant development dispatch. Broader multi-consumer SDK and milestone journeys are allocated in the plan, reusing valid evidence rather than repeating every test at every checkpoint. Claude testers hand browser credential entry to a bounded Codex helper; that cross-client browser route must be verified before it is claimed usable.
 
 ## Start using the workflow
 

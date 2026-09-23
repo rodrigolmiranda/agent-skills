@@ -12,6 +12,8 @@ Use the existing plan, assignment, handover and review for their fields. [contin
 
 The relay already records terminal notification events; runner receipts record process outcomes. Reference those where available. Other events and native attempts are recorded in the handover's interaction history. No new service, metrics database or background model is required. The current helpers do not automatically generate status reports, evaluate work, synchronize GitHub or transfer coordinator routes: the Planner performs those steps from this contract.
 
+Record the worker's reported local start time with UTC offset/timezone and its normalized UTC equivalent, plus the coordinator receipt time separately. Do not use delayed delivery time as the start or infer start from dispatch. Unknown timing stays unknown.
+
 ## Comparable status report
 
 On “status report”, use [status-report.md](../templates/status-report.md) with the same six sections, column order and project/job IDs every time. Report the requested project, or all active projects when portfolio-wide. Keep inactive history collapsed to links. Preserve numbered report snapshots and link the previous one; first report says baseline. Changed scope is a scope delta, not apparent progress.

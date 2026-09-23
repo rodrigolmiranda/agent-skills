@@ -81,7 +81,8 @@ flowchart TD
   B -->|Yes| C[Report evidence; hold affected work]
   B -->|No| D[Startup receipt]
   D --> E{Explicit proposal gate or material question?}
-  E -->|No| F[Implement and test]
+  E -->|No| S[Notify all clear with local start time and timezone]
+  S --> F[Implement and test without waiting for acknowledgement]
   E -->|Yes| G[Record question and notify Planner]
   G --> H[Continue only independent authorized work]
   G --> I[Planner records answer and packet revision]
@@ -228,6 +229,23 @@ flowchart TD
   N -->|Yes| P[Drain or reconcile old callback routes; prove new receiver]
   P --> Q[Record new coordinator generation and acknowledgement]
   Q --> J
+```
+
+## 10. Claude browser sign-in assistance
+
+```mermaid
+flowchart TD
+  A[Claude test needs browser sign-in] --> B[Record target, account alias and secure source]
+  B --> C{Codex coordinator or helper available?}
+  C -->|No| D[Hold sign-in-dependent test; report blocker]
+  C -->|Yes| E[Pause Claude browser control; transfer intended session]
+  E --> F{Supported shared browser and authorized access?}
+  F -->|No| D
+  F -->|Yes| G[Codex enters credentials only]
+  G --> H{Sign-in succeeded?}
+  H -->|No| D
+  H -->|Yes| I[Return success and browser identity; release control]
+  I --> J[Claude resumes planned test]
 ```
 
 ## Walkthrough checklist

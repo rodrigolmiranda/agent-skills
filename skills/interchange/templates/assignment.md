@@ -8,7 +8,7 @@ Omit inapplicable sections; do not leave blank ceremony.
 
 - Required result: <observable outcome>
 - Startup state: <proceed | startup-held>; held only when explicitly stated here
-- Startup receipt: record this packet and sources read, baseline, understood scope, and open questions in the handover. If no unresolved question and not startup-held, proceed after recording it.
+- Startup receipt: record this packet and sources read, baseline, understood scope, and open questions in the handover. If no unresolved question and not startup-held, notify the coordinator that all is clear and work is starting (actual local timestamp, UTC offset and timezone), then proceed immediately; do not wait for acknowledgement.
 - Unresolved questions / holds: <IDs and exact dependent actions, or none>
 - Bugs outside acceptance: capture evidence and propose a backlog item; never expand this assignment automatically.
 

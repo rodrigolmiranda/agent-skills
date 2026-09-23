@@ -34,6 +34,12 @@ One row per independently reviewable PR. Order by dependency; keep each slice co
 - Evidence to capture: <before/after screenshots and states, if applicable>
 - Visual verification boundary: <what can and cannot be checked>
 
+## Validation allocation
+
+| Outcome / contract | Task checks | SDK multi-consumer checkpoint | Milestone / plan proof | Evidence reusable / rerun trigger |
+|---|---|---|---|---|
+| <ID> | <relevant unit/integration/simple navigation> | <named consumers and package or not applicable> | <integrated outcome or reused proof> | <artifact/identity and changed risk> |
+
 ## Intake and next action
 
 - Continuation: <last verified checkpoint, current owner, exact next action>

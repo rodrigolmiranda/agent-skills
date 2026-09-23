@@ -20,6 +20,7 @@ Return <deliverable> through <verified route>. Next owner: you.
 RECEIPT project=<id> job=<id> revision=<n> attempt=<id>
 From=<worker ID> To=<planner ID/generation>
 Understanding and baseline recorded: <handover/revision>.
+All clear/start=<actual local ISO timestamp + UTC offset and timezone, or held>.
 Questions=<none | IDs in file>. State=<proceeding | held on named gate>.
 Next=<authorized action | precise decision needed from Planner>.
 ```
@@ -66,4 +67,15 @@ Review=<path/revision and reviewed head>; findings=<IDs>.
 Correct only <scope>; preserve <accepted areas/holds>.
 Return finding-to-evidence mapping at the new head via <route>.
 Unclear requirement: write the question in <file> before dependent work.
+```
+
+## Browser sign-in — Claude tester/Planner → Codex helper
+
+```text
+For <Codex helper ID> — <project/job>: BROWSER SIGN-IN ONLY
+From=<Claude agent ID> attempt=<id>; record=<handover/question file>.
+Target=<authorized URL/environment/account alias>; credential source=<secure reference, no values>.
+Browser/session=<supported shared surface>; ownership=<Claude paused, Codex may act>.
+Do only the approved sign-in; return <success indicator or blocker> via <route> and release browser control.
+No grant/configuration change or credential/token/profile export. Claude resumes testing afterward.
 ```
