@@ -101,4 +101,3 @@ implementation/test evidence; rollout or recovery needs; owner; and linked
 authority. Use a Bug work item where the repository supports it. Do not
 fabricate a Story, a milestone or fourteen empty story sections for one bounded
 defect.
-
