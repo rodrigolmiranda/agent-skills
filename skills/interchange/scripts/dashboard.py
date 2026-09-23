@@ -185,7 +185,7 @@ def activity_column(item, attempts):
         outcome = state_key(current.get('outcome'))
     completed = {'done', 'complete', 'completed', 'finished', 'succeeded'}
     active = {'running', 'in_progress', 'working', 'started'}
-    blocked = {'blocked', 'waiting', 'needs_attention', 'failed', 'error', 'stopped',
+    blocked = {'blocked', 'needs_attention', 'failed', 'error', 'stopped',
                'rejected', 'provider_quota', 'quota_exhausted', 'model_rejected',
                'canceled', 'cancelled'}
     # Explicit attempt failures and blocked plan states outrank a process merely
@@ -193,6 +193,8 @@ def activity_column(item, attempts):
     # successful outcome or the coordinator's completed plan state.
     if outcome in blocked or execution in blocked:
         return 'blocked'
+    if state == 'waiting':
+        return 'waiting'
     if execution in active:
         return 'working'
     if state in blocked:
@@ -323,7 +325,7 @@ def task_card(item, attempts):
         parallel_label = 'Not supplied'
     else:
         parallel_label = 'Yes' if parallel else 'No'
-    logical_status = {'working': 'Working now', 'blocked': 'Blocked', 'next': 'Next', 'done': 'Done'}[column]
+    logical_status = {'working': 'Working now', 'blocked': 'Blocked', 'next': 'Next', 'waiting': 'Waiting', 'done': 'Done'}[column]
     if column == 'blocked':
         summary_detail = blocker or (status_label(outcome) if outcome else 'Needs attention')
     else:
@@ -353,6 +355,13 @@ def task_card(item, attempts):
                + '<p><strong>Requested model / effort:</strong> ' + requested + '</p>'
                + '<p><strong>Observed model / effort:</strong> ' + observed + '</p>'
                + '<p><strong>Current action:</strong> ' + esc(action) + '</p>')
+    if column == 'waiting':
+        for field in ('waiting_for', 'waiting_owner', 'waiting_since', 'next_event'):
+            content += '<p><strong>' + esc(field.replace('_', ' ').title()) + ':</strong> ' + esc(item.get(field) or 'Not supplied') + '</p>'
+    if item.get('manual_observation'):
+        report = item['manual_observation']
+        content += '<p><strong>Reported (not verified):</strong> ' + esc(report.get('summary')) + '</p>'
+        content += snapshot_details('Reported observation (not verified execution)', item['manual_observation'])
     if has_identity_evidence(current):
         content += '<p><strong>Model identity evidence:</strong> ' + esc(current.get('identity_evidence')) + '</p>'
     if column == 'blocked':
@@ -373,17 +382,17 @@ def task_card(item, attempts):
 def board(record):
     steps = ordered_steps(record.get('workflow_steps'))
     activities, unmatched = attempt_groups(record, steps)
-    columns = {'working': [], 'blocked': [], 'next': [], 'done': []}
+    columns = {'working': [], 'blocked': [], 'next': [], 'waiting': [], 'done': []}
     for position, (item, attempts) in enumerate(activities):
         content, column = task_card(item, attempts)
         date = max((recency_key(attempt)[0] for attempt in attempts), default=float('-inf'))
         columns[column].append((content, position, date))
     columns['next'].sort(key=lambda entry: entry[1])
-    for name in ('working', 'blocked', 'done'):
+    for name in ('working', 'blocked', 'waiting', 'done'):
         columns[name].sort(key=lambda entry: (entry[2], -entry[1]), reverse=True)
 
     markup = ['<div class="board" aria-label="Current execution board">']
-    for key, label in (('next', 'Next'), ('blocked', 'Blocked'), ('working', 'Working now'), ('done', 'Done')):
+    for key, label in (('next', 'Next'), ('blocked', 'Blocked'), ('working', 'Working now'), ('waiting', 'Waiting'), ('done', 'Done')):
         entries = columns[key]
         visible = entries[:10] if key == 'next' else entries
         cards = ''.join(entry[0] for entry in visible)
@@ -450,7 +459,7 @@ def render(root):
 .top{border-bottom:1px solid var(--line);padding:10px 20px;display:flex;justify-content:space-between;align-items:center}.brand{font-weight:750;letter-spacing:-.5px;font-size:17px}.top span{font-size:12px;color:var(--muted)}
 main{max-width:1400px;margin:auto;padding:12px 20px}h1{font-size:19px;letter-spacing:-.3px;margin:0}h2{font-size:19px;letter-spacing:-.3px;margin:2px 0}h3{font-size:14px;margin:0 0 10px}h4{font-size:13px;margin:24px 0 4px}p{margin:5px 0 8px}.muted,footer{color:var(--muted);font-size:12px}
 .toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}.toolbar p{display:none}select,.button,button{font:inherit;border:1px solid var(--line);border-radius:6px;padding:6px 10px;background:transparent;color:var(--ink)}a{color:var(--accent);overflow-wrap:anywhere}.button{text-decoration:none;font-size:12px;white-space:nowrap}.button:hover,button:hover{background:#edf2f1}button{cursor:pointer}select:focus-visible,a:focus-visible,summary:focus-visible,button:focus-visible{outline:3px solid #71a7a1;outline-offset:3px}
-section{border:1px solid var(--line);border-radius:9px;margin:0 0 16px;overflow:hidden;background:#fcfcfc}.project-head{padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:12px}.eyebrow{font-size:10px;letter-spacing:1px;font-weight:700;color:var(--muted)}.count,.badge{font-size:11px;background:#edf0f2;padding:2px 6px;border-radius:4px;font-weight:600;display:inline-block}.count{margin-left:4px}.empty{padding:12px;border:1px dashed var(--line);border-radius:6px;color:var(--muted);font-size:12px}.board{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding:0 12px 12px}.board-column{border:1px solid var(--line);border-radius:7px;padding:8px;background:#f7f8f8;min-width:0}.board-column h3{display:flex;justify-content:space-between;align-items:center}.column-working{border-top:3px solid #248457}.column-blocked{border-top:3px solid #bf7400}.column-next{border-top:3px solid #4677a8}.column-done{border-top:3px solid #718079}.task-card{background:white;border:1px solid var(--line);border-radius:6px;padding:9px;margin:0 0 8px;min-width:0;overflow-wrap:anywhere}.card-title{display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:6px}.card-title strong{font-size:13px;line-height:1.3}.task-card p{font-size:11.5px;margin:4px 0}.task-card .badge{white-space:normal;text-align:left}.status-text{font-weight:700}.status-good{color:#176b45}.status-attention{color:#8a4b00}.status-terminal{color:#545c65}.status-unknown{color:#586674}.attempt-history{border-top:1px solid var(--line);margin-top:7px;padding-top:4px}.attempt-record{border-top:1px solid var(--line);padding:7px 0;font-size:11px;overflow-wrap:anywhere}.attempt-details{display:grid;gap:4px;margin:5px 0 0}.attempt-details>span{font-size:11px}.attempt-details pre{max-height:200px;overflow:auto}.attempt-history details,.attempt-history summary,.agent-details details{font-size:11px}.show-all{grid-column:1/-1;background:white;border:1px solid var(--line);padding:4px 8px;border-radius:6px}.show-all .task-card{max-width:360px}.unmapped{margin:0 12px 12px;padding:4px 8px;background:#fff8e8;border:1px solid #ead6af;border-radius:6px}.history{padding:0 14px 8px}.coordination{padding:4px 14px 10px;border-top:1px solid var(--line)}.agent-details{display:grid;gap:6px;margin-top:6px}details{font-size:12px}summary{cursor:pointer;color:var(--accent);padding:6px 0}code,pre{font:11px/1.5 ui-monospace,monospace;overflow-wrap:anywhere;white-space:pre-wrap}footer{padding:10px 14px;border-top:1px solid var(--line);font-size:11px}.raw{padding:0 14px 10px}.raw summary{color:var(--muted)}.note{font-size:11px;color:var(--muted)}[hidden]{display:none!important}
+section{border:1px solid var(--line);border-radius:9px;margin:0 0 16px;overflow:hidden;background:#fcfcfc}.project-head{padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:12px}.eyebrow{font-size:10px;letter-spacing:1px;font-weight:700;color:var(--muted)}.count,.badge{font-size:11px;background:#edf0f2;padding:2px 6px;border-radius:4px;font-weight:600;display:inline-block}.count{margin-left:4px}.empty{padding:12px;border:1px dashed var(--line);border-radius:6px;color:var(--muted);font-size:12px}.board{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;padding:0 12px 12px}.board-column{border:1px solid var(--line);border-radius:7px;padding:8px;background:#f7f8f8;min-width:0}.board-column h3{display:flex;justify-content:space-between;align-items:center}.column-working{border-top:3px solid #248457}.column-blocked{border-top:3px solid #bf7400}.column-next{border-top:3px solid #4677a8}.column-done{border-top:3px solid #718079}.task-card{background:white;border:1px solid var(--line);border-radius:6px;padding:9px;margin:0 0 8px;min-width:0;overflow-wrap:anywhere}.card-title{display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:6px}.card-title strong{font-size:13px;line-height:1.3}.task-card p{font-size:11.5px;margin:4px 0}.task-card .badge{white-space:normal;text-align:left}.status-text{font-weight:700}.status-good{color:#176b45}.status-attention{color:#8a4b00}.status-terminal{color:#545c65}.status-unknown{color:#586674}.attempt-history{border-top:1px solid var(--line);margin-top:7px;padding-top:4px}.attempt-record{border-top:1px solid var(--line);padding:7px 0;font-size:11px;overflow-wrap:anywhere}.attempt-details{display:grid;gap:4px;margin:5px 0 0}.attempt-details>span{font-size:11px}.attempt-details pre{max-height:200px;overflow:auto}.attempt-history details,.attempt-history summary,.agent-details details{font-size:11px}.show-all{grid-column:1/-1;background:white;border:1px solid var(--line);padding:4px 8px;border-radius:6px}.show-all .task-card{max-width:360px}.unmapped{margin:0 12px 12px;padding:4px 8px;background:#fff8e8;border:1px solid #ead6af;border-radius:6px}.history{padding:0 14px 8px}.coordination{padding:4px 14px 10px;border-top:1px solid var(--line)}.agent-details{display:grid;gap:6px;margin-top:6px}details{font-size:12px}summary{cursor:pointer;color:var(--accent);padding:6px 0}code,pre{font:11px/1.5 ui-monospace,monospace;overflow-wrap:anywhere;white-space:pre-wrap}footer{padding:10px 14px;border-top:1px solid var(--line);font-size:11px}.raw{padding:0 14px 10px}.raw summary{color:var(--muted)}.note{font-size:11px;color:var(--muted)}[hidden]{display:none!important}
 .task-card>summary.task-summary{padding:0;color:var(--ink)}.task-card>summary.task-summary::marker{color:var(--accent)}.summary-top-row{display:flex;align-items:center;gap:6px;min-width:0;line-height:1.3}.summary-title{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:700}.summary-model-badge{flex:none;max-width:52%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:1px solid var(--line);border-radius:4px;background:#f2f5f5;padding:1px 5px;color:var(--muted);font-size:10px;line-height:1.4}.summary-meta{display:flex;align-items:center;gap:5px;min-width:0;font-size:11px;line-height:1.3;overflow:hidden;white-space:nowrap}.summary-owner{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.summary-status{flex:none;font-weight:700}.summary-detail{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;line-height:1.3;color:var(--muted)}.task-card[open]>summary.task-summary{padding-bottom:6px;border-bottom:1px solid var(--line)}.task-card-body{padding-top:6px}
 @media(max-width:1100px){.board{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:650px){main{padding:8px}.top{padding:8px 12px}.toolbar{margin-bottom:7px}.toolbar,.project-head{align-items:flex-start;flex-direction:column}.board{grid-template-columns:1fr;padding:0 8px 8px;gap:8px}.board-column{padding:9px}.project-head{padding:10px}.card-title{align-items:flex-start}.top span{display:none}}

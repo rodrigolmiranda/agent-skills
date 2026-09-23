@@ -324,3 +324,16 @@ class DashboardTests(unittest.TestCase):
     def test_unsafe_identity_refused(self):
         with self.assertRaises(ValueError):
             dashboard.publish('.', {'project_id': '../bad', 'coordinator': {'agent_id': 'x'}})
+
+class WaitingTests(unittest.TestCase):
+    def test_waiting_order_and_failed_attempt_remains_blocked(self):
+        waiting = {'id': 'w', 'state': 'waiting', 'waiting_for': 'SDK publication',
+                   'waiting_owner': 'Publisher', 'waiting_since': '2026-09-23T11:00:00Z', 'next_event': 'CI return'}
+        self.assertEqual('waiting', dashboard.activity_column(waiting, []))
+        self.assertEqual('blocked', dashboard.activity_column(waiting, [{'execution_state': 'failed'}]))
+        card, _ = dashboard.task_card(waiting, [])
+        self.assertIn('SDK publication', card)
+        self.assertIn('Publisher', card)
+        board = dashboard.board({'workflow_steps': [waiting]})
+        positions = [board.index('column-' + key) for key in ('next', 'blocked', 'working', 'waiting', 'done')]
+        self.assertEqual(sorted(positions), positions)

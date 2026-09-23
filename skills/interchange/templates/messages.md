@@ -75,13 +75,13 @@ Return finding-to-evidence mapping at the new head via <route>.
 Unclear requirement: write the question in <file> before dependent work.
 ```
 
-## Browser sign-in — Claude tester/Planner → Codex helper
+## Browser sign-in — tester/coordinator → authorized helper
 
 ```text
-For <Codex helper ID> — <project/job>: BROWSER SIGN-IN ONLY
+For <authorized helper ID> — <project/job>: BROWSER SIGN-IN ONLY
 From=<Claude agent ID> attempt=<id>; record=<handover/question file>.
 Target=<authorized URL/environment/account alias>; credential source=<secure reference, no values>.
 Browser/session=<supported shared surface>; ownership=<Claude paused, Codex may act>.
 Do only the approved sign-in; return <success indicator or blocker> via <route> and release browser control.
-No grant/configuration change or credential/token/profile export. Claude resumes testing afterward.
+No grant/configuration change or credential/token/profile export. The tester resumes after browser ownership is returned.
 ```
