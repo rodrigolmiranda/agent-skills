@@ -1,0 +1,15 @@
+# Owner-enabled coordinator merge
+
+Optional session mode, off by default. At session start or later, the owner may authorize the coordinator to accept and merge reviewed PRs. Record the owner's instruction in the portable continuation: enabled, coordinator identity, repository scope, allowed base branches and authorization source. Use adopted repository target rules to bound unspecified targets; never infer production/release authority. Carry the record through an explicitly authorized takeover; do not make it a global opt-in for unrelated sessions. Owner revocation takes effect immediately.
+
+## Merge checkpoint
+
+1. Confirm this PR is within the recorded authorization. Workers cannot accept or merge their own work. The coordinator owns the acceptance decision; the independent agent reviewer supplies the review verdict.
+2. Require an independent approving verdict on the exact live head SHA, with reviewer identity and evidence linked in the PR. A worker's self-report, stale review or unresolved finding is not approval. Required UX, integration, security and owner acceptance gates from the plan must also pass.
+3. Re-query live base/head, draft state, mergeability, review decisions and check runs. The PR must be ready and every required CI/check must have completed successfully. A skipped draft lane, pending run or failed gate is not green. Inspect any other failure before proceeding; do not silently waive it. Revalidate after a new head or material base change.
+4. An outstanding review request alone does not prevent merging after the independent agent approval. Do not remove requests or invent a GitHub approval to make the page look green. Explicit changes-requested reviews and separate owner/security/deployment holds must be resolved.
+5. Record the coordinator acceptance, reviewed SHA, reviewer evidence and successful checks in the PR. Submit a GitHub approval only through a permitted identity and when the platform allows it. Never impersonate another reviewer or work around GitHub's self-approval restriction. An agent review artifact is technical approval, not a claim that a GitHub approving review exists.
+6. Merge through the supported GitHub path, binding the request to the reviewed SHA. If a required human-review gate remains, bypass only that review requirement when repository authority explicitly permits it and the available mechanism cannot bypass pending/failed checks or other holds. This mode does not create bypass credentials or authorize changing branch protection. If no compliant path exists, record the exact gate and await the authorized reviewer.
+7. Verify the merge result and record PR URL, reviewed SHA and merge commit. Reconcile GitHub issue/project status and the delivery board; close only issues whose complete acceptance is satisfied. Re-run scheduling for work unblocked by the merge.
+
+Without this option, follow the repository's normal acceptance and merge authority. The option changes who may complete an eligible merge; it does not lower proof requirements or authorize publication, deployment, release tags, destructive operations or a held target branch.

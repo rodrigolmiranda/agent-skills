@@ -21,6 +21,10 @@ Use [communication](references/communication.md) for durable questions/answers a
 
 Own product context, specification detail, dependencies, priority, slice size and difficulty. Use Interchange’s verified capability inventory to choose authorized mechanic/coder, senior, reviewer, UX, tester and architecture/security assignments. Resolve avoidable ambiguity in issues and packets so ordinary implementation does not require senior judgment; do not disguise genuine risk or invent detail merely to avoid escalation. Interchange logs execution and keeps the board projection current; only this skill decides what should run and whether its outcome is accepted.
 
+## Optional coordinator merge
+
+When the owner enables coordinator acceptance/merge for a session, or an eligible PR is ready to merge, apply [owner-enabled coordinator merge](references/coordinator-merge.md). Record its scope in the continuation. It is off by default and preserves repository target rules and all evidence/operational gates.
+
 ## Required checkpoint
 
 1. Establish the approved scope and authority link. Reuse existing GitHub breakdown, decisions and handovers. Distinguish approved unfinished work from proposals and future roadmap items; enumerate all in-scope tasks and children with pagination. Retain the source query and retrieval time so completeness can be checked.
