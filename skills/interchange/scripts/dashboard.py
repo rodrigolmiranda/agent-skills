@@ -443,7 +443,7 @@ def render(root):
     options = ''.join('<option value="' + esc(p) + '">' + esc(p.replace('-', ' ').title()) + '</option>'
                       for p in sorted({r['project_id'] for r in records}))
     page = '''<!doctype html><html lang="en"><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><title>Interchange · Activity</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Delivery Orchestrator · Project activity</title>
 <style>
 :root{--ink:#202c38;--muted:#62707b;--line:#dce1e4;--paper:#f8f9fa;--accent:#245e5a}
 *{box-sizing:border-box}body{font:14px/1.45 system-ui;margin:0;background:var(--paper);color:var(--ink)}
@@ -454,7 +454,7 @@ section{border:1px solid var(--line);border-radius:9px;margin:0 0 16px;overflow:
 .task-card>summary.task-summary{padding:0;color:var(--ink)}.task-card>summary.task-summary::marker{color:var(--accent)}.summary-top-row{display:flex;align-items:center;gap:6px;min-width:0;line-height:1.3}.summary-title{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:700}.summary-model-badge{flex:none;max-width:52%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:1px solid var(--line);border-radius:4px;background:#f2f5f5;padding:1px 5px;color:var(--muted);font-size:10px;line-height:1.4}.summary-meta{display:flex;align-items:center;gap:5px;min-width:0;font-size:11px;line-height:1.3;overflow:hidden;white-space:nowrap}.summary-owner{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.summary-status{flex:none;font-weight:700}.summary-detail{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;line-height:1.3;color:var(--muted)}.task-card[open]>summary.task-summary{padding-bottom:6px;border-bottom:1px solid var(--line)}.task-card-body{padding-top:6px}
 @media(max-width:1100px){.board{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:650px){main{padding:8px}.top{padding:8px 12px}.toolbar{margin-bottom:7px}.toolbar,.project-head{align-items:flex-start;flex-direction:column}.board{grid-template-columns:1fr;padding:0 8px 8px;gap:8px}.board-column{padding:9px}.project-head{padding:10px}.card-title{align-items:flex-start}.top span{display:none}}
-</style><div class="top"><div class="brand">Interchange <span> / snapshot activity</span></div><button onclick="location.reload()">Refresh</button></div>
+</style><div class="top"><div class="brand">Delivery Orchestrator <span> / Project activity</span></div><button onclick="location.reload()">Refresh</button></div>
 <main><div class="toolbar"><h1>Current execution horizon</h1><label>Project <select id="project"><option value="">All activity</option>''' + options + '</select></label></div>'
     page += ''.join(cards) or '<p class="empty">No coordinator snapshots published yet.</p>'
     page += '''<p class="note">Snapshot only, not live monitoring. GitHub remains the backlog authority; readiness, dependencies and parallel work are shown only when supplied in the snapshot. Session commands are shown for inspection and are never run here.</p></main><script>document.getElementById('project').onchange=function(){document.querySelectorAll('section[data-project]').forEach(s=>s.hidden=!!this.value&&s.dataset.project!==this.value);};</script></html>'''
