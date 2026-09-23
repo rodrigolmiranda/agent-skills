@@ -6,15 +6,15 @@ Start with [delivery-orchestrator](skills/delivery-orchestrator/SKILL.md). Its [
 
 # Agent Skills
 
-Reusable agent skills. The current package is **Interchange**: a way to plan, delegate, review and resume work across Codex, Claude Code and external workers such as OpenCode.
+Reusable skills for planning and executing delivery across Codex, Claude Code and external workers such as OpenCode.
 
-## What Interchange delivers
+## What the two skills deliver
 
 You work with one **Planner** in your coordinating conversation. The Planner turns your goal into bounded assignments, sends them to suitable workers, receives their results, arranges independent review and reconciles delivery. You should not need to copy prompts and handovers between sessions when a supported callback route is configured.
 
 For a coding assignment, the output is a reviewable PR with acceptance evidence and an explicit next action. For an investigation, it is an evidence-backed finding or recommendation. For ongoing projects, it is a reconciled plan and next work that preserve existing changes and decisions.
 
-Interchange provides:
+Together, Delivery Orchestrator and Interchange provide:
 
 - **Clear scope:** outcomes, contracts, ownership, dependencies and proof before implementation; questions go back to the Planner when a material decision is missing.
 - **Appropriate agents:** economical builders for settled work, independent reviewers, and specialist escalation when justified. Models and effort are editable preferences, not hardcoded vendor rules.
@@ -53,7 +53,7 @@ See the [ten detailed workflow maps](skills/delivery-orchestrator/references/dia
 | UX Designer / Reviewer | Interaction design and periodic visual/journey review |
 | Journey Tester | Independent functional acceptance at meaningful integration points |
 
-One writer owns an overlapping surface. Roles do not require separate sessions when no benefit exists, except that an author cannot independently accept their own deliverable. See [roles](skills/interchange/references/roles.md) and the [editable profile](skills/interchange/references/profile.example.json).
+One writer owns an overlapping surface. Roles do not require separate sessions when no benefit exists, except that an author cannot independently accept their own deliverable. See [roles](skills/delivery-orchestrator/references/roles.md) and the [editable profile](skills/interchange/references/profile.example.json).
 
 ## What a status report tells you
 
@@ -97,7 +97,7 @@ See [transport](skills/interchange/references/transport.md) for actual commands,
 | [`references/workflow.md`](skills/delivery-orchestrator/references/workflow.md) | New work, WIP, maintenance, investigations, incidents and scope triage |
 | [`references/diagrams.md`](skills/delivery-orchestrator/references/diagrams.md) | Visual validation of job and decision paths |
 | [`references/principles.md`](skills/delivery-orchestrator/references/principles.md) | Smallest sound solution, evidence, clarity and justified roadmap preparation |
-| [`references/roles.md`](skills/interchange/references/roles.md) + [`profile.example.json`](skills/interchange/references/profile.example.json) | Responsibility, model/effort selection and escalation |
+| [`references/roles.md`](skills/delivery-orchestrator/references/roles.md) + [`profile.example.json`](skills/interchange/references/profile.example.json) | Responsibility, model/effort selection and escalation |
 | [`references/verification.md`](skills/delivery-orchestrator/references/verification.md) | Proportionate tests, independent review, UX and journey evidence |
 | [`references/observability.md`](skills/delivery-orchestrator/references/observability.md) | Identity, comparable reports, evaluation, transfer and GitHub provenance |
 | [`references/communication.md`](skills/delivery-orchestrator/references/communication.md) + [`templates/messages.md`](skills/interchange/templates/messages.md) | Understand/confirm/ask/answer/resume/return, with questions and answers stored in files |
