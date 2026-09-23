@@ -28,7 +28,7 @@ The proposal preserves the existing Astra-low Codex PR-review preference until c
 | OpenCode same model → validated final text → non-LLM wrapper → Codex queue | Fresh expected final captured; exported session reports provider/model and finish=stop; queue exit0 | Exact callback received in the coordinator task after queuing; app-closed/reboot wake not tested |
 | External worker → idle Claude coordinator | Not tested | Use native Claude collaboration/manual inbox until a supported route is proven |
 
-No product repo/runtime/credentials were changed by these probes. Both exact callback codes subsequently arrived as messages in the coordinating task. This proves end-to-end delivery for this live desktop session; it does not establish app-closed/reboot recovery or a Claude-head receiver. Queue acceptance and actual receipt remain separate states. Local raw records are held outside the public skill package; only sanitized outcomes belong here.
+No product repo/runtime/credentials were changed by these probes. Both exact callback codes subsequently arrived as messages in the coordinating task. A separate 30-second delayed callback then started a new coordinator turn after the prior turn ended, with no intervening user follow-up: idle wake passed for the live Codex session. This proves end-to-end delivery for this live desktop session; it does not establish app-closed/reboot recovery or a Claude-head receiver. Queue acceptance and actual receipt remain separate states. Local raw records are held outside the public skill package; only sanitized outcomes belong here.
 
 ## Governance alignment
 
