@@ -45,6 +45,120 @@ class DashboardTests(unittest.TestCase):
                 self.assertEqual('2000-01-01T00:00:00Z', record['updated_at'])
                 self.assertNotEqual(record['updated_at'], record['published_at'])
 
+    def test_workflow_board_groups_one_logical_job_and_shows_current_state_first(self):
+        record = {
+            'project_id': 'board',
+            'coordinator': {'agent_id': 'planner'},
+            'workflow_steps': [
+                {'id': 'run', 'job_id': 'job-run', 'order': 1, 'title': 'Current task',
+                 'state': 'blocked', 'owner': 'builder', 'next_action': 'Finish the report',
+                 'issue_url': 'https://example.test/issues/17', 'parent_url': 'https://example.test/issues/10'},
+                {'id': 'blocked', 'job_id': 'job-blocked', 'order': 2, 'title': 'Quota task',
+                 'state': 'blocked', 'owner': None, 'blocker': 'Provider quota'},
+                {'id': 'next', 'job_id': 'job-next', 'order': 3, 'title': 'Upcoming task',
+                 'state': 'not-started', 'owner': None},
+                {'id': 'done', 'job_id': 'job-done', 'order': 4, 'title': 'Finished task',
+                 'state': 'completed', 'owner': 'builder'},
+            ],
+            'attempts': [
+                {'job_id': 'job-run', 'attempt_id': 'a1', 'agent_id': 'builder', 'task': 'Old failed retry',
+                 'last_observed_state': 'failed', 'outcome': 'error', 'last_observed_at': '2026-09-22T10:00:00Z'},
+                {'job_id': 'job-run', 'attempt_id': 'a2', 'agent_id': 'builder', 'task': 'Current task',
+                 'execution_state': 'running', 'outcome': None, 'requested_model': 'gpt-6-luna',
+                 'requested_effort': 'xhigh', 'observed_model': 'gpt-6-luna', 'observed_effort': 'xhigh',
+                 'started_at': '2026-09-23T08:00:00Z', 'last_observed_at': '2026-09-23T08:05:00Z',
+                 'evaluation': {'dimensions': {'correctness': 'Not assessed'}}},
+                {'job_id': 'job-blocked', 'attempt_id': 'a3', 'agent_id': 'builder',
+                 'execution_state': 'stopped', 'outcome': 'provider_quota',
+                 'last_observed_at': '2026-09-23T08:02:00Z'},
+                {'job_id': 'job-done', 'attempt_id': 'a4', 'agent_id': 'builder',
+                 'execution_state': 'completed', 'outcome': 'done',
+                 'last_observed_at': '2026-09-23T08:01:00Z'},
+            ],
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            subprocess.run(['git', 'init', '-q', str(repo)], check=True)
+            page = dashboard.publish(repo, record).read_text()
+
+        board = page[page.index('<div class="board"'):]
+        self.assertLess(board.index('Working now'), board.index('Blocked'))
+        self.assertLess(board.index('Blocked'), board.index('Next'))
+        self.assertLess(board.index('Next'), board.index('Done'))
+        self.assertIn('Working now <span class="count">1</span>', board)
+        self.assertIn('Blocked <span class="count">1</span>', board)
+        self.assertIn('Snapshot status: Running', page)
+        self.assertIn('Plan status:</strong> Blocked', page)
+        self.assertIn('<strong>Outcome:</strong>', page)
+        self.assertIn('>Provider quota</span>', page)
+        self.assertIn('<strong>Execution state:</strong>', page)
+        self.assertIn('>Stopped</span>', page)
+        self.assertIn('Requested model / effort:</strong> gpt-6-luna · xhigh', page)
+        self.assertIn('Observed model / effort:</strong> gpt-6-luna · xhigh', page)
+        self.assertEqual(1, page.count('<strong>Current task</strong>'))
+        self.assertIn('Attempts and retries (2)', page)
+        self.assertIn('Evaluation dimensions', page)
+        self.assertLess(page.index('Issue:'), page.index('Parent:'))
+
+    def test_unassigned_workflow_activity_without_attempt_stays_visible(self):
+        record = {
+            'project_id': 'unassigned', 'coordinator': {'agent_id': 'planner'},
+            'workflow_steps': [{'id': 'step-1', 'order': 1, 'title': 'Write acceptance notes',
+                                'state': 'not-started', 'owner': None,
+                                'next_action': 'Draft the notes', 'dependencies': []}],
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            subprocess.run(['git', 'init', '-q', str(repo)], check=True)
+            page = dashboard.publish(repo, record).read_text()
+        self.assertIn('Write acceptance notes', page)
+        self.assertIn('<strong>Owner:</strong> Unassigned', page)
+        self.assertIn('Requested model / effort:</strong> Unknown', page)
+        self.assertIn('Observed model / effort:</strong> Unknown', page)
+        self.assertIn('Current action:</strong> Draft the notes', page)
+        self.assertIn('Can run in parallel:</strong> Not supplied', page)
+        self.assertIn('Readiness:</strong> Not supplied', page)
+        self.assertIn('Attempts and retries (0)', page)
+
+    def test_next_column_limits_initial_cards_but_reveals_all_in_plan_order(self):
+        steps = [{'id': f'step-{number:02d}', 'job_id': f'job-{number:02d}', 'order': number,
+                  'title': f'Activity {number:02d}', 'state': 'not-started'}
+                 for number in range(12, 0, -1)]
+        record = {'project_id': 'many-next', 'coordinator': {'agent_id': 'planner'}, 'workflow_steps': steps}
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            subprocess.run(['git', 'init', '-q', str(repo)], check=True)
+            page = dashboard.publish(repo, record).read_text()
+        self.assertIn('Next <span class="count">12</span>', page)
+        self.assertIn('Show all 12 planned activities (2 more)', page)
+        first = page.index('<strong>Activity 01</strong>')
+        second = page.index('<strong>Activity 02</strong>')
+        tenth = page.index('<strong>Activity 10</strong>')
+        reveal = page.index('Show all 12 planned activities')
+        self.assertLess(first, second)
+        self.assertLess(second, tenth)
+        self.assertLess(tenth, reveal)
+        self.assertIn('<strong>Activity 12</strong>', page)
+
+    def test_legacy_attempt_snapshot_and_unknown_identity_remain_clear(self):
+        record = {'project_id': 'legacy', 'coordinator': {'agent_id': 'planner'},
+                  'attempts': [{'job_id': 'job-1', 'attempt_id': 'a1', 'agent_id': 'builder',
+                                'task': '<script>task</script>', 'last_observed_state': 'running'}]}
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            subprocess.run(['git', 'init', '-q', str(repo)], check=True)
+            page = dashboard.publish(repo, record).read_text()
+        self.assertIn('Current execution horizon', page)
+        self.assertIn('&lt;script&gt;task&lt;/script&gt;', page)
+        self.assertNotIn('<script>task</script>', page)
+        self.assertIn('Working now <span class="count">1</span>', page)
+        self.assertIn('Requested model / effort:</strong> Unknown', page)
+        self.assertIn('Observed model / effort:</strong> Unknown', page)
+        self.assertIn('<strong>Execution state:</strong>', page)
+        self.assertIn('>Running</span>', page)
+        self.assertIn('Started: Unknown', page)
+        self.assertIn('Not assessed', page)
+
     def test_unsafe_identity_refused(self):
         with self.assertRaises(ValueError):
             dashboard.publish('.', {'project_id': '../bad', 'coordinator': {'agent_id': 'x'}})

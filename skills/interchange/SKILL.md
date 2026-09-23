@@ -25,6 +25,17 @@ Before sending a worker dispatch, question, answer or correction, use [communica
 8. **Review the outcome and diff.** Independent reviewer checks accepted target, quality and sufficient evidence at the exact head. Use [review.md](templates/review.md). Writer tests its own work; schedule UX/journey checkpoints by the triggers below. Merge, deployment and publication remain separate explicit authorities.
 9. **Close or correct.** Send one consolidated bounded correction; re-review the changed findings/impact, preserve accepted areas. Record unrelated bugs for later prioritization. Update issues/project, then return an explicit verdict and next owner. No automatic next slice. Reassess safe parallel capacity and useful agent reuse at each return/unblock under [the scheduling rule](references/principles.md#reassess-safe-parallelism-reuse-useful-context); release only already-authorized work.
 
+## Coordinator turn-exit check
+
+Keep progressing through the approved dependency graph; an owner reply is not needed merely to start the next ready assignment. Before ending a turn:
+
+1. Reconcile received results, startup receipts and provider errors. A live PID proves only a process, not model execution; record quota/auth/startup failures as blocked.
+2. Reassess ready work and ownership conflicts. Dispatch executable authorized work or continue the coordinator's independent work. Do not stop after describing a plan while such work remains.
+3. For every outstanding attempt, record its actual supervisor, deadline, next expected event and verified receiver route. A queued event is not an acknowledged receipt. Diagnose missing startup evidence with one bounded process/provider check; do not poll indefinitely or automatically duplicate a writer.
+4. End only with all current work completed/dispatched under verified supervision, or a concrete external/owner blocker. State what wakes the coordinator next. When no callback exists, arrange a supported follow-up mechanism or explicitly surface manual-return mode; never imply autonomous continuation.
+
+Provider exhaustion does not authorize a model substitution. Preserve the packet and worktree, stop the failed owned attempt, and request only the required routing decision. Continue unrelated authorized work. Apply this check in both Codex and Claude; a notification or user clarification does not cancel ongoing work unless it says so.
+
 ## Bounds that prevent drift
 
 - One writer per overlapping surface, isolated checkout; parallelize only independent outcomes. Shared runtime/tests are resources too. Tightly interacting workers use native collaboration when supported; otherwise route decisions through the Planner with versioned contracts.

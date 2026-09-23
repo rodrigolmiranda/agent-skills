@@ -79,7 +79,7 @@ The skill is portable and does not require a private governance vault. Each proj
 | Claude coordinator | Reviewer-recorded background-task completion wakes for workers launched by that same live Claude session; artifacts and notification transcript retained; exact cross-clock latency unresolved |
 | Other wake/recovery modes | Early-start Claude wake, independently launched-worker delivery to Claude, and app-closed/reboot recovery remain untested |
 | GitHub reconciliation and attribution | Defined workflow using available GitHub tools; no automatic synchronizer or merge enforcement service |
-| Reports and evaluations | On-demand linked records; no automatic dashboard, model benchmarking service or inferred token/cost accounting |
+| Reports and evaluations | On-demand linked records plus a local snapshot board; no live process monitor, model benchmarking service or inferred token/cost accounting |
 
 See [transport](skills/interchange/references/transport.md) for actual commands, failure handling and limitations. Provider exit zero alone is not a completed assignment. Text attribution in a commit or PR is not a cryptographic signature.
 
@@ -113,6 +113,6 @@ The tests cover existing protocol behavior and the relay/runner. Skill and diagr
 
 ### Local activity page
 
-Interchange can publish one local HTML dashboard per repository, shared by its linked worktrees and multiple coordinators. Select a project or inspect all activity, with session access commands and continuation records. Run `python3 skills/interchange/scripts/dashboard.py --repo <checkout> --snapshot <continuation.json>` and open the printed file. Updates are explicit snapshots, not live monitoring. See [observability](skills/interchange/references/observability.md#repository-dashboard-and-session-access) for ownership, portability and limits. Refine this first version and its workflow from observed use.
+Interchange can publish a local four-column activity board per repository, shared by linked worktrees and multiple coordinators. It puts current work first, groups retries inside one task, and keeps completed/stopped history collapsed. Optional workflow steps are the task-card source; without them older snapshots still render from attempts grouped by job. Select a project or inspect all activity, with issue/parent links and expandable evidence. Run `python3 skills/interchange/scripts/dashboard.py --repo <checkout> --snapshot <continuation.json>` and open the printed file. Updates are explicit snapshots, not live monitoring, and GitHub remains the backlog authority. See [observability](skills/interchange/references/observability.md#repository-dashboard-and-session-access) for the snapshot contract and limits.
 
 Workspace configuration and non-destructive retention inventory are described in [workspace.md](skills/interchange/references/workspace.md). Superseded policy files are preserved under `archive/interchange/`, outside the installed skill. The runner drains excess output by default and keeps a separate final-artifact receipt; receiver routes explicitly distinguish Codex queue, Claude parent harness and manual return.
