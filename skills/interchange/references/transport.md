@@ -30,7 +30,25 @@ Two reviewer-recorded runs at source deba2d49 have fresh worker final text, proc
 
 Preflight the installed CLI help, exact model/effort, subscription/billing and permitted tools. Use literal argv, bounded wall time/output, attempt-scoped artifacts and isolated worktree. Retain provider session ID and requested/observed identity. Do not read credentials into logs. Workers get only required files/tools; negative permission proof is needed when relying on a new restrictive mapping, not on every repeated task.
 
-OpenCode: pin provider/model and variant; use JSON events. Some transports return tool-call text or finish=tool-calls with exit0: classify incomplete, not success. A tool-free final can be validated by the wrapper and relayed without worker callback tools. Claude: pin model/effort; observe init metadata; exact allowed shell arguments matter. For a Codex head the tested route may be Claude→wrapper/queue. For a Claude head, use its parent-launched background-task route below. Codex queue is not a Claude API. An independently launched worker still requires a separately verified receiver/watch route or explicit manual retrieval.
+OpenCode: pin provider/model and variant; use JSON events. Some transports return tool-call text or finish=tool-calls with exit0: classify incomplete, not success.
+
+### OpenCode headless workers — tested rules (2026-09-23, OpenCode 1.18.32, `opencode-go/deepseek-v4.1-flash`)
+
+1. **Close stdin.** Launch `opencode run … < /dev/null` (or `stdin=DEVNULL` in a wrapper). With an open, non-TTY stdin the process waits indefinitely and prints nothing — observed from a Claude Code Bash launch (10 min, zero bytes); the identical command with stdin closed finished in 11 s.
+2. **Never use a deny-all permission base (`"*": "deny"`).** With it, DeepSeek emits its native tool syntax as plain text (`<｜｜DSML｜｜ invoke name="read">…`), no tool runs, the file is unchanged, and the run still ends `finish=stop`, exit 0 — reproduced 2/2. This was the cause of the earlier "OpenCode cannot code unattended" pilot result.
+3. **Use an explicit allow-list plus targeted denies** (passed: edit → test → commit, push refused by policy before reaching the remote, no work-around, 19 s):
+
+```json
+{"permission": {
+  "read": "allow", "edit": "allow", "glob": "allow", "grep": "allow", "list": "allow", "todowrite": "allow",
+  "bash": {"*": "deny", "<test command>*": "allow", "git status*": "allow", "git diff*": "allow",
+           "git add *": "allow", "git commit *": "allow", "git rev-parse*": "allow", "git push*": "deny"},
+  "webfetch": "deny", "websearch": "deny", "task": "deny", "external_directory": "deny",
+  "skill": "deny", "question": "deny"}}
+```
+
+   Pass it as `OPENCODE_CONFIG_CONTENT` with `--pure`; widen `bash` only with the exact commands the packet needs (build/test tools, `gh pr create` when the worker must open the PR). Permission policy is not an OS sandbox; repository-side protection (e.g. a pre-receive rejection) remains the enforcement for pushes to protected branches.
+4. **Always verify, never trust exit 0:** a DSML string in any text part, zero `tool` parts for a task that requires edits, or an unchanged target file ⇒ classify the attempt **incomplete** and report it; do not retry blindly with the same permissions. A tool-free final can be validated by the wrapper and relayed without worker callback tools. Claude: pin model/effort; observe init metadata; exact allowed shell arguments matter. For a Codex head the tested route may be Claude→wrapper/queue. For a Claude head, use its parent-launched background-task route below. Codex queue is not a Claude API. An independently launched worker still requires a separately verified receiver/watch route or explicit manual retrieval.
 
 ## Supervision without model polling
 
