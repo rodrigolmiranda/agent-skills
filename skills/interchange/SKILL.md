@@ -27,6 +27,8 @@ Before sending a worker dispatch, question, answer or correction, use [communica
 
 ## Coordinator turn-exit check
 
+Complete the [scheduling gate](references/principles.md#reassess-safe-parallelism-reuse-useful-context) and validate its receipt before yielding; checking a sample of tasks is insufficient.
+
 Keep progressing through the approved dependency graph; an owner reply is not needed merely to start the next ready assignment. Before ending a turn:
 
 1. Reconcile received results, startup receipts and provider errors. A live PID proves only a process, not model execution; record quota/auth/startup failures as blocked.

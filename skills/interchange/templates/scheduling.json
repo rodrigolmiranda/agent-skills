@@ -1,0 +1,20 @@
+{
+  "scope_url": "https://github.com/OWNER/REPO/milestone/NUMBER",
+  "checked_at": "ISO-8601 timestamp",
+  "source_complete": true,
+  "source_ids": [
+    "REPO#1"
+  ],
+  "items": [
+    {
+      "id": "REPO#1",
+      "ready": true,
+      "disposition": "dispatched",
+      "job": "context-boundary-name",
+      "evidence": "artifact or GitHub URL",
+      "reason": "startup confirmed",
+      "next_owner": "worker",
+      "next_event": "correlated return"
+    }
+  ]
+}
