@@ -237,7 +237,12 @@ flowchart TD
 flowchart TD
   A[Claude test needs browser sign-in] --> B[Record target, account alias and secure source]
   B --> C{Codex coordinator or helper available?}
-  C -->|No| D[Hold sign-in-dependent test; report blocker]
+  C -->|No| K{Confirmed Codex usage exhaustion?}
+  K -->|No| D[Planner diagnoses helper path; hold dependent test]
+  K -->|Yes| O[Ask owner to sign in on intended browser]
+  O --> P{Owner sign-in and ownership confirmed?}
+  P -->|No| D
+  P -->|Yes| J[Claude resumes planned test]
   C -->|Yes| E[Pause Claude browser control; transfer intended session]
   E --> F{Supported shared browser and authorized access?}
   F -->|No| D

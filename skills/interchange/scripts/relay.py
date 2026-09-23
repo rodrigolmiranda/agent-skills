@@ -97,6 +97,7 @@ def notify(db, event_id, executable='codex'):
         if not row:
             raise ValueError('unknown event')
         if not row['coordinator']:
+            db.execute("UPDATE events SET delivery='manual' WHERE id=? AND delivery='pending'", (event_id,))
             return {'id': event_id, 'delivery': 'manual', 'artifact': row['artifact']}
         if row['delivery'] != 'pending':
             return {'id': event_id, 'delivery': row['delivery'], 'sent_again': False}

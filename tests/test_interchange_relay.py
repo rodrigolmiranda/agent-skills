@@ -95,6 +95,17 @@ class RelayTests(unittest.TestCase):
         self.emit(job='manual')
         with patch.object(relay.subprocess,'run') as run:
             self.assertEqual(relay.notify(self.db,'e1')['delivery'],'manual')
+            row = self.db.execute('SELECT delivery, acknowledged FROM events WHERE id=?', ('e1',)).fetchone()
+            self.assertEqual(row['delivery'], 'manual')
+            self.assertIsNone(row['acknowledged'])
+            receipt = relay.acknowledge(self.db, 'e1')
+            self.assertTrue(receipt['received'])
+            self.assertFalse(receipt['accepted'])
+            acknowledged = self.db.execute('SELECT acknowledged FROM events WHERE id=?', ('e1',)).fetchone()[0]
+            relay.notify(self.db, 'e1')
+            row = self.db.execute('SELECT delivery, acknowledged FROM events WHERE id=?', ('e1',)).fetchone()
+            self.assertEqual(row['delivery'], 'manual')
+            self.assertEqual(row['acknowledged'], acknowledged)
             run.assert_not_called()
 
 if __name__ == '__main__': unittest.main()

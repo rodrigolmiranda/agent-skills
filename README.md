@@ -76,7 +76,8 @@ The skill is portable and does not require a private governance vault. Each proj
 | External process runner | One literal command, deadline/output limits, exclusive attempt registration, retained logs and terminal event; not an OS sandbox or reboot service |
 | Callback relay | Correlated local outbox and Codex queue adapter, with separate receipt acknowledgement |
 | Live callback proof | Claude and OpenCode returned codes to Codex; a separate delayed callback woke an idle live Codex session. OpenCode's direct tool callback failed; its validated final used a deterministic wrapper |
-| Other wake/recovery modes | App-closed/reboot recovery and a Claude-coordinator receiver remain untested |
+| Claude coordinator | Reviewer-recorded background-task completion wakes for workers launched by that same live Claude session; artifacts and notification transcript retained; exact cross-clock latency unresolved |
+| Other wake/recovery modes | Early-start Claude wake, independently launched-worker delivery to Claude, and app-closed/reboot recovery remain untested |
 | GitHub reconciliation and attribution | Defined workflow using available GitHub tools; no automatic synchronizer or merge enforcement service |
 | Reports and evaluations | On-demand linked records; no automatic dashboard, model benchmarking service or inferred token/cost accounting |
 
