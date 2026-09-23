@@ -332,6 +332,8 @@ def task_card(item, attempts):
     else:
         parallel_label = 'Yes' if parallel else 'No'
     logical_status = {'working': 'Working now', 'blocked': 'Blocked', 'next': 'Next', 'waiting': 'Waiting', 'done': 'Done'}[column]
+    if column == 'done' and item.get('completion_scope') == 'step':
+        logical_status = 'Step done · issue ' + str(item.get('github_issue_state', 'not verified')).lower()
     if column == 'blocked':
         summary_detail = blocker or (status_label(outcome) if outcome else 'Needs attention')
     else:
@@ -483,6 +485,12 @@ def validate_done_sources(record):
         if activity_column(item, attempts) != 'done':
             continue
         current = latest_attempt(attempts) or {}
+        if item.get('issue_url') or current.get('issue_url'):
+            scope = item.get('completion_scope')
+            if scope not in {'step', 'issue'}:
+                raise ValueError('Done activity must declare step or issue completion: ' + str(item.get('id')))
+            if scope == 'issue' and (item.get('github_issue_state') != 'CLOSED' or not item.get('github_checked_at')):
+                raise ValueError('Issue completion requires verified CLOSED GitHub state: ' + str(item.get('id')))
         sources = [item.get(k) or current.get(k) for k in ('issue_url', 'source_url', 'pr_url')]
         sources += [link.get('url') for link in item.get('links') or [] if isinstance(link, dict)]
         if not any(isinstance(url, str) and url.startswith(('https://', 'http://')) for url in sources):

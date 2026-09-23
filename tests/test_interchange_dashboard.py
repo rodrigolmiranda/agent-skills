@@ -357,3 +357,17 @@ class DoneSourceGateTests(unittest.TestCase):
             self.assertEqual([], list(Path(directory).iterdir()))
         record['workflow_steps'][0]['pr_url'] = 'https://github.com/o/r/pull/1'
         dashboard.validate_done_sources(record)
+
+class CompletionScopeTests(unittest.TestCase):
+    def test_review_completion_does_not_close_issue(self):
+        step = {'id': 'review', 'state': 'done', 'issue_url': 'https://github.com/o/r/issues/54'}
+        with self.assertRaisesRegex(ValueError, 'declare step or issue'):
+            dashboard.validate_done_sources({'workflow_steps': [step]})
+        step.update(completion_scope='step', github_issue_state='OPEN')
+        dashboard.validate_done_sources({'workflow_steps': [step]})
+        self.assertIn('Step done · issue open', dashboard.task_card(step, [])[0])
+        step['completion_scope'] = 'issue'
+        with self.assertRaisesRegex(ValueError, 'CLOSED'):
+            dashboard.validate_done_sources({'workflow_steps': [step]})
+        step.update(github_issue_state='CLOSED', github_checked_at='2026-09-23T13:00:00Z')
+        dashboard.validate_done_sources({'workflow_steps': [step]})

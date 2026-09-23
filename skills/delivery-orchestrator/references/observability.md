@@ -110,3 +110,5 @@ Board order: Next → Blocked → Working now → Waiting → Done. Waiting mean
 For Waiting snapshot rows use `state: waiting`, `waiting_for`, `waiting_owner`, `waiting_since` (time with offset) and `next_event`. An explicit failed execution remains Blocked even if its plan still says Waiting.
 
 Done activities must retain an issue, PR or source/evidence URL in the activity or its latest return. Non-code work may link its evidence; do not invent a PR. Board publication rejects missing links before replacing the published snapshot. Supply the missing source and republish; do not bypass the check.
+
+For Done activities linked to an issue, declare `completion_scope: step` or `issue`. Step completion must be named as such and does not close the issue. Issue completion requires a fresh GitHub query recorded as `github_issue_state: CLOSED` with `github_checked_at`; the renderer validates the record, not GitHub itself. Never close an issue merely to match a finished review.
