@@ -17,6 +17,10 @@ Use [roles](references/roles.md) for semantic assignment selection and [workflow
 
 Use [communication](references/communication.md) for durable questions/answers and [observability](references/observability.md) for status, evaluation, board publication and takeover. The board consumes Interchange execution evidence; it does not replace GitHub.
 
+## Decision ownership
+
+Own product context, specification detail, dependencies, priority, slice size and difficulty. Use Interchange’s verified capability inventory to choose authorized mechanic/coder, senior, reviewer, UX, tester and architecture/security assignments. Resolve avoidable ambiguity in issues and packets so ordinary implementation does not require senior judgment; do not disguise genuine risk or invent detail merely to avoid escalation. Interchange logs execution and keeps the board projection current; only this skill decides what should run and whether its outcome is accepted.
+
 ## Required checkpoint
 
 1. Establish the approved scope and authority link. Reuse existing GitHub breakdown, decisions and handovers. Distinguish approved unfinished work from proposals and future roadmap items; enumerate all in-scope tasks and children with pagination. Retain the source query and retrieval time so completeness can be checked.
@@ -30,7 +34,7 @@ For execution, proportional validation, correction and turn-exit decisions, read
 
 ## Resume and change
 
-At takeover refresh current heads, ownership and changed dependency evidence before dispatch. Re-run the scheduling checkpoint after a worker return/failure, unblock, ownership release or scope change, and before yielding. Reuse unchanged evidence rather than re-reading every document. Record an incomplete source scan as incomplete, never as “nothing else can run.”
+At takeover refresh current heads, ownership and changed dependency evidence before dispatch. Re-run the scheduling checkpoint after every dispatch/delivery, worker return/question/failure, review disposition, unblock, ownership release or scope change, and before yielding. Reuse unchanged evidence rather than re-reading every document. Record an incomplete source scan as incomplete, never as “nothing else can run.”
 
 ## Exit contract
 

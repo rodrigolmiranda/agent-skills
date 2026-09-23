@@ -13,6 +13,8 @@ Use [principles.md](references/principles.md) to choose when coordination is wor
 
 Before sending a worker dispatch, question, answer or correction, use [communication.md](references/communication.md) and its compact message templates; decisions must be recorded in the packet, not left only in chat.
 
+For capability inventory, technical exchange agreements, event logging, board freshness and communication recovery, use [execution operations](references/execution-operations.md). Interchange maintains execution facts; the orchestrator owns plan, priority, evaluation and acceptance.
+
 ## Accepted assignment → execution → return
 
 [Delivery orchestrator](../delivery-orchestrator/SKILL.md) owns scope, roles, breakdown, scheduling, review selection and disposition. Receive its accepted packet and validated scheduling decision; do not create a second plan here.
