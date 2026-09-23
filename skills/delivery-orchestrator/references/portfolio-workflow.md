@@ -101,3 +101,7 @@ implementation/test evidence; rollout or recovery needs; owner; and linked
 authority. Use a Bug work item where the repository supports it. Do not
 fabricate a Story, a milestone or fourteen empty story sections for one bounded
 defect.
+
+## Portfolio packet templates
+
+Use [portfolio delivery formats](../templates/portfolio-delivery.md) for dispatch, questions, restartable handover, independent review and correction. Central GOV-0020 retains authority and evidence requirements.

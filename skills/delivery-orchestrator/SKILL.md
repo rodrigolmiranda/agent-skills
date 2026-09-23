@@ -11,6 +11,8 @@ Produce a resumable plan and an executable scheduling decision, not a prose prom
 
 This skill owns the [delivery workflow](references/workflow.md), [scheduling gate](references/scheduling.md), [plan template](templates/plan.md), [GitHub manifest](templates/github-plan.json), and [scheduling receipt](templates/scheduling.json). This skill selects semantic roles and packet requirements; load the installed `interchange` skill for supported transport, execution envelopes, callbacks and observability. If the checker is missing, report the gate unavailable; do not claim validation passed. For discovery, milestone approval, knowledge intake and re-baselining, read [knowledge and discovery](references/knowledge-and-discovery.md) and applicable repository governance. Do not restart discovery for an already approved plan.
 
+For portfolio assignments, use [portfolio procedures](references/portfolio-procedures.md) and [formats](templates/portfolio-delivery.md) under the adopted central authority.
+
 ## Required checkpoint
 
 1. Establish the approved scope and authority link. Reuse existing GitHub breakdown, decisions and handovers. Distinguish approved unfinished work from proposals and future roadmap items; enumerate all in-scope tasks and children with pagination. Retain the source query and retrieval time so completeness can be checked.
@@ -19,6 +21,8 @@ This skill owns the [delivery workflow](references/workflow.md), [scheduling gat
 4. Save the project-owned plan and scheduling receipt under the project's configured shared coordination root. GitHub owns backlog/status; the receipt contains IDs, links and dispatch decisions, not copied issue bodies. Use relative artifact paths, repository identities and a separate machine-root mapping. Include current coordinator identity, handover entrypoint and next wake owner in the continuation record. Another thread, account or client must resolve the same record rather than create a competing plan.
 5. Run `python3 <installed-delivery-orchestrator>/scripts/check_schedule.py <receipt>`. Preserve command, exit status and receipt identity. Correct failures before declaring the plan dispatch-ready or reporting that no more safe work exists. A passing record checks consistency only: independently verify that its authority, dependencies and resource claims are true.
 6. When execution is authorized, hand accepted packets to Interchange, dispatch the selected set and verify startup. For planning-only requests, return the validated plan without launching workers. Before yielding, leave only supervised returns, concrete authority decisions or recorded external blockers; complete executable coordinator actions first.
+
+For execution, proportional validation, correction and turn-exit decisions, read [execution checkpoints](references/execution-checkpoints.md).
 
 ## Resume and change
 
