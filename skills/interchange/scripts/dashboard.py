@@ -314,12 +314,18 @@ def task_card(item, attempts):
     requested = model_effort(current, True)
     observed = model_effort(current, False)
     links = []
-    issue_url = item.get('issue_url') or item.get('source_url')
+    issue_url = item.get('issue_url') or item.get('source_url') or (current.get('issue_url') if current else None)
     parent_url = item.get('parent_url')
     if issue_url:
         links.append('<span><strong>Issue:</strong> ' + safe_link(issue_url, item.get('issue_title') or issue_url) + '</span>')
     if parent_url:
         links.append('<span><strong>Parent:</strong> ' + safe_link(parent_url, item.get('parent_title') or parent_url) + '</span>')
+    pr_url = item.get('pr_url') or (current.get('pr_url') if current else None)
+    if pr_url:
+        links.append('<span><strong>PR:</strong> ' + safe_link(pr_url, item.get('pr_title') or 'Pull request') + '</span>')
+    for link in item.get('links') or []:
+        if isinstance(link, dict) and link.get('url'):
+            links.append(safe_link(link['url'], link.get('label') or link['url']))
     parallel = item.get('can_run_in_parallel')
     if parallel is None:
         parallel_label = 'Not supplied'

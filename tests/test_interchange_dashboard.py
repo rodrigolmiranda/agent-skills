@@ -337,3 +337,12 @@ class WaitingTests(unittest.TestCase):
         board = dashboard.board({'workflow_steps': [waiting]})
         positions = [board.index('column-' + key) for key in ('next', 'blocked', 'working', 'waiting', 'done')]
         self.assertEqual(sorted(positions), positions)
+
+class ArtifactLinkTests(unittest.TestCase):
+    def test_done_links_include_return_pr_and_activity_sources(self):
+        card, column = dashboard.task_card(
+            {'state': 'done', 'links': [{'label': 'Earlier PR', 'url': 'https://github.com/o/r/pull/1'}]},
+            [{'pr_url': 'https://github.com/o/r/pull/2', 'issue_url': 'https://github.com/o/r/issues/3'}])
+        self.assertEqual('done', column)
+        for suffix in ('pull/1', 'pull/2', 'issues/3'):
+            self.assertIn('https://github.com/o/r/' + suffix, card)
