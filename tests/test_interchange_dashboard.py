@@ -335,7 +335,7 @@ class WaitingTests(unittest.TestCase):
         self.assertIn('SDK publication', card)
         self.assertIn('Publisher', card)
         board = dashboard.board({'workflow_steps': [waiting]})
-        positions = [board.index('column-' + key) for key in ('next', 'blocked', 'working', 'waiting', 'done')]
+        positions = [board.index('column-' + key) for key in ('next', 'blocked', 'working', 'waiting', 'review', 'done')]
         self.assertEqual(sorted(positions), positions)
 
 class ArtifactLinkTests(unittest.TestCase):
@@ -365,7 +365,7 @@ class CompletionScopeTests(unittest.TestCase):
             dashboard.validate_done_sources({'workflow_steps': [step]})
         step.update(completion_scope='step', github_issue_state='OPEN')
         dashboard.validate_done_sources({'workflow_steps': [step]})
-        self.assertIn('Step done · issue open', dashboard.task_card(step, [])[0])
+        self.assertEqual('review', dashboard.task_card(step, [])[1])
         step['completion_scope'] = 'issue'
         with self.assertRaisesRegex(ValueError, 'CLOSED'):
             dashboard.validate_done_sources({'workflow_steps': [step]})
