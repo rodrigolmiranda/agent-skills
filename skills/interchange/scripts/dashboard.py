@@ -183,8 +183,6 @@ def activity_column(item, attempts):
     if current:
         execution = state_key(current.get('execution_state') or current.get('last_observed_state'))
         outcome = state_key(current.get('outcome'))
-    if item.get('completion_scope') == 'step':
-        return 'review'
     completed = {'done', 'complete', 'completed', 'finished', 'succeeded'}
     active = {'running', 'in_progress', 'working', 'started'}
     blocked = {'blocked', 'needs_attention', 'failed', 'error', 'stopped',
@@ -196,6 +194,8 @@ def activity_column(item, attempts):
     if outcome in blocked or execution in blocked:
         return 'blocked'
     if state in {'review', 'in_review', 'awaiting_acceptance'}:
+        return 'review'
+    if item.get('completion_scope') == 'step' and state in completed:
         return 'review'
     if state == 'waiting':
         return 'waiting'

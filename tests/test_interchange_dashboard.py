@@ -366,6 +366,7 @@ class CompletionScopeTests(unittest.TestCase):
         step.update(completion_scope='step', github_issue_state='OPEN')
         dashboard.validate_done_sources({'workflow_steps': [step]})
         self.assertEqual('review', dashboard.task_card(step, [])[1])
+        self.assertEqual('blocked', dashboard.activity_column(step, [{'execution_state': 'failed'}]))
         step['completion_scope'] = 'issue'
         with self.assertRaisesRegex(ValueError, 'CLOSED'):
             dashboard.validate_done_sources({'workflow_steps': [step]})
