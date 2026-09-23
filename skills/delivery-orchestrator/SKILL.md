@@ -13,6 +13,8 @@ This skill owns the [delivery workflow](references/workflow.md), [scheduling gat
 
 For portfolio assignments, use [portfolio procedures](references/portfolio-procedures.md) and [formats](templates/portfolio-delivery.md) under the adopted central authority.
 
+Use [roles](references/roles.md) for semantic assignment selection and [workflow diagrams](references/diagrams.md) to inspect decision paths.
+
 ## Required checkpoint
 
 1. Establish the approved scope and authority link. Reuse existing GitHub breakdown, decisions and handovers. Distinguish approved unfinished work from proposals and future roadmap items; enumerate all in-scope tasks and children with pagination. Retain the source query and retrieval time so completeness can be checked.

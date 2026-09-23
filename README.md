@@ -1,3 +1,9 @@
+# Delivery orchestration and Interchange
+
+Two skills work together: **delivery-orchestrator** turns accepted specifications into a dependency-aware plan, GitHub work, safe parallel assignments and independent acceptance. **Interchange** carries those assignments across Codex, Claude and external providers, verifies startup/returns and preserves portable session evidence. Governance retains principles and authorization; neither skill grants merge or deployment permission.
+
+Start with [delivery-orchestrator](skills/delivery-orchestrator/SKILL.md). Its [workflow](skills/delivery-orchestrator/references/workflow.md), [visual maps](skills/delivery-orchestrator/references/diagrams.md) and [mandatory scheduling receipt](skills/delivery-orchestrator/references/scheduling.md) explain what runs next and why. Existing approved work resumes from its checkpoint, without repeating discovery. The old `orchestrate-product-delivery` name is a compatibility entry point.
+
 # Agent Skills
 
 Reusable agent skills. The current package is **Interchange**: a way to plan, delegate, review and resume work across Codex, Claude Code and external workers such as OpenCode.
@@ -34,7 +40,7 @@ flowchart LR
 
 The worker records its understanding, reports “all clear — work starting” with local time/timezone, and proceeds when its gates are open without waiting for acknowledgement. It asks about material gaps and keeps unrelated bugs in the backlog. The Planner does not spend model turns polling workers. After a result returns, independent acceptance checks the exact artifact or commit. Merge, deployment and publication still require their own applicable authority.
 
-See the [ten detailed workflow maps](skills/interchange/references/diagrams.md) for entry paths, planning, agent selection, questions/resume, callback recovery, verification, correction/closure, parallel work and coordinator transfer.
+See the [ten detailed workflow maps](skills/delivery-orchestrator/references/diagrams.md) for entry paths, planning, agent selection, questions/resume, callback recovery, verification, correction/closure, parallel work and coordinator transfer.
 
 ## Who does what
 
@@ -61,7 +67,7 @@ Unit/integration and simple navigation checks belong to the relevant development
 
 ## Start using the workflow
 
-1. Give the coordinating agent the [Interchange entrypoint](skills/interchange/SKILL.md), the project instructions and your outcome. For existing work, supply the current plan, issues/PRs and handover instead of restarting discovery.
+1. Give the coordinating agent the [delivery-orchestrator entrypoint](skills/delivery-orchestrator/SKILL.md) and [Interchange transport](skills/interchange/SKILL.md), the project instructions and your outcome. For existing work, supply the current plan, issues/PRs and handover instead of restarting discovery.
 2. Choose the relevant roles/profile and agree on scope and acceptance. Keep merge, runtime and publication authority explicit.
 3. Store the plan and assignment in a durable project location. Use isolated worktrees for coding and configure/test the actual return route before relying on automatic wakeup.
 4. Pilot one bounded deliverable, including a question/resume and review correction where needed. Adopt installed-skill changes deliberately after the pilot; existing assignments retain their agreed contracts until reconciled.
@@ -88,11 +94,11 @@ See [transport](skills/interchange/references/transport.md) for actual commands,
 | Where | Open it for |
 |---|---|
 | [`skills/interchange/SKILL.md`](skills/interchange/SKILL.md) | Agent entrypoint and routing to the relevant detail |
-| [`references/workflow.md`](skills/interchange/references/workflow.md) | New work, WIP, maintenance, investigations, incidents and scope triage |
-| [`references/diagrams.md`](skills/interchange/references/diagrams.md) | Visual validation of job and decision paths |
+| [`references/workflow.md`](skills/delivery-orchestrator/references/workflow.md) | New work, WIP, maintenance, investigations, incidents and scope triage |
+| [`references/diagrams.md`](skills/delivery-orchestrator/references/diagrams.md) | Visual validation of job and decision paths |
 | [`references/principles.md`](skills/interchange/references/principles.md) | Smallest sound solution, evidence, clarity and justified roadmap preparation |
 | [`references/roles.md`](skills/interchange/references/roles.md) + [`profile.example.json`](skills/interchange/references/profile.example.json) | Responsibility, model/effort selection and escalation |
-| [`references/verification.md`](skills/interchange/references/verification.md) | Proportionate tests, independent review, UX and journey evidence |
+| [`references/verification.md`](skills/delivery-orchestrator/references/verification.md) | Proportionate tests, independent review, UX and journey evidence |
 | [`references/observability.md`](skills/interchange/references/observability.md) | Identity, comparable reports, evaluation, transfer and GitHub provenance |
 | [`references/communication.md`](skills/interchange/references/communication.md) + [`templates/messages.md`](skills/interchange/templates/messages.md) | Understand/confirm/ask/answer/resume/return, with questions and answers stored in files |
 | [`references/transport.md`](skills/interchange/references/transport.md) | Launching, return routes, timeouts and uncertain delivery |
