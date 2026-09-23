@@ -10,7 +10,7 @@ const require = createRequire(import.meta.url);
 const { FileBlob, SpreadsheetFile } = require("@oai/artifact-tool");
 
 const outputDir = path.dirname(fileURLToPath(import.meta.url));
-const policyPath = path.resolve(outputDir, "../../skills/interchange/references/policy.json");
+const policyPath = path.resolve(outputDir, "../../archive/interchange/references/policy.json");
 const outputPath = `${outputDir}/interchange.xlsx`;
 const previewDir = await fs.mkdtemp(path.join(os.tmpdir(), "interchange-workbook-"));
 const policyBytes = await fs.readFile(policyPath);

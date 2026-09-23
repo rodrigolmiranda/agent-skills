@@ -1,16 +1,118 @@
 # Agent Skills
 
-Personal reusable skill source. Interchange is the first package in `skills/interchange`.
+Reusable agent skills. The current package is **Interchange**: a way to plan, delegate, review and resume work across Codex, Claude Code and external workers such as OpenCode.
 
-Interchange applies to deliveries of any size. It keeps product and architecture judgment with approved brain profiles, protects Codex capacity for decisions/integration/semantic review, then routes settled mechanical work to the fastest low-cost qualified external workers when dispatch and integration still produce a net gain.
+## What Interchange delivers
 
-- [Operating design](skills/interchange/references/operating-model.md)
-- [Configured rules and model profiles](skills/interchange/references/policy.json)
-- [Development routing instructions](skills/interchange/references/routing.md)
-- [Decision diagrams](docs/interchange-decisions.md)
-- [Installation and Caveman dependency](skills/interchange/references/installation.md)
-- [Completion protocol](skills/interchange/references/completion.md)
+You work with one **Planner** in your coordinating conversation. The Planner turns your goal into bounded assignments, sends them to suitable workers, receives their results, arranges independent review and reconciles delivery. You should not need to copy prompts and handovers between sessions when a supported callback route is configured.
 
-Source: [rodrigolmiranda/agent-skills](https://github.com/rodrigolmiranda/agent-skills), private repository. The skill, strict completion validator and provider-adapter contract exist. A live CLI supervisor, stream adapter, automatic callback transport, cancellation, cost enforcement, house reservation enforcement and merge enforcement remain future implementation stages. CLI send/resume smoke tests do not prove those capabilities.
+For a coding assignment, the output is a reviewable PR with acceptance evidence and an explicit next action. For an investigation, it is an evidence-backed finding or recommendation. For ongoing projects, it is a reconciled plan and next work that preserve existing changes and decisions.
 
-The [workbook](outputs/interchange-design/interchange.xlsx) presents profiles, routing, monitoring and governance. Its adjacent Node script refreshes the existing workbook from policy using `@oai/artifact-tool`; supply that dependency through your environment. Mermaid decision diagrams live under `docs/`.
+Interchange provides:
+
+- **Clear scope:** outcomes, contracts, ownership, dependencies and proof before implementation; questions go back to the Planner when a material decision is missing.
+- **Appropriate agents:** economical builders for settled work, independent reviewers, and specialist escalation when justified. Models and effort are editable preferences, not hardcoded vendor rules.
+- **Reliable returns:** bounded process execution, retained artifacts and correlated callbacks; queued, received and accepted are separate states.
+- **Comparable status:** the same report structure for active agents, timing, changes, blockers, evaluations and next actions across projects.
+- **Restartable work:** plans, decisions and handovers indexed for a fresh session, another account or another coordinator client; active ownership must be reconciled before takeover.
+- **Outcome-based review:** code quality plus the actual requested result, with UX and seeded journey checks at relevant boundaries.
+
+Use it when delegation or continuity earns its cost. A small self-contained edit can be done directly; it does not need an agent hierarchy or a milestone.
+
+## How a job flows
+
+```mermaid
+flowchart LR
+  A[Goal and current state] --> B[Planner settles scope]
+  B --> C[Worker executes]
+  C -->|Question| B
+  C --> D[Artifact and callback]
+  D --> E[Independent review]
+  E -->|Correction| C
+  E -->|Pass| F[Authorized delivery and GitHub reconciliation]
+```
+
+The worker records its understanding, reports “all clear — work starting” with local time/timezone, and proceeds when its gates are open without waiting for acknowledgement. It asks about material gaps and keeps unrelated bugs in the backlog. The Planner does not spend model turns polling workers. After a result returns, independent acceptance checks the exact artifact or commit. Merge, deployment and publication still require their own applicable authority.
+
+See the [ten detailed workflow maps](skills/interchange/references/diagrams.md) for entry paths, planning, agent selection, questions/resume, callback recovery, verification, correction/closure, parallel work and coordinator transfer.
+
+## Who does what
+
+| Role | Responsibility |
+|---|---|
+| Planner | Scope, decisions, sequence, dispatch, integration and final disposition |
+| Builder | Implementation, mechanical GitHub updates and bounded investigation |
+| Senior Builder / Architecture-Security | Approved escalation for difficult engineering or consequential design |
+| PR Reviewer | Independent target, quality and evidence assessment |
+| UX Designer / Reviewer | Interaction design and periodic visual/journey review |
+| Journey Tester | Independent functional acceptance at meaningful integration points |
+
+One writer owns an overlapping surface. Roles do not require separate sessions when no benefit exists, except that an author cannot independently accept their own deliverable. See [roles](skills/interchange/references/roles.md) and the [editable profile](skills/interchange/references/profile.example.json).
+
+## What a status report tells you
+
+Every report uses the same six sections: **outcome; changes since the last report; agents and attempts; blockers and ownership; completed dispatch evaluations; continuation**.
+
+You can identify the project, Planner, worker, reviewer, requested versus observed model, current attempt, prior interactions, elapsed time, last observation and next owner. Unknown or stale information is labelled. Evaluations distinguish quality from execution and external waiting time. GitHub owns live delivery state; reports link to it rather than becoming another backlog.
+
+[Status template](skills/interchange/templates/status-report.md) · [Observability and provenance](skills/interchange/references/observability.md) · [Portable continuation index](skills/interchange/templates/continuation.json)
+
+Unit/integration and simple navigation checks belong to the relevant development dispatch. Broader multi-consumer SDK and milestone journeys are allocated in the plan, reusing valid evidence rather than repeating every test at every checkpoint. Claude testers hand browser credential entry to a bounded Codex helper; that cross-client browser route must be verified before it is claimed usable.
+
+## Start using the workflow
+
+1. Give the coordinating agent the [Interchange entrypoint](skills/interchange/SKILL.md), the project instructions and your outcome. For existing work, supply the current plan, issues/PRs and handover instead of restarting discovery.
+2. Choose the relevant roles/profile and agree on scope and acceptance. Keep merge, runtime and publication authority explicit.
+3. Store the plan and assignment in a durable project location. Use isolated worktrees for coding and configure/test the actual return route before relying on automatic wakeup.
+4. Pilot one bounded deliverable, including a question/resume and review correction where needed. Adopt installed-skill changes deliberately after the pilot; existing assignments retain their agreed contracts until reconciled.
+
+The skill is portable and does not require a private governance vault. Each project may add constraints through its own instructions. No service or global installation is performed simply by reading these files.
+
+## What is implemented—and what is not
+
+| Capability | Current boundary |
+|---|---|
+| Planning, roles, reviews, status and continuation | Skill instructions and reusable templates; the Planner maintains records and evaluates results |
+| External process runner | One literal command, deadline/output limits, exclusive attempt registration, retained logs and terminal event; not an OS sandbox or reboot service |
+| Callback relay | Correlated local outbox and Codex queue adapter, with separate receipt acknowledgement |
+| Live callback proof | Claude and OpenCode returned codes to Codex; a separate delayed callback woke an idle live Codex session. OpenCode's direct tool callback failed; its validated final used a deterministic wrapper |
+| Claude coordinator | Reviewer-recorded background-task completion wakes for workers launched by that same live Claude session; artifacts and notification transcript retained; exact cross-clock latency unresolved |
+| Other wake/recovery modes | Early-start Claude wake, independently launched-worker delivery to Claude, and app-closed/reboot recovery remain untested |
+| GitHub reconciliation and attribution | Defined workflow using available GitHub tools; no automatic synchronizer or merge enforcement service |
+| Reports and evaluations | On-demand linked records; no automatic dashboard, model benchmarking service or inferred token/cost accounting |
+
+See [transport](skills/interchange/references/transport.md) for actual commands, failure handling and limitations. Provider exit zero alone is not a completed assignment. Text attribution in a commit or PR is not a cryptographic signature.
+
+## File map
+
+| Where | Open it for |
+|---|---|
+| [`skills/interchange/SKILL.md`](skills/interchange/SKILL.md) | Agent entrypoint and routing to the relevant detail |
+| [`references/workflow.md`](skills/interchange/references/workflow.md) | New work, WIP, maintenance, investigations, incidents and scope triage |
+| [`references/diagrams.md`](skills/interchange/references/diagrams.md) | Visual validation of job and decision paths |
+| [`references/principles.md`](skills/interchange/references/principles.md) | Smallest sound solution, evidence, clarity and justified roadmap preparation |
+| [`references/roles.md`](skills/interchange/references/roles.md) + [`profile.example.json`](skills/interchange/references/profile.example.json) | Responsibility, model/effort selection and escalation |
+| [`references/verification.md`](skills/interchange/references/verification.md) | Proportionate tests, independent review, UX and journey evidence |
+| [`references/observability.md`](skills/interchange/references/observability.md) | Identity, comparable reports, evaluation, transfer and GitHub provenance |
+| [`references/communication.md`](skills/interchange/references/communication.md) + [`templates/messages.md`](skills/interchange/templates/messages.md) | Understand/confirm/ask/answer/resume/return, with questions and answers stored in files |
+| [`references/transport.md`](skills/interchange/references/transport.md) | Launching, return routes, timeouts and uncertain delivery |
+| [`templates/`](skills/interchange/templates/) | Plan, assignment, question, handover, review, status and continuation records |
+| [`scripts/run_job.py`](skills/interchange/scripts/run_job.py) + [`relay.py`](skills/interchange/scripts/relay.py) | Deterministic process supervision and callback delivery |
+| [`references/adoption.md`](skills/interchange/references/adoption.md) | Pilot, active-assignment continuity and governance alignment |
+| [`docs/interchange-refactor.md`](docs/interchange-refactor.md) | Refactor scope, validation and adoption status |
+
+Older policy, operating-model, installation, protocol and generated workbook files remain for reconciliation of existing test-stage assignments. They are not additional current workflow instructions; start from `SKILL.md` and the map above. This is a refactor of Interchange, not a separately branded version.
+
+## Validate changes
+
+```bash
+python3 -m unittest discover -s tests
+```
+
+The tests cover existing protocol behavior and the relay/runner. Skill and diagram checks complement them; they do not prove that a provider integration or a product's acceptance journey has run. Preserve the distinction between a documented procedure, a passing test and an observed end-to-end result.
+
+### Local activity page
+
+Interchange can publish one local HTML dashboard per repository, shared by its linked worktrees and multiple coordinators. Select a project or inspect all activity, with session access commands and continuation records. Run `python3 skills/interchange/scripts/dashboard.py --repo <checkout> --snapshot <continuation.json>` and open the printed file. Updates are explicit snapshots, not live monitoring. See [observability](skills/interchange/references/observability.md#repository-dashboard-and-session-access) for ownership, portability and limits. Refine this first version and its workflow from observed use.
+
+Workspace configuration and non-destructive retention inventory are described in [workspace.md](skills/interchange/references/workspace.md). Superseded policy files are preserved under `archive/interchange/`, outside the installed skill. The runner drains excess output by default and keeps a separate final-artifact receipt; receiver routes explicitly distinguish Codex queue, Claude parent harness and manual return.

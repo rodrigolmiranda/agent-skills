@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-REFERENCES = ROOT / "skills" / "interchange" / "references"
+REFERENCES = ROOT / "archive" / "interchange" / "references"
 
 # The one approved DeepSeek route, and the codes that look like it but are not.
 FLASH = "opencode-go/deepseek-v4.1-flash"

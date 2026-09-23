@@ -1,3 +1,5 @@
+> Historical compatibility reference. Not active instructions. New work uses [Interchange](../../../skills/interchange/SKILL.md).
+
 # Interchange operating model
 
 Initially approved by Rodrigo on 2026-09-09; brain/mechanical routing, capacity tiers and owner-gated exceptional brains revised on 2026-09-13. Configured values live in `policy.json`; spreadsheet and diagrams are readable views. This document explains decisions and lifecycle. Shared portfolio rules remain in MarvinaMiranda GOV-0020 and GOV-0016. Repository product meaning stays with its repository. GitHub owns delivery state; runtime files hold execution state and link to it.

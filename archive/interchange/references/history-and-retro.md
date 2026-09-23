@@ -1,3 +1,5 @@
+> Historical compatibility reference. Not active instructions. New work uses [Interchange](../../../skills/interchange/SKILL.md).
+
 # Delivery history and weekly retro
 
 Owner-approved refinement, 2026-09-09. Keep concise attempt-level execution records locally; retain weekly aggregate learning centrally. This is the Interchange trial's retention profile, not a migration of existing portfolio evaluation records.

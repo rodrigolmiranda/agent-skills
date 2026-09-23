@@ -1,0 +1,96 @@
+{
+  "project_id": "example-project",
+  "updated_at": null,
+  "coordinator": {
+    "agent_id": "planner-001",
+    "ownership_generation": 1,
+    "client": "codex",
+    "session_id": null,
+    "host_alias": null,
+    "account_alias": null,
+    "requested_model_effort": null,
+    "observed_model_effort": null,
+    "identity_evidence": null,
+    "session_access": {
+      "native_task_or_background_id": null,
+      "inspect_argv": null,
+      "open_action": null,
+      "resume_argv": null,
+      "verified_at": null,
+      "client_version": null,
+      "proof_level": "unverified",
+      "artifact_fallback": null
+    }
+  },
+  "repositories": [
+    {
+      "id": "product",
+      "remote": "<repository URL>",
+      "local_root": null
+    }
+  ],
+  "plan": {
+    "path": "plan.md",
+    "revision": 1
+  },
+  "decisions_and_questions": [
+    "questions.md"
+  ],
+  "github": {
+    "project_url": null,
+    "last_reconciled_at": null,
+    "pending_updates": []
+  },
+  "attempts": [
+    {
+      "job_id": "example-project-job-001",
+      "attempt_id": "attempt-001",
+      "agent_id": "builder-001",
+      "role": "builder",
+      "client_provider": null,
+      "requested_model_effort": null,
+      "observed_model_effort": null,
+      "identity_evidence": null,
+      "session_id": null,
+      "host_alias": null,
+      "account_alias": null,
+      "coordinator_generation": 1,
+      "packet": "jobs/job-001/assignment.md",
+      "packet_revision": 1,
+      "handover": "jobs/job-001/handover.md",
+      "review": null,
+      "previous_attempt": null,
+      "execution_receipt": null,
+      "last_observed_at": null,
+      "last_observed_state": "not-started",
+      "session_access": {
+        "native_task_or_background_id": null,
+        "inspect_argv": null,
+        "open_action": null,
+        "resume_argv": null,
+        "verified_at": null,
+        "client_version": null,
+        "proof_level": "unverified",
+        "artifact_fallback": null
+      }
+    }
+  ],
+  "required_artifacts": [
+    {
+      "path_or_url": "plan.md",
+      "sha256_or_revision": "revision-1",
+      "portable": true
+    }
+  ],
+  "reports": [],
+  "transfer": {
+    "state": "not-requested",
+    "outgoing_agent_id": null,
+    "incoming_agent_id": null,
+    "outgoing_released_at": null,
+    "incoming_acknowledged_at": null,
+    "resource_and_callback_reconciliation": null,
+    "new_wake_proof": null
+  },
+  "next_action": "<one remaining authorized action and owner>"
+}

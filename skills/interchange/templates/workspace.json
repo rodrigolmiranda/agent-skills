@@ -1,0 +1,11 @@
+{
+  "workspace_id": "portfolio-local",
+  "retention_days": {"worktree": 7, "raw-log": 30},
+  "resources": [],
+  "layout": {
+    "projects": "projects",
+    "worktrees": "worktrees",
+    "supervisor": "supervisor",
+    "archive": "archive"
+  }
+}

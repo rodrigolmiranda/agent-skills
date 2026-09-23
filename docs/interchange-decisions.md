@@ -1,6 +1,8 @@
+> Historical generated policy view. Current workflow: [Interchange](../skills/interchange/SKILL.md).
+
 # Interchange decision diagrams
 
-Approved configuration: [policy.json](../skills/interchange/references/policy.json). These diagrams explain its decision paths. Profile assignments are initial hypotheses, not benchmark results. Runtime controls shown here are design requirements; only the completion/scheduling helper is implemented.
+Approved configuration: [policy.json](../archive/interchange/references/policy.json). These diagrams explain its decision paths. Profile assignments are initial hypotheses, not benchmark results. Runtime controls shown here are design requirements; only the completion/scheduling helper is implemented.
 
 ## Team and model selection
 
@@ -50,7 +52,7 @@ flowchart TD
 
 Sol high is the default product, architecture and ideation brain. Every Astra or Fable start, resume, retry and follow-up requires fresh owner authorization bound to that invocation and a concrete recorded reason Sol high cannot fit. Prior authorization cannot be reused. Fable also needs its included-plan/no-extra-cost check. Independent semantic and risk acceptance uses Sol high by default; Astra is subject to the same gate. Other profiles execute settled mechanical packets and return ambiguity instead of interpreting it. A delivery manager on another profile may coordinate but does not gain judgment authority.
 
-Luna xhigh/max, DeepSeek V4.1 Flash and Muse Spark 1.3 are the unrestricted mechanical tier. They need no balancing allowance or Interchange concurrency authorization, so three, four, five or more may run when useful. Every assignment still needs objective acceptance, bounded ownership, non-overlapping writes, watchdogs and independent review. Terra, Sol and Claude Code are used moderately and balanced across Codex/Claude when task fit is comparable. Grok retains its existing routing. Pools are starting preferences, not universal model rankings. Read [development routing instructions](../skills/interchange/references/routing.md) for task boundaries and escalation.
+Luna xhigh/max, DeepSeek V4.1 Flash and Muse Spark 1.3 are the unrestricted mechanical tier. They need no balancing allowance or Interchange concurrency authorization, so three, four, five or more may run when useful. Every assignment still needs objective acceptance, bounded ownership, non-overlapping writes, watchdogs and independent review. Terra, Sol and Claude Code are used moderately and balanced across Codex/Claude when task fit is comparable. Grok retains its existing routing. Pools are starting preferences, not universal model rankings. Read [development routing instructions](../archive/interchange/references/routing.md) for task boundaries and escalation.
 
 Sol is protected brain and semantic-review capacity. Terra/Sol mechanical work requires a recorded delivery allowance, exception reason and remaining brain/review reserve; no allowance means zero Terra/Sol dispatch. Default Terra/Sol mechanical concurrency is one. Luna is exempt from that gate. An owner instruction not to use Codex for delegation or leading still sets every Codex worker/lead allocation, including Luna, to zero. Batch brain questions and review meaningful integrated chunks instead of every leaf assignment.
 
@@ -117,7 +119,7 @@ explicitly classified human-controlled `hotfix` or `release_promotion` packet
 may target `main`, and it must carry `human_only_merge: true` plus full,
 matching base/head ref and commit-SHA evidence. The reusable implementation is
 `skills/interchange/scripts/pr_base_guard.py`; it is an adapter boundary rather
-than remote GitHub enforcement. See [the guard contract](../skills/interchange/references/pr-base-guard.md).
+than remote GitHub enforcement. See [the guard contract](../archive/interchange/references/pr-base-guard.md).
 
 ```mermaid
 flowchart TD
@@ -153,7 +155,7 @@ flowchart TD
   J -->|Yes| L[Lead may perform guarded worktree cleanup]
 ```
 
-Apply [session lifecycle rules](../skills/interchange/references/session-lifecycle.md). Baseline layers and vertical business slices have different handover boundaries. Neither completion markers nor merges alone authorize cleanup.
+Apply [session lifecycle rules](../archive/interchange/references/session-lifecycle.md). Baseline layers and vertical business slices have different handover boundaries. Neither completion markers nor merges alone authorize cleanup.
 
 ## Feedback and changes
 
