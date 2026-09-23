@@ -141,17 +141,23 @@ def activity_column(item, attempts):
     blocked = {'blocked', 'waiting', 'needs_attention', 'failed', 'error', 'stopped',
                'rejected', 'provider_quota', 'quota_exhausted', 'model_rejected',
                'canceled', 'cancelled'}
+    # Explicit attempt failures and blocked plan states outrank a process merely
+    # reporting that it finished. Completion is accepted only from an explicit
+    # successful outcome or the coordinator's completed plan state.
+    if outcome in blocked or execution in blocked:
+        return 'blocked'
     if execution in active:
         return 'working'
-    if execution in completed or outcome in completed:
-        return 'done'
-    if execution in blocked or outcome in blocked:
+    if state in blocked:
         return 'blocked'
+    if outcome in completed:
+        return 'done'
     if state in completed:
         return 'done'
     if state in active:
         return 'working'
-    if state in blocked:
+    if execution in completed:
+        # The process ended, but the task outcome was not supplied.
         return 'blocked'
     # Unknown plan state remains visible as upcoming; the renderer does not infer readiness.
     return 'next'
@@ -199,18 +205,38 @@ def attempt_groups(record, steps):
         return [({'id': key, 'job_id': key, 'title': (latest_attempt(group).get('task') or key)}, group)
                 for key, group in grouped.items()], []
 
-    grouped = []
-    matched = set()
-    for step in steps:
-        keys = {str(value) for value in (step.get('job_id'), step.get('id')) if value is not None}
-        attached = []
-        for index, attempt in enumerate(attempts):
-            attempt_keys = {str(value) for value in (attempt.get('job_id'), attempt.get('workflow_step_id')) if value is not None}
-            if keys & attempt_keys:
-                attached.append(attempt)
-                matched.add(index)
-        grouped.append((step, attached))
-    return grouped, [attempt for index, attempt in enumerate(attempts) if index not in matched]
+    def typed_id(value):
+        if value is None or value == '' or not isinstance(value, (str, int, float, bool)):
+            return None
+        return type(value), value
+
+    step_ids = {}
+    job_ids = {}
+    for index, step in enumerate(steps):
+        step_id = typed_id(step.get('id'))
+        job_id = typed_id(step.get('job_id'))
+        if step_id is not None:
+            step_ids.setdefault(step_id, []).append(index)
+        if job_id is not None:
+            job_ids.setdefault(job_id, []).append(index)
+
+    attached = [[] for _ in steps]
+    unmatched = []
+    for attempt in attempts:
+        # The two identifiers belong to different namespaces. An explicit step
+        # identity is authoritative; job fallback is allowed only when absent.
+        step_id = typed_id(attempt.get('workflow_step_id'))
+        if step_id is not None:
+            candidates = step_ids.get(step_id, [])
+        else:
+            job_id = typed_id(attempt.get('job_id'))
+            candidates = job_ids.get(job_id, []) if job_id is not None else []
+        if len(candidates) == 1:
+            attached[candidates[0]].append(attempt)
+        else:
+            unmatched.append(attempt)
+
+    return list(zip(steps, attached)), unmatched
 
 
 def task_card(item, attempts):
@@ -297,10 +323,10 @@ def board(record):
         visible = entries[:10] if key == 'next' else entries
         cards = ''.join(entry[0] for entry in visible)
         if key == 'next' and len(entries) > 10:
-            all_cards = ''.join(entry[0] for entry in entries)
+            remaining_cards = ''.join(entry[0] for entry in entries[10:])
             cards += ('<details class="show-all"><summary>Show all ' + str(len(entries))
                       + ' planned activities (' + str(len(entries) - 10) + ' more)</summary>'
-                      + all_cards + '</details>')
+                      + remaining_cards + '</details>')
         if not cards:
             cards = '<p class="empty">No activities in this column.</p>'
         markup.append('<section class="board-column column-' + key + '"><h3>' + label

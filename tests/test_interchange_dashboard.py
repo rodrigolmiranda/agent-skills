@@ -100,6 +100,61 @@ class DashboardTests(unittest.TestCase):
         self.assertIn('Evaluation dimensions', page)
         self.assertLess(page.index('Issue:'), page.index('Parent:'))
 
+    def test_finished_execution_needs_success_outcome_before_done(self):
+        finished = {'execution_state': 'completed'}
+        failed = {'execution_state': 'completed', 'outcome': 'failed'}
+        succeeded = {'execution_state': 'completed', 'outcome': 'succeeded'}
+
+        self.assertEqual('blocked', dashboard.activity_column({'state': 'not-started'}, [finished]))
+        self.assertEqual('blocked', dashboard.activity_column({'state': 'not-started'}, [failed]))
+        self.assertEqual('blocked', dashboard.activity_column({'state': 'blocked'}, [finished]))
+        self.assertEqual('blocked', dashboard.activity_column({'state': 'completed'}, [failed]))
+        self.assertEqual('done', dashboard.activity_column({'state': 'not-started'}, [succeeded]))
+        self.assertEqual('done', dashboard.activity_column({'state': 'completed'}, []))
+
+    def test_explicit_step_identity_is_exclusive_and_ambiguous_job_is_unmapped(self):
+        steps = [
+            {'id': 'build', 'job_id': 'shared-job', 'title': 'Build'},
+            {'id': 'review', 'job_id': 'shared-job', 'title': 'Review'},
+        ]
+        explicit = {'attempt_id': 'build-attempt', 'job_id': 'shared-job',
+                    'workflow_step_id': 'build', 'execution_state': 'running'}
+        ambiguous_fallback = {'attempt_id': 'unassigned-attempt', 'job_id': 'shared-job',
+                              'execution_state': 'running'}
+        record = {'workflow_steps': steps, 'attempts': [explicit, ambiguous_fallback]}
+        grouped, unmatched = dashboard.attempt_groups(record, steps)
+
+        self.assertEqual([explicit], grouped[0][1])
+        self.assertEqual([], grouped[1][1])
+        self.assertEqual([ambiguous_fallback], unmatched)
+        self.assertEqual('working', dashboard.activity_column(grouped[0][0], grouped[0][1]))
+        self.assertEqual('next', dashboard.activity_column(grouped[1][0], grouped[1][1]))
+        rendered = dashboard.board(record)
+        self.assertIn('Working now <span class="count">1</span>', rendered)
+        self.assertIn('Next <span class="count">1</span>', rendered)
+        self.assertIn('Attempt records without a matching workflow activity (1)', rendered)
+        self.assertEqual(1, rendered.count('<strong>build-attempt</strong>'))
+        self.assertEqual(1, rendered.count('<strong>unassigned-attempt</strong>'))
+
+    def test_job_fallback_never_matches_an_equal_step_id_and_ids_remain_typed(self):
+        steps = [
+            {'id': 'shared-job', 'job_id': 'build-job'},
+            {'id': 'review', 'job_id': 'shared-job'},
+        ]
+        fallback = {'attempt_id': 'fallback', 'job_id': 'shared-job', 'execution_state': 'running'}
+        grouped, unmatched = dashboard.attempt_groups({'attempts': [fallback]}, steps)
+        self.assertEqual([], grouped[0][1])
+        self.assertEqual([fallback], grouped[1][1])
+        self.assertEqual([], unmatched)
+
+        typed_steps = [{'id': 7, 'job_id': 'unique-job'}]
+        mismatched_explicit = {'attempt_id': 'typed', 'workflow_step_id': '7',
+                               'job_id': 'unique-job', 'execution_state': 'running'}
+        typed_group, typed_unmatched = dashboard.attempt_groups(
+            {'attempts': [mismatched_explicit]}, typed_steps)
+        self.assertEqual([], typed_group[0][1])
+        self.assertEqual([mismatched_explicit], typed_unmatched)
+
     def test_unassigned_workflow_activity_without_attempt_stays_visible(self):
         record = {
             'project_id': 'unassigned', 'coordinator': {'agent_id': 'planner'},
@@ -139,6 +194,8 @@ class DashboardTests(unittest.TestCase):
         self.assertLess(second, tenth)
         self.assertLess(tenth, reveal)
         self.assertIn('<strong>Activity 12</strong>', page)
+        for number in range(1, 13):
+            self.assertEqual(1, page.count(f'<strong>Activity {number:02d}</strong>'))
 
     def test_legacy_attempt_snapshot_and_unknown_identity_remain_clear(self):
         record = {'project_id': 'legacy', 'coordinator': {'agent_id': 'planner'},
