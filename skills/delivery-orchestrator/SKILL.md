@@ -9,7 +9,7 @@ Produce a resumable plan and an executable scheduling decision, not a prose prom
 
 ## Dependencies and authority
 
-This skill owns the [delivery workflow](references/workflow.md), [scheduling gate](references/scheduling.md), [plan template](templates/plan.md), [GitHub manifest](templates/github-plan.json), and [scheduling receipt](templates/scheduling.json). Load the installed `interchange` skill for worker roles, packets, transport, callbacks and observability. If the checker is missing, report the gate unavailable; do not claim validation passed. For portfolio product discovery and milestone approval, use the applicable `orchestrate-product-delivery` workflow and repository governance. Do not restart discovery for an already approved plan.
+This skill owns the [delivery workflow](references/workflow.md), [scheduling gate](references/scheduling.md), [plan template](templates/plan.md), [GitHub manifest](templates/github-plan.json), and [scheduling receipt](templates/scheduling.json). This skill selects semantic roles and packet requirements; load the installed `interchange` skill for supported transport, execution envelopes, callbacks and observability. If the checker is missing, report the gate unavailable; do not claim validation passed. For discovery, milestone approval, knowledge intake and re-baselining, read [knowledge and discovery](references/knowledge-and-discovery.md) and applicable repository governance. Do not restart discovery for an already approved plan.
 
 ## Required checkpoint
 

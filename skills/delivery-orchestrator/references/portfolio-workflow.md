@@ -26,7 +26,7 @@ Source: GOV-0020-multi-session-orchestration.md (owner-authorized relocation, 20
 6. **Check useful progress.** Inspect at startup, the first working boundary,
    a reported blocker, and handback. Prefer the diff and command evidence to chat
    volume. Do useful integration work between checks; avoid constant polling.
-7. **Review independently.** Follow the acceptance procedure below; return precise
+7. **Review independently.** Follow GOV-0020 §Independent acceptance and feedback (central authority during this migration); return precise
    findings with expected behaviour and a reproduction. Keep corrections with the
    assigned writer unless the coordinator explicitly takes ownership.
 8. **Integrate and close.** Apply current repository merge/release authority,
