@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "plan_id": "PLAN-EXAMPLE-01",
+  "revision": 1,
+  "mode": "plan-only",
+  "project": {
+    "planning_id": "PROJECT-EXAMPLE",
+    "name": "Example project",
+    "views": [
+      {"planning_id": "VIEW-BOARD", "name": "Delivery board"}
+    ]
+  },
+  "statuses": [
+    {"planning_id": "STATUS-TODO", "name": "Todo", "done": false},
+    {"planning_id": "STATUS-DONE", "name": "Done", "done": true}
+  ],
+  "milestone_policy": "Add a milestone only for a real delivery boundary; otherwise keep milestones empty.",
+  "milestones": [],
+  "issues": [
+    {
+      "planning_id": "ISSUE-EXAMPLE-01",
+      "title": "Deliver one observable outcome",
+      "body": "Describe the actor, trigger, expected behavior, scope, and evidence required.",
+      "labels": ["feature"],
+      "status_id": "STATUS-TODO",
+      "milestone_id": null,
+      "depends_on": [],
+      "acceptance": [
+        {
+          "id": "A1",
+          "expected": "The named actor completes the named journey and observes the expected result.",
+          "proof": "Link a reproducible check or source/runtime evidence artifact."
+        }
+      ]
+    }
+  ],
+  "mapping_receipt": {
+    "purpose": "Idempotent create/update mapping; fill only after an authorized live write.",
+    "project": null,
+    "views": {},
+    "statuses": {},
+    "milestones": {},
+    "issues": {},
+    "last_reconciled_at": null
+  },
+  "write_policy": "Example manifest only. No remote objects were created or updated."
+}

@@ -1,0 +1,9 @@
+{
+  "job": "example-job",
+  "attempt": "attempt-1",
+  "sender": "builder-1",
+  "cwd": "/replace/with/isolated/worktree",
+  "argv": ["replace-with-verified-cli", "literal-argument", "complete bounded assignment prompt"],
+  "timeout_seconds": 900,
+  "max_output_bytes": 2000000
+}

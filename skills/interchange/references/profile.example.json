@@ -1,0 +1,121 @@
+{
+  "schema_version": 2,
+  "status": "editable example; verify availability before dispatch",
+  "default_role": "builder",
+  "coordinator": "current_chat",
+  "model_resolution": "explicit version first; approved documented successor within family allowed before attempt; pin and record",
+  "roles": {
+    "builder": {
+      "preference": [
+        "deepseek",
+        "native"
+      ],
+      "codex": {
+        "model": "gpt-6-luna",
+        "effort": "xhigh",
+        "allowed_efforts": [
+          "high",
+          "xhigh",
+          "max"
+        ]
+      },
+      "claude": {
+        "model": "claude-opus-5-5",
+        "effort": "low"
+      },
+      "external": {
+        "model": "opencode-go/deepseek-v4.1-flash",
+        "effort": "high",
+        "allowed_efforts": [
+          "high",
+          "max"
+        ]
+      }
+    },
+    "senior_builder": {
+      "owner_approval": true,
+      "codex": {
+        "model": "gpt-6-sol",
+        "effort": "medium",
+        "allowed_efforts": [
+          "medium",
+          "high"
+        ]
+      },
+      "claude": {
+        "model": "claude-opus-5-5",
+        "effort": "medium",
+        "allowed_efforts": [
+          "medium",
+          "high"
+        ]
+      }
+    },
+    "architecture_security": {
+      "owner_approval": true,
+      "codex": {
+        "model": "gpt-6-astra",
+        "effort": "high"
+      },
+      "claude": {
+        "model": "claude-opus-5-5",
+        "effort": "xhigh"
+      },
+      "mapping_note": "confirm Claude mapping with adopter; user proposal repeated Codex"
+    },
+    "pr_reviewer": {
+      "codex": {
+        "model": "gpt-6-astra",
+        "effort": "low"
+      },
+      "claude": {
+        "model": "claude-opus-5-5",
+        "effort": "medium"
+      },
+      "mapping_note": "Codex retains standing preference; Claude reviewer proposal requires adopter confirmation"
+    },
+    "ux_design": {
+      "codex": {
+        "model": "gpt-6-astra",
+        "effort": "low"
+      },
+      "claude": {
+        "model": "claude-opus-5-5",
+        "effort": "high"
+      }
+    },
+    "ux_review": {
+      "codex": {
+        "model": "gpt-6-sol",
+        "effort": "medium"
+      },
+      "claude": {
+        "model": "claude-opus-5-5",
+        "effort": "medium"
+      }
+    },
+    "journey_tester": {
+      "codex": {
+        "model": "gpt-6-sol",
+        "effort": "medium"
+      },
+      "claude": {
+        "model": "claude-opus-5-5",
+        "effort": "medium"
+      }
+    }
+  },
+  "limits": {
+    "transport_retry_count": 1,
+    "correction_rounds_before_replan": 2,
+    "worker_delegation": false,
+    "parallel_writers": "disjoint paths and resources only",
+    "extra_spend": "requires owner approval"
+  },
+  "delivery": {
+    "default_base": "test",
+    "merge_authority": "owner; configure per project",
+    "github": "live delivery state",
+    "scope_discovery": "triage unrelated bugs into backlog"
+  }
+}
