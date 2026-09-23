@@ -7,6 +7,8 @@ description: Plan and deliver bounded work through Codex, Claude Code or externa
 
 The current chat is the **Planner** and accountable coordinator. Keep product decisions here, in a durable plan; use bounded sessions for execution. No extra manager/lead layer by default. The user may override any role, model, effort or assignment. Repository safety and execution permissions still apply.
 
+For a visual walkthrough of job types, decision branches and recovery, read [workflow diagrams](references/diagrams.md).
+
 ## Plan → dispatch → receive → accept
 
 1. **Classify intake.** New product, new feature, continuation/WIP, BAU/known bug, unknown-cause investigation, or incident. Read [workflow.md](references/workflow.md) for that entry path. Establish current reality before planning a delta. Do not rediscover an accepted product for each slice.
@@ -33,4 +35,4 @@ Use [verification.md](references/verification.md) to select, not multiply, check
 
 ## Customization and migration
 
-This skill runs without an organization vault. Customize profile, templates and repository-specific adapters; do not embed personal paths, account quotas or product names in the portable core. Local instructions may add stronger rules. [migration-v2.md](references/migration-v2.md) describes adopting this revision without disrupting active assignments. Older reference files and protocol helpers are compatibility material for already-dispatched v1 jobs, not extra rules to load for v2.
+This skill runs without an organization vault. Customize profile, templates and repository-specific adapters; do not embed personal paths, account quotas or product names in the portable core. Local instructions may add stronger rules. [adoption.md](references/adoption.md) describes adopting this revision without disrupting active assignments. Older reference files and protocol helpers are compatibility material for already-dispatched jobs, not extra rules to load for new assignments.

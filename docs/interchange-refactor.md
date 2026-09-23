@@ -1,10 +1,14 @@
-# Interchange v2 — reviewable replacement
+# Interchange — refactor proposal
 
 This proposal makes the current coordinating chat the Planner. Builder executes the majority of settled work; Senior Builder and Architecture/Security are owner-approved exceptions. PR review is independent. UX design/review and functional journey verification are scheduled at meaningful boundaries rather than every small step.
 
 ## Why change
 
-The old entrypoint mandates live model supervision, separates manager and judgment roles, and carries dated house/model reservations. Manual transport made the owner copy packets and returns between tools. Repeated correction gates accumulated while unrelated discoveries risked expanding slices. The v2 workflow makes one accountable plan, one concrete deliverable per assignment, finite correction packets, and explicit backlog triage.
+The old entrypoint mandates live model supervision, separates manager and judgment roles, and carries dated house/model reservations. Manual transport made the owner copy packets and returns between tools. Repeated correction gates accumulated while unrelated discoveries risked expanding slices. The refactored workflow makes one accountable plan, one concrete deliverable per assignment, finite correction packets, and explicit backlog triage.
+
+This is a refactor of the existing test-stage Interchange skill, not a second product version.
+
+Browse the [workflow diagrams](../skills/interchange/references/diagrams.md) for intake, planning, role selection, questions, callbacks, verification, closure and parallel work.
 
 ## Included
 
@@ -13,7 +17,7 @@ The old entrypoint mandates live model supervision, separates manager and judgme
 - Plan, assignment, questions, handover, review and GitHub upsert-manifest templates.
 - Correlated local outbox with artifact hashes, duplicate protection and separate queue/receipt state.
 - One-process non-LLM supervisor with deadline/output bounds and exclusive attempt receipt. It does not parse provider exit0 as success, install a resident service, or guarantee escaped-child termination.
-- Compatibility for old protocol/policy files and already-dispatched v1 jobs. No active installation or existing packet was changed.
+- Compatibility for old protocol/policy files and already-dispatched jobs. No active installation or existing packet was changed.
 
 ## User-specific choices still to confirm
 

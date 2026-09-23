@@ -1,11 +1,11 @@
-# Adopting v2
+# Adopting the refactor
 
 This revision replaces stacked manager/brain roles with one Planner and bounded executable assignments. It separates configurable routing from portable workflow, and live model supervision from deterministic process supervision.
 
-Existing v1 packets keep their recorded contracts/holds until reconciled; do not rewrite a running worker's requirements mid-attempt. Legacy `policy.json`, `routing.md`, `operating-model.md`, `runtime-adapters.md`, `commands.json`, completion/history references and protocol tests remain compatibility material. The v2 entrypoint deliberately does not load their house-exclusivity or per-invocation role rules. Do not run legacy dispatch templates as if they implement v2 profiles.
+Existing packets keep their recorded contracts/holds until reconciled; do not rewrite a running worker's requirements mid-attempt. Legacy `policy.json`, `routing.md`, `operating-model.md`, `runtime-adapters.md`, `commands.json`, completion/history references and protocol tests remain compatibility material. The refactored entrypoint deliberately does not load their house-exclusivity or per-invocation role rules. Do not run legacy dispatch templates as if they implement the current profiles.
 
 Adoption steps:
-1. Review the v2 diff and choose/copy a profile; resolve the two host adapters you actually use.
+1. Review the refactor diff and choose/copy a profile; resolve the two host adapters you actually use.
 2. Keep organization-specific authority in local project instructions. This portable skill includes the useful generic workflow/templates directly; it requires no external vault or personal checkout.
 3. Smoke-test outgoing request, actual final artifact, correlated callback and idle coordinator receipt. Mark unsupported directions honestly.
 4. Pilot one small one-PR slice, one unrelated-bug triage and one question/resume. Compare accepted-result time, manual relays, repeat review rounds and usage where measured.
