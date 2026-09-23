@@ -1,8 +1,8 @@
 # Portfolio workflow adapter
 
-These procedures were relocated without changing their substantive requirements. Apply only to projects adopting the Portfolio Standard; generic projects use their own governance. Governance retains principles and authority.
+These procedures implement the adopted portfolio delivery method. Apply only to projects adopting the Portfolio Standard; generic projects use their own governance. Governance retains principles and authority.
 
-Source: GOV-0020-multi-session-orchestration.md (owner-authorized relocation, 2026-09-23).
+Source: GOV-0020-multi-session-orchestration.md.
 
 ## Coordinator workflow
 
@@ -26,7 +26,7 @@ Source: GOV-0020-multi-session-orchestration.md (owner-authorized relocation, 20
 6. **Check useful progress.** Inspect at startup, the first working boundary,
    a reported blocker, and handback. Prefer the diff and command evidence to chat
    volume. Do useful integration work between checks; avoid constant polling.
-7. **Review independently.** Follow GOV-0020 §Independent acceptance and feedback (central authority during this migration); return precise
+7. **Review independently.** Follow GOV-0020 §Independent acceptance and feedback (central authority); return precise
    findings with expected behaviour and a reproduction. Keep corrections with the
    assigned writer unless the coordinator explicitly takes ownership.
 8. **Integrate and close.** Apply current repository merge/release authority,
@@ -40,7 +40,7 @@ Elapsed time and lines changed do not measure value. Estimate effort as a range
 with uncertainty; never fill a six-hour slot by adding scope after its outcome passes.
 
 
-Source: REG-03-delivery-method.md (owner-authorized relocation, 2026-09-23).
+Source: REG-03-delivery-method.md.
 
 ## Three levels
 

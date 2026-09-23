@@ -1,18 +1,10 @@
-# PR9 coordinator ownership review
+# Coordinator ownership review
 
-Requested by owner, 2026-09-23. This is the coordinator's direct review and repair, not independent acceptance of its own changes.
+The coordinator reviewed the responsibility boundary directly. This record is not independent acceptance of the coordinator's own edits.
 
-## Findings and disposition
+- Delivery Orchestrator owns clarification decisions, scheduling, role selection, evaluation, acceptance and takeover decisions.
+- Interchange owns executable routes, identity and event records, technical exchange agreements, board publication and communication recovery.
+- Communication and observability policy references live under Delivery Orchestrator. Interchange links to them and supplies execution facts.
+- The repository exposes exactly these two delivery skills, with direct links and no alternate-name routers.
 
-1. Interchange communication reference still decided clarification/approval flow. Moved to delivery-orchestrator; old path redirects. Transport still carries question events.
-2. Interchange observability reference still owned evaluation, workflow board and takeover decisions. Moved to delivery-orchestrator; execution identity/events remain Interchange inputs. Existing renderer location and publication URL remain compatible; physical helper location confers no workflow authority.
-3. Interchange principles/adoption prose claimed generic workflow ownership after the split. Moved process guidance and corrected adoption routing. Existing scheduling anchor preserved.
-4. The old orchestrate-product-delivery is verified as a short compatibility router, with no independent model, procedure or permission. It is not a third active workflow.
-
-## Result
-
-Delivery-orchestrator owns what/when/who, clarification, scheduling, review allocation, evaluation and acceptance disposition. Interchange owns supported execution routes, attempt correlation, supervision and callback transport. Governance retains principles and authority. Cross-skill references form an explicit handoff, not two independent plans.
-
-Validation: 103 Python tests pass; local Markdown file-link scan across both skills and the compatibility entry point reports zero missing targets; diff-check passes. Requested and observed model identity remain separate. Central governance draft/adoption and existing installation limits remain unchanged.
-
-This review does not claim runtime acceptance of Thruu or publication of the SDK. No merge performed. Historical installed Interchange remains pinned for already-running attempts until coordinated adoption.
+The [responsibility map](delivery-responsibilities.md) and both entrypoints describe the current design. Validation must be bound to the reviewed commit; source checks do not claim SDK publication or Thruu runtime acceptance.

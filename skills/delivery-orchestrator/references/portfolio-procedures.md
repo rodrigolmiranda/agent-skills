@@ -1,6 +1,6 @@
 # Portfolio operational procedures
 
-Operational excerpts relocated from GOV-0020 on 2026-09-23. The central register retains principles, authority and evidence constraints; these procedures implement that adopted contract and cannot redefine it. Trial source: agent-skills PR #9; no portfolio-wide adoption implied.
+Operational procedures for projects adopting GOV-0020. The central register retains principles, authority and evidence constraints; these procedures implement that adopted contract and cannot redefine it. Trial source: agent-skills PR #9; no portfolio-wide adoption implied.
 
 ## Executable packet: required content
 

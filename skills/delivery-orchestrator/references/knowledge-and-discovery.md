@@ -4,7 +4,7 @@ Use only the mode needed for the authorized request; an approved continuation do
 
 ## Authority and intake
 
-Load applicable repository routing and adopted governance. Search existing owning sources before creating a note. Shared governance remains central; adopted product meaning belongs in product repositories, GitHub owns live delivery state, and artifacts own proof. Preserve unique legacy statements until reconciled. A missing legacy vault is not automatically a blocker when the actual owning authority is available.
+Load applicable repository routing and adopted governance. Search existing owning sources before creating a note. Shared governance remains central; adopted product meaning belongs in product repositories, GitHub owns live delivery state, and artifacts own proof. Preserve unique source statements until reconciled. A missing secondary vault is not automatically a blocker when the actual owning authority is available.
 
 For an insight, meeting or research input: identify its source and affected product, capability, actor and concepts; find the owning specification; incorporate only new or clarifying information; link evidence and unresolved questions; assess UX, architecture, security, delivery, tests, operational and downstream documentation effects. Update authority, audience, confidentiality and supersession metadata where used. Client-specific priorities belong in the project's accepted context, not universal skill defaults.
 

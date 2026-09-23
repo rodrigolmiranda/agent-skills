@@ -105,9 +105,9 @@ See [transport](skills/interchange/references/transport.md) for actual commands,
 | [`templates/`](skills/interchange/templates/) | Plan, assignment, question, handover, review, status and continuation records |
 | [`scripts/run_job.py`](skills/interchange/scripts/run_job.py) + [`relay.py`](skills/interchange/scripts/relay.py) | Deterministic process supervision and callback delivery |
 | [`references/adoption.md`](skills/interchange/references/adoption.md) | Pilot, active-assignment continuity and governance alignment |
-| [`docs/interchange-refactor.md`](docs/interchange-refactor.md) | Refactor scope, validation and adoption status |
+| [`docs/delivery-responsibilities.md`](docs/delivery-responsibilities.md) | Ownership and cooperation between the two skills |
 
-Older policy, operating-model, installation, protocol and generated workbook files remain for reconciliation of existing test-stage assignments. They are not additional current workflow instructions; start from `SKILL.md` and the map above. This is a refactor of Interchange, not a separately branded version.
+Start from the two skill entrypoints and the map above. Archived experiment records are not current operating instructions.
 
 ## Validate changes
 
@@ -119,6 +119,6 @@ The tests cover existing protocol behavior and the relay/runner. Skill and diagr
 
 ### Local activity page
 
-Interchange can publish a local four-column activity board per repository, shared by linked worktrees and multiple coordinators. It puts current work first, groups retries inside one task, and keeps completed/stopped history collapsed. Optional workflow steps are the task-card source; without them older snapshots still render from attempts grouped by job. Select a project or inspect all activity, with issue/parent links and expandable evidence. Run `python3 skills/interchange/scripts/dashboard.py --repo <checkout> --snapshot <continuation.json>` and open the printed file. Updates are explicit snapshots, not live monitoring, and GitHub remains the backlog authority. See [observability](skills/delivery-orchestrator/references/observability.md#repository-dashboard-and-session-access) for the snapshot contract and limits.
+Interchange can publish a local four-column activity board per repository, shared by linked worktrees and multiple coordinators. It puts current work first, groups retries inside one task, and keeps completed/stopped history collapsed. Optional workflow steps are the task-card source; without them the board groups attempts by job. Select a project or inspect all activity, with issue/parent links and expandable evidence. Run `python3 skills/interchange/scripts/dashboard.py --repo <checkout> --snapshot <continuation.json>` and open the printed file. Updates are explicit snapshots, not live monitoring, and GitHub remains the backlog authority. See [observability](skills/delivery-orchestrator/references/observability.md#repository-dashboard-and-session-access) for the snapshot contract and limits.
 
-Workspace configuration and non-destructive retention inventory are described in [workspace.md](skills/interchange/references/workspace.md). Superseded policy files are preserved under `archive/interchange/`, outside the installed skill. The runner drains excess output by default and keeps a separate final-artifact receipt; receiver routes explicitly distinguish Codex queue, Claude parent harness and manual return.
+Workspace configuration and non-destructive retention inventory are described in [workspace.md](skills/interchange/references/workspace.md). The runner drains excess output by default and keeps a separate final-artifact receipt; receiver routes explicitly distinguish Codex queue, Claude parent harness and manual return.
