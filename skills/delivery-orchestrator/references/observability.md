@@ -115,7 +115,7 @@ Treat the initial dashboard and workflow as a trial: record friction and propose
 
 ## Waiting and blocked
 
-Board order: Next → Blocked → Working now → Waiting → Review → Done. Waiting means a prerequisite is progressing under a named owner and return event/check; record what is awaited and since when. Blocked means intervention is required, such as a failed route, unresolved decision or stalled prerequisite. Do not leave an overdue or failed dependency Waiting without checking it. Working now requires current execution evidence; coordinator work can be an activity independently of a worker. Done is the caller's accepted disposition, not process exit.
+Board order: Next → Blocked → Working now → Waiting → Review → Done. Waiting means a submitted external operation/event is pending under a named owner and return event/check; record what is awaited and since when. Blocked means intervention is required, such as a failed route, unresolved decision or stalled prerequisite. Do not leave an overdue or failed dependency Waiting without checking it. Working now requires current execution evidence; coordinator work can be an activity independently of a worker. Done is the caller's accepted disposition, not process exit.
 
 For Waiting snapshot rows use `state: waiting`, `waiting_for`, `waiting_owner`, `waiting_since` (time with offset) and `next_event`. An explicit failed execution remains Blocked even if its plan still says Waiting.
 
@@ -123,7 +123,7 @@ Done activities must retain an issue, PR or source/evidence URL in the activity 
 
 For Done activities linked to an issue, declare `completion_scope: step` or `issue`. Step completion must be named as such and does not close the issue. Issue completion requires a fresh GitHub query recorded as `github_issue_state: CLOSED` with `github_checked_at`; the renderer validates the record, not GitHub itself. Never close an issue merely to match a finished review.
 
-Review is for delivery awaiting independent acceptance. Completed intermediate checks belong in `review_history` of their delivery activity, not separate Done cards. Done is reserved for completed deliveries with GitHub reconciliation; an open issue cannot become Done because a review or implementation step finished.
+Review is for an assigned independent review, UX or acceptance check that is executing. Unassigned acceptance is Next, or Blocked with its concrete prerequisite; it is not a running review. Apply the gate-work rules in [execution checkpoints](execution-checkpoints.md#required-work-at-every-delivery-gate). Completed intermediate checks belong in `review_history` of their delivery activity, not separate Done cards. Done is reserved for completed deliveries with GitHub reconciliation; an open issue cannot become Done because a review or implementation step finished.
 
 
 ## Completed slices and progress

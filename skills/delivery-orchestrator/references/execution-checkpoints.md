@@ -15,6 +15,22 @@ Keep progressing through the approved dependency graph; an owner reply is not ne
 
 Provider exhaustion does not authorize a model substitution. Preserve the packet and worktree, stop the failed owned attempt, and request only the required routing decision. Continue unrelated authorized work. Apply this check in both Codex and Claude; a notification or user clarification does not cancel ongoing work unless it says so.
 
+## Required work at every delivery gate
+
+Treat each missing review, test, UX check, runtime proof or acceptance condition as an assignment to finish, not a status to park. On a worker return or gate result, identify the exact remaining criterion, evidence, responsible executor and real prerequisites; perform or dispatch every ready authorized gate immediately, in parallel where ownership/resources permit. Reuse valid proof and avoid redundant gates. The supervisor handles technical preparation and corrections within authority. An acceptance gap alone is not a blocker.
+
+A review stage requires an assigned reviewer and verified startup. Apply the same rule to a tester or UX reviewer when that gate is required. If unavailable, name the actual capacity/dependency restriction and its recovery owner. Queued review is not running review. If a gate cannot yet run, do all available prerequisite work rather than leave a generic “pending review” or “acceptance gap.” Preserve explicit permission and operational boundaries; document the exact remaining authorization instead of inferring it.
+
+Use board states consistently:
+- **Working now:** implementation, correction or coordinator preparation is executing.
+- **Review:** an assigned independent review, UX or acceptance check is executing; show its kind and executor.
+- **Waiting:** a submitted external operation/event is genuinely pending (for example CI), with evidence, owner and next check/wake. Internal technical decisions are not external waits.
+- **Blocked:** a named prerequisite activity, unavailable resource or explicit authority restriction prevents the next step. Link the prerequisite and start any authorized work that can clear it.
+- **Next:** executable planned work not yet started; the scheduling gate must dispatch it or record a concrete exclusion.
+- **Done:** the defined outcome and required closure are evidenced, not merely the worker's return.
+
+Reconcile the workflow state, current attempt outcome, gate result, blocker, executor and next event together before publishing a return. Clear superseded “pending review” values after a verdict; historical attempts stay historical. Check the resulting card against the evidence so a fallback label cannot replace the real prerequisite. Before yielding, no supervisor-solvable gate may remain idle without a concrete, evidenced resource restriction.
+
 ## Bounds that prevent drift
 
 - One writer per overlapping surface, isolated checkout; parallelize only independent outcomes. Shared runtime/tests are resources too. Tightly interacting workers use native collaboration when supported; otherwise route decisions through the Planner with versioned contracts.

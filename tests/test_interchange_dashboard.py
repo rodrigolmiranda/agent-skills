@@ -11,6 +11,11 @@ spec.loader.exec_module(dashboard)
 
 
 class DashboardTests(unittest.TestCase):
+    def test_awaiting_acceptance_does_not_claim_running_review(self):
+        self.assertEqual('next', dashboard.activity_column({'state': 'awaiting_acceptance'}, []))
+        self.assertEqual('blocked', dashboard.activity_column({'state': 'awaiting_acceptance', 'blocker': 'fixture missing'}, []))
+        self.assertEqual('review', dashboard.activity_column({'state': 'review'}, []))
+
     def test_worktrees_share_page_and_coordinators_are_preserved(self):
         with tempfile.TemporaryDirectory() as directory:
             repo = Path(directory) / 'repo'
