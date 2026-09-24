@@ -184,6 +184,24 @@ class DashboardTests(unittest.TestCase):
                 self.assertEqual(1, compact.count('class="summary-detail'))
                 self.assertNotIn('<details open class="task-card">', card)
 
+    def test_front_badge_is_allowlisted_in_summary_and_detail(self):
+        item = {'id': 'front-step', 'title': 'Review pipeline', 'state': 'not-started',
+                'front': ' MENTORA ', 'next_action': 'Review the pipeline'}
+        card, column = dashboard.task_card(item, [])
+
+        self.assertEqual('next', column)
+        compact = card.split('</summary>', 1)[0]
+        self.assertIn('<span class="summary-front-badge">Front · Mentora</span>', compact)
+        self.assertIn('<span class="badge summary-front-badge">Front: Mentora</span>', card)
+        self.assertIn('<strong>Front:</strong> Mentora', card)
+
+        unknown, _ = dashboard.task_card(
+            {'id': 'shared-step', 'title': 'Unclassified foundation work',
+             'state': 'not-started', 'front': '<script>alert(1)</script>'}, [])
+        self.assertIn('<span class="summary-front-badge">Front · Shared</span>', unknown)
+        self.assertIn('<strong>Front:</strong> Shared', unknown)
+        self.assertNotIn('<script>', unknown)
+
     def test_missing_requested_identity_and_no_agent_are_explicit(self):
         item = {'id': 'working-id', 'title': 'Run export', 'state': 'running',
                 'owner': None, 'next_action': 'Validate the CSV'}
