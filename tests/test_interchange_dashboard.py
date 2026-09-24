@@ -367,13 +367,59 @@ class DashboardTests(unittest.TestCase):
             subprocess.run(['git', 'init', '-q', str(repo)], check=True)
             page = dashboard.publish(repo, record).read_text()
         self.assertIn('Next <span class="count">0</span>', page)
-        self.assertIn('Approved H1 scope (20 open items) · separate from the execution queue', page)
+        self.assertIn('Approved H1 scope (20 open items) · browse all approved issues', page)
+        self.assertIn('<details class="approved-scope" open>', page)
+        self.assertLess(page.index('Approved H1 scope (20 open items)'), page.index('Next <span class="count">0</span>'))
         self.assertIn('<h4>Retail <span class="count">19</span></h4>', page)
         self.assertIn('Retail item 18', page)
         self.assertIn('Unknown front <span class="count">1</span>', page)
         self.assertIn('&lt;script&gt;unsafe&lt;/script&gt;', page)
         self.assertNotIn('href="javascript:alert(1)"', page)
-        self.assertIn('max-height:min(55vh,580px);overflow-y:auto', page)
+        self.assertIn('max-height:min(28vh,280px);overflow-y:auto', page)
+        self.assertIn("new URLSearchParams(location.search).get('project')", page)
+
+    def test_current_action_on_step_is_visible_on_working_card(self):
+        card, column = dashboard.task_card({'id': 'sdk-query', 'title': 'SDK query seam',
+                                            'state': 'running', 'current_action': 'Implement local view adapter'}, [])
+        self.assertEqual('working', column)
+        self.assertIn('Implement local view adapter', card)
+        self.assertNotIn('No current action supplied', card)
+
+    def test_later_horizons_remain_discoverable_without_entering_next(self):
+        record = {'project_id': 'scope', 'coordinator': {'agent_id': 'planner'},
+                  'workflow_steps': [], 'later_scope': {
+                      'source_url': 'https://example.test/project/15',
+                      'checked_at': '2026-09-24T13:00:00Z',
+                      'items': [{'horizon': 'Roadmap', 'status': 'Backlog', 'title': 'Future slice',
+                                 'url': 'https://example.test/issues/99'},
+                                {'horizon': 'H3', 'status': 'Done', 'title': '<script>bad</script>',
+                                 'url': 'javascript:alert(1)'}]}}
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            subprocess.run(['git', 'init', '-q', str(repo)], check=True)
+            page = dashboard.publish(repo, record).read_text()
+        self.assertIn('Later horizons (2 Project items)', page)
+        self.assertIn('href="https://example.test/issues/99"', page)
+        self.assertIn('&lt;script&gt;bad&lt;/script&gt;', page)
+        self.assertNotIn('href="javascript:alert(1)"', page)
+        self.assertIn('Next <span class="count">0</span>', page)
+
+    def test_upcoming_queue_shows_per_front_order_and_explicit_holds(self):
+        queue = [{'front': front, 'title': f'{front} issue {number}',
+                  'url': f'https://example.test/{front}/{number}',
+                  'status': 'Dependency held', 'prerequisite': 'Published contract needed'}
+                 for front in ('shared', 'mentora', 'b2b', 'retail')
+                 for number in range(1, 12)]
+        queue.append({'front': '<script>x</script>', 'title': '<script>bad</script>',
+                      'url': 'javascript:alert(1)', 'status': '<script>held</script>'})
+        rendered = dashboard.board({'workflow_steps': [], 'upcoming_queue': queue})
+        self.assertIn('Next <span class="count">45</span>', rendered)
+        self.assertEqual(4, rendered.count('Show all 11 planned activities (1 more)'))
+        for front in ('Shared', 'Mentora', 'B2B', 'Retail'):
+            self.assertIn(f'<h4>{front} <span class="count">11</span></h4>', rendered)
+        self.assertIn('Published contract needed', rendered)
+        self.assertIn('&lt;script&gt;held&lt;/script&gt;', rendered)
+        self.assertNotIn('href="javascript:alert(1)"', rendered)
 
     def test_long_board_columns_are_bounded_and_keep_keyboard_focus_visible(self):
         steps = [{'id': f'done-{number:02d}', 'order': number,
