@@ -330,6 +330,27 @@ class DashboardTests(unittest.TestCase):
         for number in range(1, 13):
             self.assertEqual(1, page.count(f'<strong>Activity {number:02d}</strong>'))
 
+    def test_next_column_limit_is_per_front_and_does_not_invent_cards(self):
+        steps = []
+        for front in ('shared', 'mentora', 'b2b', 'retail'):
+            steps += [{'id': f'{front}-{number}', 'order': number,
+                       'title': f'{front} activity {number}', 'front': front,
+                       'state': 'not-started'} for number in range(11, 0, -1)]
+        record = {'workflow_steps': steps}
+        page = dashboard.board(record)
+        self.assertIn('Next <span class="count">44</span>', page)
+        for front in ('Shared', 'Mentora', 'B2B', 'Retail'):
+            self.assertIn(f'<h4>{front} <span class="count">11</span></h4>', page)
+        self.assertEqual(4, page.count('Show all 11 planned activities (1 more)'))
+        for front in ('shared', 'mentora', 'b2b', 'retail'):
+            tenth = page.index(f'<strong>{front} activity 10</strong>')
+            eleventh = page.index(f'<strong>{front} activity 11</strong>')
+            self.assertLess(tenth, eleventh)
+            self.assertEqual(1, page.count(f'<strong>{front} activity 11</strong>'))
+
+        one_front = dashboard.board({'workflow_steps': steps[:11]})
+        self.assertNotIn('<h4>Retail <span', one_front)
+
     def test_long_board_columns_are_bounded_and_keep_keyboard_focus_visible(self):
         steps = [{'id': f'done-{number:02d}', 'order': number,
                   'title': f'Done activity {number:02d}', 'state': 'done',

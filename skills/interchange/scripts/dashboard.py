@@ -542,7 +542,7 @@ def board(record):
     for position, (item, attempts) in enumerate(activities):
         content, column = task_card(item, attempts, record)
         date = max((recency_key(attempt)[0] for attempt in attempts), default=float('-inf'))
-        columns[column].append((content, position, date))
+        columns[column].append((content, position, date, front_label(item.get('front')) or 'Unassigned'))
     columns['next'].sort(key=lambda entry: entry[1])
     for name in ('working', 'blocked', 'waiting', 'review', 'done'):
         columns[name].sort(key=lambda entry: (entry[2], -entry[1]), reverse=True)
@@ -550,13 +550,25 @@ def board(record):
     markup = ['<div class="board" aria-label="Current execution board">']
     for key, label in (('next', 'Next'), ('blocked', 'Blocked'), ('working', 'Working now'), ('waiting', 'Waiting'), ('review', 'Review'), ('done', 'Done')):
         entries = columns[key]
-        visible = entries[:10] if key == 'next' else entries
-        cards = ''.join(entry[0] for entry in visible)
-        if key == 'next' and len(entries) > 10:
-            remaining_cards = ''.join(entry[0] for entry in entries[10:])
-            cards += ('<details class="show-all"><summary>Show all ' + str(len(entries))
-                      + ' planned activities (' + str(len(entries) - 10) + ' more)</summary>'
-                      + remaining_cards + '</details>')
+        if key == 'next':
+            groups = {}
+            for entry in entries:
+                groups.setdefault(entry[3], []).append(entry)
+            cards = ''
+            for front in ('Shared', 'Mentora', 'B2B', 'Retail', 'Unassigned', 'Unknown front'):
+                group = groups.pop(front, [])
+                if not group:
+                    continue
+                cards += ('<div class="next-front"><h4>' + esc(front) + ' <span class="count">'
+                          + str(len(group)) + '</span></h4>')
+                cards += ''.join(entry[0] for entry in group[:10])
+                if len(group) > 10:
+                    cards += ('<details class="show-all"><summary>Show all ' + str(len(group))
+                              + ' planned activities (' + str(len(group) - 10) + ' more)</summary>'
+                              + ''.join(entry[0] for entry in group[10:]) + '</details>')
+                cards += '</div>'
+        else:
+            cards = ''.join(entry[0] for entry in entries)
         if not cards:
             cards = '<p class="empty">No activities in this column.</p>'
         markup.append('<section class="board-column column-' + key + '"><h3>' + label
@@ -639,6 +651,7 @@ main{max-width:1400px;margin:auto;padding:12px 20px}h1{font-size:19px;letter-spa
 section{border:1px solid var(--line);border-radius:9px;margin:0 0 16px;overflow:hidden;background:#fcfcfc}.project-head{padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:12px}.eyebrow{font-size:10px;letter-spacing:1px;font-weight:700;color:var(--muted)}.count,.badge{font-size:11px;background:#edf0f2;padding:2px 6px;border-radius:4px;font-weight:600;display:inline-block}.count{margin-left:4px}.empty{padding:12px;border:1px dashed var(--line);border-radius:6px;color:var(--muted);font-size:12px}.board{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;padding:0 12px 12px}.board-column{border:1px solid var(--line);border-radius:7px;padding:8px;background:#f7f8f8;min-width:0;max-height:min(70vh,760px);overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable}.board-column h3{display:flex;justify-content:space-between;align-items:center;position:sticky;top:-8px;z-index:2;margin:-8px -8px 10px;padding:8px;background:#f7f8f8}.task-card{background:white;border:1px solid var(--line);border-radius:6px;padding:9px;margin:0 0 8px;min-width:0;overflow-wrap:anywhere}.card-title{display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:6px}.card-title strong{font-size:13px;line-height:1.3}.task-card p{font-size:11.5px;margin:4px 0}.task-card .badge{white-space:normal;text-align:left}.status-text{font-weight:700}.status-good{color:#176b45}.status-attention{color:#8a4b00}.status-terminal{color:#545c65}.status-unknown{color:#586674}.attempt-history{border-top:1px solid var(--line);margin-top:7px;padding-top:4px}.attempt-record{border-top:1px solid var(--line);padding:7px 0;font-size:11px;overflow-wrap:anywhere}.attempt-details{display:grid;gap:4px;margin:5px 0 0}.attempt-details>span{font-size:11px}.attempt-details pre{max-height:200px;overflow:auto}.attempt-history details,.attempt-history summary,.agent-details details{font-size:11px}.show-all{grid-column:1/-1;background:white;border:1px solid var(--line);padding:4px 8px;border-radius:6px}.show-all .task-card{max-width:360px}.unmapped{margin:0 12px 12px;padding:4px 8px;background:#fff8e8;border:1px solid #ead6af;border-radius:6px}.history{padding:0 14px 8px}.coordination{padding:4px 14px 10px;border-top:1px solid var(--line)}.agent-details{display:grid;gap:6px;margin-top:6px}details{font-size:12px}summary{cursor:pointer;color:var(--accent);padding:6px 0}code,pre{font:11px/1.5 ui-monospace,monospace;overflow-wrap:anywhere;white-space:pre-wrap}footer{padding:10px 14px;border-top:1px solid var(--line);font-size:11px}.raw{padding:0 14px 10px}.raw summary{color:var(--muted)}.note{font-size:11px;color:var(--muted)}[hidden]{display:none!important}
 .task-card>summary.task-summary{padding:0;color:var(--ink);scroll-margin-top:48px}.task-card>summary.task-summary::marker{color:var(--accent)}.summary-top-row{display:flex;align-items:center;gap:6px;min-width:0;line-height:1.3}.summary-title{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:700}.summary-model-badge,.summary-front-badge{flex:none;max-width:52%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:1px solid var(--line);border-radius:4px;background:#f2f5f5;padding:1px 5px;color:var(--muted);font-size:10px;line-height:1.4}.summary-meta{display:flex;align-items:center;gap:5px;min-width:0;font-size:11px;line-height:1.3;overflow:hidden;white-space:nowrap}.summary-owner{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.summary-status{flex:none;font-weight:700}.summary-detail{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;line-height:1.3;color:var(--muted)}.task-card[open]>summary.task-summary{padding-bottom:6px;border-bottom:1px solid var(--line)}.task-card-body{padding-top:6px}
 .column-next{border-top:3px solid #64748b}.column-next>h3{color:#64748b;background:#f1f5f9;border-radius:4px;padding:5px}
+.next-front{border-top:1px solid var(--line);padding-top:4px;margin-top:8px}.next-front:first-of-type{border-top:0;margin-top:0}.next-front h4{display:flex;justify-content:space-between;align-items:center;margin:4px 0 8px;color:#475569}.next-front .show-all{display:block;margin-bottom:8px}
 .column-blocked{border-top:3px solid #b42332}.column-blocked>h3{color:#b42332;background:#fff1f2;border-radius:4px;padding:5px}
 .column-working{border-top:3px solid #2563eb}.column-working>h3{color:#2563eb;background:#eff6ff;border-radius:4px;padding:5px}
 .column-waiting{border-top:3px solid #b77900}.column-waiting>h3{color:#b77900;background:#fffbeb;border-radius:4px;padding:5px}
