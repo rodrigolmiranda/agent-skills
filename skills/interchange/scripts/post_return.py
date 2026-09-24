@@ -226,27 +226,60 @@ def _validate_spec(spec, manifest, cwd):
     argv = reviewer.get('argv')
     if not isinstance(argv, list) or not argv or not all(isinstance(x, str) for x in argv):
         raise PipelineException('reviewer argv must be literal strings')
+    isolation = reviewer.get('execution_isolation') or {'mode': 'same_user'}
+    if isolation.get('mode') not in ('same_user', 'distinct_uid'):
+        raise PipelineException('unsupported reviewer execution isolation')
+    if isolation['mode'] == 'distinct_uid' and isolation.get('uid') == (manifest.get('execution_isolation') or {}).get('uid'):
+        raise PipelineException('distinct reviewer must use a separate identity from the worker')
     if reviewer['adapter'] == 'claude-headless':
         if Path(argv[0]).name != 'claude' or '--no-chrome' not in argv or '--disallowedTools' not in argv:
             raise PipelineException('Claude reviewer requires --no-chrome and --disallowedTools')
-        if '--output-format' not in argv or argv[argv.index('--output-format') + 1:argv.index('--output-format') + 2] != ['stream-json']:
+        if argv.count('--output-format') != 1 or argv[argv.index('--output-format') + 1:argv.index('--output-format') + 2] != ['stream-json']:
             raise PipelineException('Claude reviewer requires stream-json execution evidence')
+        if argv.count('--disallowedTools') != 1:
+            raise PipelineException('Claude reviewer requires one explicit tool deny list')
         deny = argv[argv.index('--disallowedTools') + 1] if argv.index('--disallowedTools') + 1 < len(argv) else ''
-        if not deny or ('chrome' not in deny.lower() and 'browser' not in deny.lower()):
+        if not {'Browser*', 'Chrome*', 'Playwright*', 'Computer*', 'mcp__*'} <= set(deny.split(',')):
             raise PipelineException('reviewer browser tool deny list missing')
+        if isolation['mode'] == 'same_user':
+            # This supported Claude route drops inherited user/project settings,
+            # plugins and MCP servers while retaining account authentication.
+            # A broad Browser* deny alone does not cover mcp__playwright tools.
+            if any(argv.count(flag) != 1 for flag in ('--safe-mode', '--restricted',
+                                                      '--strict-mcp-config', '--mcp-config', '--tools',
+                                                      '--model', '--effort')):
+                raise PipelineException('same-user Claude reviewer requires clean tool/MCP configuration')
+            try:
+                mcp = json.loads(argv[argv.index('--mcp-config') + 1])
+                tools = set(argv[argv.index('--tools') + 1].split(','))
+            except (IndexError, ValueError) as exc:
+                raise PipelineException('invalid same-user Claude reviewer tool/MCP configuration') from exc
+            if mcp != {'mcpServers': {}} or tools != {'Bash', 'Read', 'Glob', 'Grep'}:
+                raise PipelineException('same-user Claude reviewer has an unqualified tool/MCP configuration')
+            override_flags = ('--settings', '--setting-sources', '--plugin-dir',
+                              '--plugin-url', '--allowedTools', '--allowed-tools',
+                              '--disallowed-tools',
+                              '--chrome', '--resume', '--continue', '--session-id',
+                              '--teleport', '--dangerously-skip-permissions',
+                              '--add-dir', '--agents', '--worktree', '--tmux',
+                              '--permission-mode', '--fallback-model',
+                              '--no-safe-mode', '--no-restricted', '--no-strict-mcp-config')
+            qualified_flags = ('--safe-mode', '--restricted', '--strict-mcp-config',
+                               '--mcp-config', '--tools', '--model', '--effort',
+                               '--output-format', '--no-chrome', '--disallowedTools')
+            if any(arg == flag or arg.startswith(flag + '=') for arg in argv
+                   for flag in override_flags) or any(arg.startswith(flag + '=') for arg in argv
+                                                    for flag in qualified_flags) or any(
+                                                        arg.startswith(short) for arg in argv[1:]
+                                                        for short in ('-c', '-r', '-w')):
+                raise PipelineException('same-user Claude reviewer may not override isolated tool settings')
     else:
         if (Path(argv[0]).name != 'codex' or 'exec' not in argv or '--sandbox' not in argv
                 or argv[argv.index('--sandbox') + 1:argv.index('--sandbox') + 2] != ['read-only']):
             raise PipelineException('Codex reviewer requires headless exec in read-only sandbox')
         if '--json' not in argv:
             raise PipelineException('Codex reviewer requires JSON execution evidence')
-        # Codex's read-only sandbox does not prove owner-browser/profile isolation by itself.
-        # A distinct UID and private HOME are required by run_job for this route as well.
-    isolation = reviewer.get('execution_isolation') or {'mode': 'same_user'}
-    if isolation.get('mode') not in ('same_user', 'distinct_uid'):
-        raise PipelineException('unsupported reviewer execution isolation')
-    if isolation['mode'] == 'distinct_uid' and isolation.get('uid') == (manifest.get('execution_isolation') or {}).get('uid'):
-        raise PipelineException('distinct reviewer must use a separate identity from the worker')
+        # The same-user Codex route is unqualified for owner-browser/profile isolation.
     if reviewer['adapter'] == 'codex-headless' and isolation['mode'] == 'same_user':
         raise PipelineException('same-user Codex reviewer lacks a verified owner-browser deny adapter')
     if not (Path(argv[0]).is_file() or shutil.which(argv[0])):

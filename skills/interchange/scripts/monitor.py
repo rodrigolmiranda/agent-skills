@@ -44,6 +44,7 @@ def recover_next_actions(db, *, project=None):
         environment = {key: os.environ[key] for key in ('PATH', 'HOME', 'TMPDIR') if key in os.environ}
         environment.update(INTERCHANGE_ACTION_ID=action['action_id'],
                            INTERCHANGE_PROJECT=action['project'],
+                           INTERCHANGE_COORDINATOR_ID=json.loads(action['recovery_route'])['coordinator_id'],
                            INTERCHANGE_OWNERSHIP_GENERATION=str(action['generation']),
                            INTERCHANGE_SOURCE_EVENT_ID=action['source_event_id'],
                            INTERCHANGE_CLAIM_TOKEN=action['claim_token'],
@@ -143,6 +144,18 @@ def scan(db, *, project=None, activities=None, now_seconds=None, overdue_seconds
                                  (action['source_job'], action['source_attempt'], action['source_kind'])).fetchone()
             if not pending:
                 continue
+        current = routes.get(action['project'])
+        if current and current['generation'] != action['generation']:
+            findings.append(_finding('next:'+action['action_id'], 'next_action_needs_adoption',
+                                     current['coordinator'] or current['receiver'] or 'supervisor',
+                                     action['action_id'], 'current owner must adopt or dispose with fresh route proof',
+                                     action['source_job'], action['source_attempt'], action['project']))
+            continue
+        if action['state'] == 'disposed':
+            findings.append(_finding('next:'+action['action_id'], 'next_action_disposed', 'supervisor',
+                                     action['action_id'], 'reconcile explicit stop decision with approved scope',
+                                     action['source_job'], action['source_attempt'], action['project']))
+            continue
         if action['state'] != 'action_started':
             route = json.loads(action['recovery_route'])
             errors = validate_recovery_route(route, now_seconds, action['cwd'])

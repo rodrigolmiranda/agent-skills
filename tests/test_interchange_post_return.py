@@ -17,6 +17,11 @@ import post_return
 import relay
 import run_job
 
+CLAUDE_SAFE_ARGS = ['--safe-mode', '--restricted', '--strict-mcp-config',
+                    '--mcp-config', '{"mcpServers":{}}', '--tools', 'Bash,Read,Glob,Grep',
+                    '--no-chrome', '--disallowedTools',
+                    'Browser*,Chrome*,Playwright*,Computer*,mcp__*']
+
 
 def git(cwd, *args):
     return subprocess.run(['git', *args], cwd=cwd, check=True, capture_output=True, text=True).stdout.strip()
@@ -64,7 +69,7 @@ class PipelineTests(unittest.TestCase):
                      'allowed_paths': ['owned.txt'], 'required_gates': ['unit'],
                      'reviewer_job': 'reviewjob', 'reviewer_sender': 'reviewer',
                      'reviewer': {'adapter': 'claude-headless',
-                                  'argv': ['claude', '--no-chrome', '--disallowedTools', 'Browser*',
+                                  'argv': ['claude', *CLAUDE_SAFE_ARGS,
                                            '--output-format', 'stream-json', '-p', 'review'],
                                   'timeout_seconds': 60,
                                   'execution_isolation': {'mode': 'distinct_uid', 'uid': 1003}}}
@@ -181,6 +186,32 @@ class PipelineTests(unittest.TestCase):
         self.spec['reviewer']['argv'] = ['codex', 'exec', '--sandbox', 'read-only', '--json', 'review']
         self.assertEqual(self.execute()['stage'], 'review_started')
 
+    def test_same_user_reviewer_rejects_inherited_browser_and_overrides(self):
+        owner_home = self.root / 'owner-home'
+        owner_home.mkdir()
+        (owner_home / '.claude.json').write_text(json.dumps({'mcpServers': {
+            'owner-browser': {'command': 'browser-bridge'}}}))
+        self.spec['reviewer']['execution_isolation'] = {'mode': 'same_user'}
+        self.spec['reviewer']['argv'] = ['claude', '--no-chrome', '--disallowedTools',
+                                        'Browser*', '--output-format', 'stream-json', '-p', 'review']
+        with mock.patch.dict(os.environ, {'HOME': str(owner_home)}):
+            with self.assertRaisesRegex(post_return.PipelineException, 'browser tool deny'):
+                post_return._validate_spec(self.spec, self.manifest, self.repo.resolve())
+            self.spec['reviewer']['argv'] = ['claude', *CLAUDE_SAFE_ARGS,
+                                             '--output-format', 'stream-json', '--model', 'fixture-claude',
+                                             '--effort', 'medium', '-p', 'review']
+            post_return._validate_spec(self.spec, self.manifest, self.repo.resolve())
+            for extra in (['--mcp-config', '{"mcpServers":{"owner-browser":{}}}'],
+                          ['--tools=default'], ['--plugin-dir=owner-tools'],
+                          ['--settings=owner-settings.json'], ['--disallowed-tools', 'Browser*'],
+                          ['--resume'], ['-c'], ['-r', 'owner-session'],
+                          ['--add-dir=owner-home'], ['--model=other']):
+                with self.subTest(extra=extra):
+                    self.spec['reviewer']['argv'].extend(extra)
+                    with self.assertRaises(post_return.PipelineException):
+                        post_return._validate_spec(self.spec, self.manifest, self.repo.resolve())
+                    del self.spec['reviewer']['argv'][-len(extra):]
+
     def test_same_user_default_and_invalid_distinct_uid(self):
         env = os.environ.copy()
         with self.assertRaises(ValueError):
@@ -273,12 +304,18 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(policy['mcp__*'], 'deny')
         self.assertEqual(policy['playwright*'], 'deny')
         for unsafe in ('git push origin feature/one', 'gh pr create', 'open -a Chrome',
-                       'git status; gh pr create', '*'):
+                       'git status; gh pr create', '*', 'git *', 'git -C . push',
+                       'git --git-dir=.git push', 'git --work-tree=. push',
+                       'git status*', 'git status --short*', '/usr/bin/git push'):
             with self.subTest(unsafe=unsafe), self.assertRaises(ValueError):
                 run_job._worker_adapter({**manifest,
                     'worker_adapter': {'kind': 'opencode-headless', 'allowed_bash': [unsafe]}}, {})
         with self.assertRaises(ValueError):
             run_job._worker_adapter({**manifest, 'argv': argv + ['--attach', 'http://localhost:4096']}, {})
+        for extra in (['--session=old'], ['-s', 'old'], ['-c'], ['--dir=elsewhere'],
+                      ['--pure=false'], ['--format=default'], ['--model=other']):
+            with self.subTest(extra=extra), self.assertRaises(ValueError):
+                run_job._worker_adapter({**manifest, 'argv': argv + extra}, {})
         with self.assertRaises(ValueError):
             run_job._worker_adapter({**manifest, 'env': {'OPENCODE_CONFIG_CONTENT': '{}'}}, {})
         inherited = subprocess.CompletedProcess([], 0, stdout=json.dumps({
@@ -349,6 +386,11 @@ print(json.dumps({'type':'tool','part':{'type':'tool','name':'bash'}}),flush=Tru
         claude = fake_bin / 'claude'
         claude.write_text('#!/usr/bin/env python3\n'
                           'import json,re,sys\nfrom pathlib import Path\n'
+                          'assert all(flag in sys.argv for flag in '
+                          '["--safe-mode","--restricted","--strict-mcp-config","--no-chrome"])\n'
+                          'assert sys.argv[sys.argv.index("--mcp-config")+1]=='
+                          '\'{"mcpServers":{}}\'\n'
+                          'assert "mcp__*" in sys.argv[sys.argv.index("--disallowedTools")+1]\n'
                           f'count=Path({str(review_count)!r})\n'
                           'head=re.search(r"[0-9a-f]{40}", " ".join(sys.argv)).group()\n'
                           'count.write_text(str(int(count.read_text())+1 if count.exists() else 1))\n'
@@ -360,7 +402,7 @@ print(json.dumps({'type':'tool','part':{'type':'tool','name':'bash'}}),flush=Tru
         spec = dict(self.spec)
         spec['gh_executable'] = str(gh)
         spec['reviewer'] = {'adapter': 'claude-headless',
-                            'argv': [str(claude), '--no-chrome', '--disallowedTools', 'Browser*',
+                            'argv': [str(claude), *CLAUDE_SAFE_ARGS,
                                      '--output-format', 'stream-json', '--model', 'fixture-claude',
                                      '--effort', 'medium', '-p', 'Review {head} at {pr_url}'],
                             'timeout_seconds': 15, 'startup_seconds': 10, 'route': 'manual'}

@@ -41,7 +41,9 @@
     "reviewer": {
       "adapter": "claude-headless",
       "argv": [
-        "<absolute-claude-cli>", "--no-chrome", "--disallowedTools", "Browser*",
+        "<absolute-claude-cli>", "--safe-mode", "--restricted", "--strict-mcp-config",
+        "--mcp-config", "{\"mcpServers\":{}}", "--tools", "Bash,Read,Glob,Grep",
+        "--no-chrome", "--disallowedTools", "Browser*,Chrome*,Playwright*,Computer*,mcp__*",
         "--output-format", "stream-json", "--verbose",
         "--model", "<verified-model>", "--effort", "<verified-effort>",
         "-p", "<review-prompt-with-{head}-and-{pr_url}; final output is JSON verdict>"

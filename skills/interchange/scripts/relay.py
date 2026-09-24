@@ -76,9 +76,19 @@ def connect(path):
       recovery_route TEXT NOT NULL, state TEXT NOT NULL, source_event_id TEXT,
       claim_token TEXT, queued_at TEXT, delivered_at TEXT, awake_at TEXT,
       action_started_at TEXT, adapter_pid INTEGER, execution_evidence TEXT,
-      error TEXT, declared_at TEXT NOT NULL,
+      error TEXT, declared_at TEXT NOT NULL, expected_head TEXT,
       UNIQUE(project,source_job,source_attempt,source_kind));
+    CREATE TABLE IF NOT EXISTS next_action_history (
+      action_id TEXT NOT NULL, generation INTEGER NOT NULL, recovery_argv TEXT NOT NULL,
+      recovery_route TEXT NOT NULL, recorded_at TEXT NOT NULL, disposition TEXT NOT NULL,
+      PRIMARY KEY(action_id,generation));
     ''')
+    if 'expected_head' not in {row['name'] for row in db.execute('PRAGMA table_info(next_actions)')}:
+        try:
+            db.execute('ALTER TABLE next_actions ADD COLUMN expected_head TEXT')
+        except sqlite3.OperationalError:
+            if 'expected_head' not in {row['name'] for row in db.execute('PRAGMA table_info(next_actions)')}:
+                raise
     return db
 
 
@@ -350,7 +360,8 @@ def bind_attempt(db, project, job, attempt, generation):
 
 
 def declare_next_action(db, action_id, project, generation, source_job, source_attempt,
-                        source_kind, recovery_argv, cwd, deadline_at, recovery_route):
+                        source_kind, recovery_argv, cwd, deadline_at, recovery_route,
+                        expected_head=None):
     """Register a coordinator-owned continuation before the source attempt completes."""
     action_id, project = identifier(action_id), project_identifier(project)
     source_job, source_attempt = identifier(source_job), identifier(source_attempt)
@@ -358,6 +369,9 @@ def declare_next_action(db, action_id, project, generation, source_job, source_a
         raise ValueError('unsupported completion trigger')
     if not isinstance(recovery_route, dict):
         raise ValueError('recovery_route must be an object')
+    if expected_head is not None and (not isinstance(expected_head, str)
+                                      or not re.fullmatch(r'[0-9a-fA-F]{40,64}', expected_head)):
+        raise ValueError('expected_head must be a commit hash when supplied')
     if (not isinstance(recovery_argv, list) or not recovery_argv or len(recovery_argv) > 100
             or any(not isinstance(value, str) or not value or '\0' in value or len(value) > 4096
                    for value in recovery_argv)):
@@ -380,7 +394,8 @@ def declare_next_action(db, action_id, project, generation, source_job, source_a
         db.execute('BEGIN IMMEDIATE')
         route = require_current_generation(db, project, generation)
         receiver = route['coordinator'] if route['kind'] == 'codex-queue' else route['receiver']
-        if not receiver or recovery_route.get('coordinator_id') != receiver:
+        if (not receiver or recovery_route.get('coordinator_id') != receiver
+                or recovery_route.get('ownership_generation') != generation):
             raise ValueError('recovery route does not match current coordinator')
         proof_errors = validate_recovery_route(recovery_route, dt.datetime.now(dt.timezone.utc), cwd)
         if proof_errors:
@@ -395,13 +410,77 @@ def declare_next_action(db, action_id, project, generation, source_job, source_a
         values = (action_id, project, generation, source_job, source_attempt, source_kind,
                   json.dumps(recovery_argv), str(cwd), deadline_at, json.dumps(recovery_route),
                   'waiting_completion', None, None, None, None, None, None, None, None, None,
-                  now())
+                  now(), expected_head)
         old = db.execute('SELECT * FROM next_actions WHERE action_id=?', (action_id,)).fetchone()
-        if old and tuple(old)[:10] != values[:10]:
+        if old and (tuple(old)[:10] != values[:10] or old['expected_head'] != expected_head):
             raise ValueError('next action identity reused with different contract')
         if not old:
-            db.execute('INSERT INTO next_actions VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', values)
+            db.execute('INSERT INTO next_actions VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', values)
+            db.execute('INSERT INTO next_action_history VALUES (?,?,?,?,?,?)',
+                       (action_id, generation, json.dumps(recovery_argv),
+                        json.dumps(recovery_route), now(), 'declared'))
     return dict(db.execute('SELECT * FROM next_actions WHERE action_id=?', (action_id,)).fetchone())
+
+
+def _qualified_new_owner(db, action, expected_generation, generation, recovery_route):
+    if action['state'] != 'waiting_completion' or action['generation'] != expected_generation:
+        raise ValueError('only an unclaimed action at the expected generation can move')
+    if not isinstance(recovery_route, dict):
+        raise ValueError('new recovery route must be an object')
+    current = require_current_generation(db, action['project'], generation)
+    if generation <= expected_generation:
+        raise ValueError('new generation must advance ownership')
+    receiver = current['coordinator'] if current['kind'] == 'codex-queue' else current['receiver']
+    if (not receiver or recovery_route.get('coordinator_id') != receiver
+            or recovery_route.get('ownership_generation') != generation):
+        raise ValueError('new recovery route does not match current owner')
+    errors = validate_recovery_route(recovery_route, dt.datetime.now(dt.timezone.utc), action['cwd'])
+    if errors:
+        raise ValueError('unqualified new recovery route: ' + '; '.join(errors))
+    old_maximum = json.loads(action['recovery_route'])['max_action_latency_seconds']
+    if recovery_route['max_action_latency_seconds'] > old_maximum:
+        raise ValueError('takeover cannot extend original action latency allowance')
+
+
+def _preserve_prior_action_owner(db, action):
+    # Older databases may contain a next action before the history table existed.
+    db.execute('INSERT OR IGNORE INTO next_action_history VALUES (?,?,?,?,?,?)',
+               (action['action_id'], action['generation'], action['recovery_argv'],
+                action['recovery_route'], action['declared_at'], 'declared'))
+
+
+def adopt_next_action(db, action_id, expected_generation, generation, recovery_route):
+    """Rebind an unclaimed continuation to the current owner; keep its identity/deadline."""
+    with db:
+        db.execute('BEGIN IMMEDIATE')
+        action = db.execute('SELECT * FROM next_actions WHERE action_id=?', (identifier(action_id),)).fetchone()
+        if not action:
+            raise ValueError('unknown next action')
+        _qualified_new_owner(db, action, expected_generation, generation, recovery_route)
+        _preserve_prior_action_owner(db, action)
+        db.execute('UPDATE next_actions SET generation=?,recovery_route=? WHERE action_id=?',
+                   (generation, json.dumps(recovery_route), action_id))
+        db.execute('INSERT INTO next_action_history VALUES (?,?,?,?,?,?)',
+                   (action_id, generation, action['recovery_argv'], json.dumps(recovery_route), now(), 'adopted'))
+    return next_action(db, action_id)
+
+
+def dispose_next_action(db, action_id, expected_generation, generation, recovery_route, reason):
+    """Record an explicit current-owner stop decision without erasing original action."""
+    if not isinstance(reason, str) or not reason.strip() or len(reason) > 500:
+        raise ValueError('disposition reason required')
+    with db:
+        db.execute('BEGIN IMMEDIATE')
+        action = db.execute('SELECT * FROM next_actions WHERE action_id=?', (identifier(action_id),)).fetchone()
+        if not action:
+            raise ValueError('unknown next action')
+        _qualified_new_owner(db, action, expected_generation, generation, recovery_route)
+        _preserve_prior_action_owner(db, action)
+        db.execute("UPDATE next_actions SET generation=?,recovery_route=?,state='disposed',error=? WHERE action_id=?",
+                   (generation, json.dumps(recovery_route), reason.strip(), action_id))
+        db.execute('INSERT INTO next_action_history VALUES (?,?,?,?,?,?)',
+                   (action_id, generation, action['recovery_argv'], json.dumps(recovery_route), now(), 'disposed'))
+    return next_action(db, action_id)
 
 
 def claim_next_action(db, action_id):
@@ -411,10 +490,14 @@ def claim_next_action(db, action_id):
         action = db.execute('SELECT * FROM next_actions WHERE action_id=?', (identifier(action_id),)).fetchone()
         if not action:
             raise ValueError('unknown next action')
-        require_current_generation(db, action['project'], action['generation'])
+        current = require_current_generation(db, action['project'], action['generation'])
         if action['state'] != 'waiting_completion':
             return None
         route = json.loads(action['recovery_route'])
+        receiver = current['coordinator'] if current['kind'] == 'codex-queue' else current['receiver']
+        if (route.get('ownership_generation') != action['generation']
+                or route.get('coordinator_id') != receiver):
+            raise ValueError('recovery route differs from current owner')
         errors = validate_recovery_route(route, dt.datetime.now(dt.timezone.utc), action['cwd'])
         if errors:
             raise ValueError('unqualified recovery route: ' + '; '.join(errors))
@@ -493,21 +576,85 @@ def record_next_action_started(db, action_id, generation, claim_token, evidence)
                 or proof.get('generation') != generation or proof.get('kind') != 'reviewer_started'):
             raise ValueError('action start proof identity/type mismatch')
         reviewer_job, reviewer_attempt = proof.get('reviewer_job'), proof.get('reviewer_attempt')
-        if reviewer_job and reviewer_attempt:
-            if not db.execute('SELECT 1 FROM launches WHERE job=? AND attempt=?',
-                              (reviewer_job, reviewer_attempt)).fetchone():
-                raise ValueError('reviewer launch is not recorded')
-        else:
-            pid = proof.get('reviewer_pid')
-            if not isinstance(pid, int) or pid <= 0:
-                raise ValueError('reviewer process evidence missing')
-            try:
-                os.kill(pid, 0)
-            except OSError as exc:
-                raise ValueError('reviewer process is not running') from exc
+        if not reviewer_job or not reviewer_attempt:
+            raise ValueError('bound reviewer job and attempt are required')
+        reviewer_job, reviewer_attempt = identifier(reviewer_job), identifier(reviewer_attempt)
+        reviewer = db.execute('''SELECT l.directory,l.started,a.root,ap.project,ap.registered_generation
+          FROM launches l JOIN attempts a USING(job,attempt)
+          JOIN attempt_projects ap USING(job,attempt)
+          WHERE l.job=? AND l.attempt=?''', (reviewer_job, reviewer_attempt)).fetchone()
+        if (not reviewer or reviewer['project'] != action['project']
+                or reviewer['registered_generation'] != generation):
+            raise ValueError('reviewer is not launched under current project generation')
+        try:
+            launched_at = float(reviewer['started'])
+            awake_at = dt.datetime.fromisoformat(action['awake_at'].replace('Z', '+00:00')).timestamp()
+        except (TypeError, ValueError, AttributeError):
+            raise ValueError('reviewer launch/awake time unavailable') from None
+        if launched_at < awake_at:
+            raise ValueError('reviewer launch predates coordinator wake')
+        review_dir = Path(reviewer['directory']).resolve(strict=True)
+        if not review_dir.is_dir() or not review_dir.is_relative_to(Path(reviewer['root'])):
+            raise ValueError('reviewer launch directory escaped assigned root')
+        expected_head = action['expected_head'] if 'expected_head' in action.keys() else None
+        if expected_head and proof.get('reviewed_head') != expected_head:
+            raise ValueError('reviewer head differs from declared action')
+        if not _reviewer_execution_observed(review_dir, expected_head, launched_at):
+            raise ValueError('reviewer has no structured tool/assistant activity or valid verdict')
         db.execute("UPDATE next_actions SET state='action_started',action_started_at=?,execution_evidence=? WHERE action_id=?",
                    (now(), json.dumps(evidence, sort_keys=True), action_id))
     return next_action(db, action_id)
+
+
+def _reviewer_execution_observed(directory, expected_head, launched_at):
+    """Accept actual structured reviewer activity or a verified terminal verdict."""
+    stdout = directory / 'stdout.log'
+    try:
+        if (stdout.is_file() and not stdout.is_symlink()
+                and stdout.stat().st_mtime >= launched_at
+                and stdout.stat().st_size <= 2_000_000):
+            with stdout.open('rb') as stream:
+                for raw in stream:
+                    if len(raw) > 100_000:
+                        continue
+                    try:
+                        event = json.loads(raw)
+                    except ValueError:
+                        continue
+                    if not isinstance(event, dict):
+                        continue
+                    if event.get('type') == 'assistant':
+                        message = event.get('message')
+                        if isinstance(message, dict) and message.get('model') and message.get('content'):
+                            return True
+                    if event.get('type') in ('item.started', 'item.completed'):
+                        item = event.get('item')
+                        if isinstance(item, dict) and item.get('type') in ('command_execution', 'agent_message', 'file_change'):
+                            return True
+    except OSError:
+        pass
+    receipt = directory / 'process-result.json'
+    final = directory / 'review.json'
+    try:
+        if (not receipt.is_file() or not final.is_file() or receipt.is_symlink() or final.is_symlink()
+                or receipt.stat().st_mtime < launched_at or final.stat().st_mtime < launched_at
+                or final.stat().st_size > 1_000_000):
+            return False
+        result = json.loads(receipt.read_text())
+        verdict = json.loads(final.read_text())
+        if not isinstance(result, dict) or not isinstance(verdict, dict):
+            return False
+        proof = result.get('final_artifact') or {}
+        digest = hashlib.sha256(final.read_bytes()).hexdigest()
+        return (result.get('process_outcome') == 'exited' and result.get('exit_code') == 0
+                and result.get('final_artifact_validated') is True
+                and proof.get('sha256') == digest
+                and verdict.get('verdict') in ('passed', 'changes_needed')
+                and isinstance(verdict.get('reviewed_head'), str)
+                and bool(verdict['reviewed_head'])
+                and (expected_head is None or verdict['reviewed_head'] == expected_head))
+    except (OSError, ValueError, TypeError):
+        return False
 
 
 def _owned_next_action(db, action_id, generation, claim_token):
@@ -780,6 +927,8 @@ def main():
     notice.add_argument('--acknowledged', action='store_true')
     retry = sub.add_parser('retry-failed'); retry.add_argument('--event-id', required=True)
     declare = sub.add_parser('declare-next-action'); declare.add_argument('--contract', required=True)
+    adopt = sub.add_parser('adopt-next-action'); adopt.add_argument('--contract', required=True)
+    dispose = sub.add_parser('dispose-next-action'); dispose.add_argument('--contract', required=True)
     next_record = sub.add_parser('next-action'); next_record.add_argument('--action-id', required=True)
     awake = sub.add_parser('recovery-awake')
     awake.add_argument('--action-id', default=os.environ.get('INTERCHANGE_ACTION_ID'))
@@ -809,6 +958,10 @@ def main():
         elif command == 'retry-failed': result = retry_failed_delivery(db, **args)
         elif command == 'declare-next-action':
             result = declare_next_action(db, **json.loads(Path(args['contract']).read_text()))
+        elif command == 'adopt-next-action':
+            result = adopt_next_action(db, **json.loads(Path(args['contract']).read_text()))
+        elif command == 'dispose-next-action':
+            result = dispose_next_action(db, **json.loads(Path(args['contract']).read_text()))
         elif command == 'next-action': result = next_action(db, **args)
         elif command == 'recovery-awake': result = acknowledge_recovery_awake(db, **args)
         elif command == 'action-started':

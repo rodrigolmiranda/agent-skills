@@ -99,11 +99,10 @@ def _manifest_env(manifest):
 
 
 def _isolated_worker(manifest, environment):
-    """Return a privilege drop for opt-in publication jobs.
+    """Return an optional privilege drop for a distinct-UID publication job.
 
-    A same-user tool policy cannot deny GitHub credentials or the owner's browser.
-    The supervisor therefore needs a distinct local account with its own private
-    home and provider login. This is unavailable to an unprivileged supervisor.
+    The default same-user adapter guards routine tool use; it is not a host
+    security boundary. A separately provisioned UID provides stronger isolation.
     """
     if 'post_return' not in manifest and 'execution_isolation' not in manifest:
         return None
@@ -111,7 +110,7 @@ def _isolated_worker(manifest, environment):
     if config.get('mode') == 'same_user':
         return None
     if not isinstance(config, dict) or config.get('mode') != 'distinct_uid':
-        raise ValueError('post_return requires distinct_uid execution isolation')
+        raise ValueError('unsupported post_return execution isolation')
     uid, gid = config.get('uid'), config.get('gid')
     if (not isinstance(uid, int) or isinstance(uid, bool) or not isinstance(gid, int)
             or isinstance(gid, bool) or uid <= 0 or gid <= 0 or uid == os.geteuid()):
@@ -154,11 +153,21 @@ def _worker_adapter(manifest, environment):
         raise ValueError('post_return requires the supported opencode-headless worker adapter')
     argv = manifest['argv']
     if (Path(argv[0]).name != 'opencode' or len(argv) < 2 or argv[1] != 'run'
-            or '--pure' not in argv or '--format' not in argv
+            or argv.count('--pure') != 1 or argv.count('--format') != 1
             or argv[argv.index('--format') + 1:argv.index('--format') + 2] != ['json']):
         raise ValueError('OpenCode worker must use run --pure --format json')
-    if any(flag in argv for flag in ('--attach', '--auto', '--share', '--continue', '--session', '--agent', '--command')):
-        raise ValueError('OpenCode worker may not attach, auto-approve, share, or override its agent')
+    forbidden = {'--attach', '--auto', '--share', '--continue', '--session', '--fork',
+                 '--agent', '--command', '--dir', '--file', '--password', '--username',
+                 '--port', '--interactive', '--no-pure'}
+    owned = {'--pure', '--format', '--model'}
+    if any((arg.split('=', 1)[0] in forbidden or
+            (arg.startswith('--') and '=' in arg and arg.split('=', 1)[0] in owned) or
+            any(arg.startswith('-' + short) for short in ('c', 's', 'f', 'i', 'p', 'u')) or
+            (arg.startswith('-m') and arg != '-m'))
+           for arg in argv[2:]):
+        raise ValueError('OpenCode worker may not override its session, cwd, agent, or tool policy')
+    if argv.count('--model') + argv.count('-m') != 1:
+        raise ValueError('OpenCode worker requires one explicit provider/model')
     model = None
     for flag in ('--model', '-m'):
         if flag in argv and argv.index(flag) + 1 < len(argv):
@@ -169,22 +178,28 @@ def _worker_adapter(manifest, environment):
     if not isinstance(allowed, list) or not allowed or not all(isinstance(x, str) and x.strip() for x in allowed):
         raise ValueError('OpenCode adapter needs explicit allowed_bash commands')
     bash = {'*': 'deny'}
+    safe_git_subcommands = {'add', 'branch', 'cat-file', 'checkout', 'commit', 'describe',
+                            'diff', 'diff-tree', 'fetch', 'log', 'ls-files', 'merge',
+                            'rebase', 'restore', 'rev-parse', 'show', 'status', 'switch'}
     for pattern in allowed:
         if any(char in pattern for char in (';', '|', '&', '`', '$', '>', '<', '\n', '\r')):
             raise ValueError('OpenCode allowed_bash cannot contain shell operators')
+        # OpenCode matches permission patterns against the whole command. An
+        # allow wildcard could also match a command suffix containing `; git
+        # push` or a Git global option before the real subcommand.
+        if any(char in pattern for char in ('*', '?', '[', ']')):
+            raise ValueError('OpenCode allowed_bash commands must be literal')
         try:
             tokens = shlex.split(pattern)
         except ValueError as exc:
             raise ValueError('invalid OpenCode allowed_bash command') from exc
-        if not tokens or tokens[0] in ('gh', 'curl', 'wget', 'ssh', 'scp', 'open', 'osascript',
+        if not tokens or '/' in tokens[0] or tokens[0] in ('gh', 'curl', 'wget', 'ssh', 'scp', 'open', 'osascript',
                                       'sudo', 'env', 'sh', 'bash', 'zsh'):
             raise ValueError('OpenCode allowed_bash includes an unsafe command')
-        if tokens[0] == 'git' and (len(tokens) < 2 or tokens[1] in ('push', 'remote', 'config', '-c')):
-            raise ValueError('OpenCode allowed_bash cannot publish or change Git routing')
+        if tokens[0] == 'git' and (len(tokens) < 2 or tokens[1] not in safe_git_subcommands):
+            raise ValueError('OpenCode allowed_bash requires a literal safe Git subcommand')
         if any(re.search(r'(^|[^a-z])(gh|browser|chrome)([^a-z]|$)', token.lower()) for token in tokens):
             raise ValueError('OpenCode allowed_bash includes publication or browser access')
-        if pattern == '*' or pattern.startswith('*'):
-            raise ValueError('OpenCode allowed_bash must name a bounded command')
         bash[pattern] = 'allow'
     # Last matching rule wins in the supported OpenCode permission map. Keep
     # denies after the coordinator's exact command allow-list.
