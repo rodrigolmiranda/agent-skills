@@ -26,6 +26,8 @@ overdue only when its supplied due time is at or before that snapshot. A
 explicitly says the parent is `OPEN`, the card says that the parent remains
 open. The issue, parent and PR/evidence links remain visible.
 
+Workflow steps may optionally include the caller-supplied `front` value `mentora`, `b2b`, `retail` or `shared`; the caller owns that classification and the renderer does not infer it.
+
 ## Communication recovery
 
 Diagnose missing startup, duplicate/late callbacks, bad correlation, stale session handles and failed delivery within the existing exchange authority. Safe idempotent notification retries may reuse the event identity. Reconcile uncertain process/write state before any relaunch; never duplicate a writer or replay product mutations to repair messaging. A new executor, changed provider/effort, scope, privilege or material deadline needs orchestrator disposition and any required owner authority.
