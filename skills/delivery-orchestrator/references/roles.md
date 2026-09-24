@@ -24,3 +24,10 @@ Per-request choices win, then the adopter's project profile, then the user profi
 
 
 For risk surfaces, keep the preferred economical builder first when the accepted packet resolves the design. Escalate an unresolved design question or the second substantive CHANGES-NEEDED on the same surface; preserve configured model/approval authority. Merely touching money, concurrency, tenancy or a cross-repository contract does not force a model switch.
+
+
+## Cost-aware independent review
+
+When the owner authorizes economical review for clearly bounded complexity, record that classification and the exact supported model/effort before launch. Sol medium and Claude Opus medium are selectable examples only when the current client/account supports them and the owner has authorized that route. Preserve stronger routing for unclear or sensitive changes; a small diff is insufficient evidence of low risk. Keep the same reviewer session for corrections where supported. A confirmation reviews the entire corrective diff and relevant regressions. Requested settings are not observed execution proof.
+
+A configured headless reviewer is a separate independent session; it need not be a native in-chat subagent. Native delegation remains supported for supervised interactive reviews. Neither route may silently replace the selected model because another transport is easier.

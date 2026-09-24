@@ -76,6 +76,20 @@ def collect(root):
                         attempt['live_facts'] = facts
                         if facts['process'] == 'running' and not str(attempt.get('execution_state', '')).startswith(('MERGED', 'done')):
                             attempt['execution_state'] = f"running · {facts['tool_calls']} tool calls · last output {facts['last_output_at']}"
+            monitor_path = project_dir / 'monitor.json'
+            if monitor_path.exists():
+                if monitor_path.is_symlink() or monitor_path.stat().st_size > 1_000_000:
+                    raise ValueError('unsafe or oversized monitor record')
+                monitor = json.loads(monitor_path.read_text())
+                if not isinstance(monitor, dict) or monitor.get('project_id') != record['project_id']:
+                    raise ValueError('monitor project identity mismatch')
+                record['supervision'] = {
+                    'updated_at': monitor.get('updated_at'),
+                    'notification_available': monitor.get('notification_available') is True,
+                    'alerts': [{k: str(a.get(k, ''))[:120] for k in
+                                ('code', 'type', 'job', 'attempt', 'next_owner')}
+                               for a in monitor.get('alerts', []) if isinstance(a, dict)][:100],
+                }
             dashboard.validate_done_sources(record)
             records.append(record)
         except Exception as exc:  # one broken project must not blank the others

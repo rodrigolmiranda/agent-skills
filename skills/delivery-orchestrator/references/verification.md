@@ -32,3 +32,10 @@ For Claude-led navigation that needs credential entry, use the bounded Codex hel
 ## Base and CI changes
 
 Update/rebase only for actual overlap, contract/base impact or repository merge policy; record why. A docs-only base change is not an automatic exemption, but avoid gratuitous branch updates and repeated full gates. Classify failures as code, infrastructure, suspected flake or unknown from direct evidence. A retry pass alone proves neither flakiness nor independence from the change. Classification never waives a required gate.
+
+
+## Isolated browser acceptance
+
+Reviewers use an isolated browser/profile by default; disable owner-browser extensions/tools mechanically in the selected launch adapter. Headless is the default for automated checks; isolated headed execution may be necessary for visual investigations. Record and stop only owned test processes; do not close owner tabs or shared services. Transfer explicitly retained resources to a named lifecycle owner.
+
+Use supported test authentication with least-privilege fixture identities and protected local credential storage. A harness may consume keychain credentials without emitting them to model output; verify that boundary before making a secrecy claim. Never copy browser sessions or secrets into handovers. A Development-only shortcut cannot prove real SSO acceptance or be enabled in production. A packet's no-provisioning restriction is not a permanent owner prohibition: resolve actual authority and do available source work while required fixture approval remains outstanding.

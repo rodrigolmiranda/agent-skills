@@ -55,6 +55,8 @@ Evidence (owner decision 2026-09-24, cheap first):
   same caller; add a test that pins it", not "sm360 uses `portal/{hash}`". The pointer version made the worker adopt
   one host's detail as the SDK default and broke the other hosts.
 
+Include relevant [risk invariants](risk-invariants.md) and negative proof in the accepted packet.
+
 ## The review loop
 
 1. Every PR that touches a risk surface gets an independent, read-only risk review before merge. The review checks the

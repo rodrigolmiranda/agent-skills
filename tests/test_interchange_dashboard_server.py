@@ -54,6 +54,19 @@ class DashboardServerTests(unittest.TestCase):
         self.assertIn('data-project="good"', page)
         self.assertIn('broken</strong>: this project could not be rendered', page)
 
+    def test_monitor_attention_visible_without_worker_output(self):
+        folder = self.project('watched', record('watched'))
+        (folder / 'monitor.json').write_text(json.dumps({
+            'project_id': 'watched', 'updated_at': '2026-09-24T01:00:00Z',
+            'notification_available': False,
+            'alerts': [{'code': 'undelivered-event', 'job': 'job-a', 'next_owner': 'incoming',
+                        'message': 'PRIVATE-LOG-SECRET'}]}))
+        page = dashboard_server.build_page(self.root)
+        self.assertIn('undelivered-event', page)
+        self.assertIn('not configured', page)
+        self.assertNotIn('PRIVATE-LOG-SECRET', page)
+        self.assertTrue((folder / 'monitor.json').exists())
+
     def test_serves_over_http_on_loopback(self):
         self.project('gamma', record('gamma'))
         server = dashboard_server.ThreadingHTTPServer(('127.0.0.1', 0), dashboard_server.make_handler(self.root))

@@ -3,7 +3,10 @@ import json
 from pathlib import Path
 import sys
 import tempfile
+import threading
+import time
 import unittest
+from unittest import mock
 
 SCRIPTS=Path(__file__).parents[1]/'skills/interchange/scripts'
 sys.path.insert(0,str(SCRIPTS))
@@ -79,6 +82,61 @@ class RunnerTests(unittest.TestCase):
         self.assertTrue(receipt['output_truncated'])
         self.assertTrue(receipt['ownership_check_required'])
 
+    def test_short_stream_event_is_visible_before_child_exits(self):
+        release = self.root / 'release-child'
+        code = ('import json,pathlib,time\n'
+                'print(json.dumps({"type":"assistant","message":{"content":[]}}),flush=True)\n'
+                f'p=pathlib.Path({str(release)!r})\n'
+                'while not p.exists(): time.sleep(.02)\n')
+        finished = []
+        thread = threading.Thread(target=lambda: finished.append(self.execute(code, timeout=5)))
+        thread.start()
+        log = self.root / 'run/stdout.log'
+        seen_while_running = False
+        try:
+            deadline = time.monotonic() + 2
+            while time.monotonic() < deadline:
+                if log.exists() and '"type": "assistant"' in log.read_text():
+                    seen_while_running = thread.is_alive()
+                    break
+                time.sleep(.02)
+        finally:
+            release.touch()
+            thread.join(timeout=6)
+        self.assertTrue(seen_while_running)
+        self.assertFalse(thread.is_alive())
+        self.assertEqual(finished[0]['result']['exit_code'], 0)
+
+    def test_stream_final_accepts_one_fenced_json_verdict_with_intro(self):
+        directory=self.root/'review';directory.mkdir()
+        target=directory/'review.json'
+        verdict={'reviewed_head':'a'*40,'verdict':'passed','findings':[]}
+        final=('I reviewed the code only; tests could not run in this sandbox.\n\n'
+               '```json\n'+json.dumps(verdict,indent=2)+'\n```')
+        (directory/'stdout.log').write_text(json.dumps({'type':'result','result':final})+'\n')
+        run_job._collect_stream_final({'final_artifact_from_stdout':True},target,directory)
+        self.assertEqual(json.loads(target.read_text()),verdict)
+
+    def test_stream_final_rejects_competing_or_incomplete_fences(self):
+        directory=self.root/'review';directory.mkdir()
+        target=directory/'review.json'
+        body=json.dumps({'reviewed_head':'a'*40,'verdict':'passed'})
+        candidates=[
+            'Intro\n```json\n'+body+'\n```\n```json\n'+body+'\n```',
+            'Intro {"verdict":"passed"}\n```json\n'+body+'\n```',
+            'Intro\n```json\n'+body,
+            'Intro\n```json\n'+body+'\n```\n{"reviewed_head":"b"}',
+            'Intro\n```json\n'+body+' extra\n```',
+        ]
+        for candidate in candidates:
+            with self.subTest(candidate=candidate[:35]):
+                (directory/'stdout.log').write_text(json.dumps({'type':'result','result':candidate})+'\n')
+                run_job._collect_stream_final({'final_artifact_from_stdout':True},target,directory)
+                self.assertFalse(target.exists())
+        (directory/'stdout.log').write_text(json.dumps({'type':'result','result':body})+'\n')
+        run_job._collect_stream_final({'final_artifact_from_stdout':True},target,directory)
+        self.assertEqual(json.loads(target.read_text())['reviewed_head'],'a'*40)
+
     def test_missing_final_artifact_stays_unverified(self):
         result=self.execute('print("completed")',final_artifact=str(self.root/'run/missing.json'))
         receipt=result['result']
@@ -113,6 +171,18 @@ class RunnerTests(unittest.TestCase):
         result=self.execute('import sys;print(repr(sys.stdin.read()))')
         self.assertEqual(result['result']['exit_code'],0)
         self.assertIn("''",(self.root/'run/stdout.log').read_text())
+
+    def test_child_pwd_is_bound_to_manifest_cwd(self):
+        code=('import json,os;print(json.dumps({"cwd":os.getcwd(),'
+              '"pwd":os.environ.get("PWD"),"oldpwd":os.environ.get("OLDPWD")}))')
+        with mock.patch.dict('os.environ', {'PWD': str(self.root/'wrong-checkout'),
+                                            'OLDPWD': str(self.root/'stale-checkout')}):
+            result=self.execute(code)
+        self.assertEqual(result['result']['exit_code'],0)
+        child=json.loads((self.root/'run/stdout.log').read_text())
+        self.assertEqual(child['cwd'],str(self.root.resolve()))
+        self.assertEqual(child['pwd'],child['cwd'])
+        self.assertIsNone(child['oldpwd'])
 
     def test_env_map_reaches_the_worker_and_refuses_secret_names(self):
         result=self.execute('import os;print(os.environ["WORKER_CONFIG"])',env={'WORKER_CONFIG':'{"a":1}'})

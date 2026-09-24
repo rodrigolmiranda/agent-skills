@@ -11,3 +11,5 @@ Shared portfolio authority is MarvinaMiranda, resolved through local configurati
 For delivery scheduling and repeated waits, use the installed `delivery-orchestrator` scheduling/progress checkpoint before yielding; this applies equally to Codex and Claude. Workflow rules live in that skill, not this router.
 
 For technical decisions and escalation boundaries, Codex and Claude follow `skills/delivery-orchestrator/SKILL.md#supervisor-technical-decisions`; resolve them before recording an owner wait.
+
+Owner-authorized agent delivery PRs are allowed. Restrictions on dependency/app-bot PRs do not prohibit the declared Interchange publication pipeline. Workers never publish through that pipeline; the authorized supervisor process owns GitHub publication.

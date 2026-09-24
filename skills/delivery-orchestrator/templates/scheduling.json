@@ -30,5 +30,21 @@
     "next_owner": "coordinator",
     "next_event": "verified worker return"
   },
-  "source_kind": "github"
+  "source_kind": "github",
+  "recovery_route": {
+    "kind": "heartbeat",
+    "schedule_id": "host-schedule-id",
+    "owner": "coordinator",
+    "coordinator_id": "coordinator-session-id",
+    "ownership_generation": 1,
+    "independently_scheduled": true,
+    "verified_at": "ISO-8601 idle-smoke verification timestamp",
+    "expires_at": "ISO-8601 qualification expiry",
+    "acceptance": "next_action_started",
+    "max_action_latency_seconds": 600,
+    "proof": {
+      "path": "supervision/idle-smoke.json",
+      "sha256": "SHA256 of completed real-host qualification artifact"
+    }
+  }
 }

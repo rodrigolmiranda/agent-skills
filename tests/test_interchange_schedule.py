@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import hashlib
 from pathlib import Path
 import subprocess
 import sys
@@ -24,6 +25,14 @@ def setUpModule():
         fixture = EVIDENCE_ROOT / name
         fixture.parent.mkdir(parents=True, exist_ok=True)
         fixture.write_text('Synthetic test evidence for ' + name)
+    proof = {
+        'schedule_id': 'test-heartbeat', 'coordinator_id': 'test-coordinator',
+        'ownership_generation': 1, 'worker_completed_at': '2026-09-23T09:00:00Z',
+        'queued_at': '2026-09-23T09:00:01Z', 'delivered_at': '2026-09-23T09:00:02Z',
+        'awake_at': '2026-09-23T09:00:03Z', 'action_started_at': '2026-09-23T09:00:04Z',
+        'action_id': 'fixture-review', 'execution_evidence': 'fixture reviewer process receipt',
+    }
+    (EVIDENCE_ROOT / 'idle-smoke.json').write_text(json.dumps(proof))
     unittest.addModuleCleanup(EVIDENCE_DIR.cleanup)
 
 
@@ -53,6 +62,15 @@ def receipt(items=None, source_ids=None):
         'source_ids': source_ids,
         'items': items,
         'write_leases': [],
+        'recovery_route': {
+            'kind': 'heartbeat', 'schedule_id': 'test-heartbeat', 'owner': 'test-coordinator',
+            'coordinator_id': 'test-coordinator', 'ownership_generation': 1,
+            'independently_scheduled': True, 'acceptance': 'next_action_started',
+            'verified_at': '2026-09-23T09:01:00Z', 'expires_at': '2027-09-23T09:00:00Z',
+            'max_action_latency_seconds': 60,
+            'proof': {'path': 'idle-smoke.json', 'sha256': hashlib.sha256(
+                (EVIDENCE_ROOT / 'idle-smoke.json').read_bytes()).hexdigest()},
+        },
         'checkpoint': {
             'trigger': 'return', 'next_owner': 'coordinator', 'next_event': 'worker return',
             'assessment_evidence': 'artifact://schedule/current',
@@ -67,6 +85,27 @@ def receipt(items=None, source_ids=None):
 
 
 class ScheduleReceiptTests(unittest.TestCase):
+    def test_yield_with_native_or_external_work_requires_independent_recovery(self):
+        record = receipt()
+        self.assertEqual([], validate(record, before_yield=True))
+        record.pop('recovery_route')
+        self.assertTrue(any('recovery_route' in error for error in validate(record, before_yield=True)))
+        self.assertEqual([], validate(record))
+
+    def test_yield_rejects_queue_only_or_expired_recovery(self):
+        for field, value in [('independently_scheduled', False),
+                             ('acceptance', 'result_sent'),
+                             ('expires_at', '2026-09-23T09:00:00Z')]:
+            record = receipt()
+            record['recovery_route'][field] = value
+            self.assertTrue(any('recovery_route' in error for error in validate(record, before_yield=True)))
+
+    def test_yield_rejects_missing_or_tampered_idle_proof(self):
+        for path, digest in [('missing.json', 'a' * 64), ('idle-smoke.json', '0' * 64)]:
+            record = receipt()
+            record['recovery_route']['proof'] = {'path': path, 'sha256': digest}
+            self.assertTrue(any('recovery_route' in error for error in validate(record, before_yield=True)))
+
     def test_complete_parallel_dispatch_is_consistent(self):
         items = [
             {'id': 'PROJECT#1', 'ready': True, 'disposition': 'active',
