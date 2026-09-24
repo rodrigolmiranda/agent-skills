@@ -107,6 +107,36 @@ class RunnerTests(unittest.TestCase):
         self.assertFalse(thread.is_alive())
         self.assertEqual(finished[0]['result']['exit_code'], 0)
 
+    def test_stream_final_accepts_one_fenced_json_verdict_with_intro(self):
+        directory=self.root/'review';directory.mkdir()
+        target=directory/'review.json'
+        verdict={'reviewed_head':'a'*40,'verdict':'passed','findings':[]}
+        final=('I reviewed the code only; tests could not run in this sandbox.\n\n'
+               '```json\n'+json.dumps(verdict,indent=2)+'\n```')
+        (directory/'stdout.log').write_text(json.dumps({'type':'result','result':final})+'\n')
+        run_job._collect_stream_final({'final_artifact_from_stdout':True},target,directory)
+        self.assertEqual(json.loads(target.read_text()),verdict)
+
+    def test_stream_final_rejects_competing_or_incomplete_fences(self):
+        directory=self.root/'review';directory.mkdir()
+        target=directory/'review.json'
+        body=json.dumps({'reviewed_head':'a'*40,'verdict':'passed'})
+        candidates=[
+            'Intro\n```json\n'+body+'\n```\n```json\n'+body+'\n```',
+            'Intro {"verdict":"passed"}\n```json\n'+body+'\n```',
+            'Intro\n```json\n'+body,
+            'Intro\n```json\n'+body+'\n```\n{"reviewed_head":"b"}',
+            'Intro\n```json\n'+body+' extra\n```',
+        ]
+        for candidate in candidates:
+            with self.subTest(candidate=candidate[:35]):
+                (directory/'stdout.log').write_text(json.dumps({'type':'result','result':candidate})+'\n')
+                run_job._collect_stream_final({'final_artifact_from_stdout':True},target,directory)
+                self.assertFalse(target.exists())
+        (directory/'stdout.log').write_text(json.dumps({'type':'result','result':body})+'\n')
+        run_job._collect_stream_final({'final_artifact_from_stdout':True},target,directory)
+        self.assertEqual(json.loads(target.read_text())['reviewed_head'],'a'*40)
+
     def test_missing_final_artifact_stays_unverified(self):
         result=self.execute('print("completed")',final_artifact=str(self.root/'run/missing.json'))
         receipt=result['result']

@@ -454,6 +454,39 @@ def _final_artifact_proof(path, directory):
                 'error_type': type(exc).__name__}
 
 
+def _stream_verdict(candidate):
+    """Read one JSON object, optionally from one complete json fence.
+
+    Claude may precede its final fenced object with prose. Never search for a
+    brace-delimited substring or choose among competing fences/objects.
+    """
+    if not isinstance(candidate, str) or len(candidate) > 100_000:
+        return None
+    text = candidate.strip()
+    if '```' in text:
+        if text.count('```') != 2:
+            return None
+        opening = re.search(r'^```json[ \t]*\r?\n', text, re.MULTILINE)
+        if opening is None:
+            return None
+        following = text[opening.end():]
+        closing = re.search(r'^```[ \t]*\r?$', following, re.MULTILINE)
+        if closing is None:
+            return None
+        surrounding = text[:opening.start()] + following[closing.end():]
+        if '{' in surrounding or '}' in surrounding:
+            return None
+        text = following[:closing.start()].strip()
+    try:
+        parsed = json.loads(text)
+    except ValueError:
+        return None
+    if (isinstance(parsed, dict) and parsed.get('verdict') in ('passed', 'changes_needed')
+            and isinstance(parsed.get('reviewed_head'), str)):
+        return parsed
+    return None
+
+
 def _collect_stream_final(manifest, target, directory):
     """Copy a structured headless reviewer verdict from its bounded event stream."""
     if not manifest.get('final_artifact_from_stdout') or target is None:
@@ -478,12 +511,8 @@ def _collect_stream_final(manifest, target, directory):
                 candidate = event['item'].get('text')
             else:
                 continue
-            try:
-                parsed = json.loads(candidate)
-            except (TypeError, ValueError):
-                continue
-            if (isinstance(parsed, dict) and parsed.get('verdict') in ('passed', 'changes_needed')
-                    and isinstance(parsed.get('reviewed_head'), str)):
+            parsed = _stream_verdict(candidate)
+            if parsed is not None:
                 verdict = parsed
     if verdict is not None:
         fd = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, 'O_NOFOLLOW', 0), 0o600)
