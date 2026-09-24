@@ -312,10 +312,29 @@ class PipelineTests(unittest.TestCase):
         for unsafe in ('git push origin feature/one', 'gh pr create', 'open -a Chrome',
                        'git status; gh pr create', '*', 'git *', 'git -C . push',
                        'git --git-dir=.git push', 'git --work-tree=. push',
-                       'git status*', 'git status --short*', '/usr/bin/git push'):
+                       'git status*', 'git status --short*', '/usr/bin/git push',
+                       'bash *', 'bash infra/local/scripts/*', 'dotnet *',
+                       'python3 *', 'npm *'):
             with self.subTest(unsafe=unsafe), self.assertRaises(ValueError):
                 run_job._worker_adapter({**manifest,
                     'worker_adapter': {'kind': 'opencode-headless', 'allowed_bash': [unsafe]}}, {})
+        prefixes = ['git status *', 'git diff *', 'git add *', 'git commit -m *',
+                    'ls *', 'rg *', 'sed *', 'echo *', 'printf *',
+                    'python3 -m unittest *', 'dotnet test *',
+                    'bash infra/local/scripts/ci.sh *', 'bash -n infra/local/scripts/ci.sh']
+        prefix_env = {}
+        run_job._worker_adapter({**manifest, 'worker_adapter': {
+            'kind': 'opencode-headless', 'allowed_bash': prefixes}}, prefix_env)
+        prefix_policy = json.loads(prefix_env['OPENCODE_CONFIG_CONTENT'])['permission']['bash']
+        self.assertTrue(all(prefix_policy[p] == 'allow' for p in prefixes))
+        self.assertEqual(prefix_policy['git push*'], 'deny')
+        self.assertEqual(prefix_policy['gh*'], 'deny')
+        self.assertEqual(prefix_policy['curl*'], 'deny')
+        wrong_version = subprocess.CompletedProcess([], 0, stdout=b'1.18.31\n', stderr=b'')
+        with mock.patch.object(run_job.subprocess, 'run', return_value=wrong_version):
+            with self.assertRaisesRegex(ValueError, 'qualified version 1.18.32'):
+                run_job._verify_worker_adapter({**manifest, 'worker_adapter': {
+                    'kind': 'opencode-headless', 'allowed_bash': prefixes}}, prefix_env, None)
         with self.assertRaises(ValueError):
             run_job._worker_adapter({**manifest, 'argv': argv + ['--attach', 'http://localhost:4096']}, {})
         for extra in (['--session=old'], ['-s', 'old'], ['-c'], ['--dir=elsewhere'],
@@ -359,6 +378,9 @@ from pathlib import Path
 policy=json.loads(os.environ['OPENCODE_CONFIG_CONTENT'])['permission']
 if sys.argv[1:4]==['debug','config','--pure']:
     print(json.dumps({'permission':policy,'mcp':{},'plugin':[]}))
+    raise SystemExit(0)
+if sys.argv[1:]==['--version']:
+    print('1.18.32')
     raise SystemExit(0)
 assert policy['bash']['git push*']=='deny'
 assert policy['bash']['gh*']=='deny'
@@ -417,7 +439,7 @@ print(json.dumps({'type':'tool','part':{'type':'tool','name':'bash'}}),flush=Tru
                              'fixture/model', 'packet'], 'timeout_seconds': 15,
                     'final_artifact_source': '.worker-final.json',
                     'worker_adapter': {'kind': 'opencode-headless',
-                                       'allowed_bash': ['git add owned.txt', 'git commit -m worker implementation']},
+                                       'allowed_bash': ['git add *', 'git commit -m *']},
                     'post_return': spec}
         relay.register(self.db, 'job', 'same', 'worker', self.root)
         relay.bind_attempt(self.db, 'project', 'job', 'same', 1)

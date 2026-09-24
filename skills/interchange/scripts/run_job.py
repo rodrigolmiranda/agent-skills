@@ -181,29 +181,51 @@ def _worker_adapter(manifest, environment):
     safe_git_subcommands = {'add', 'branch', 'cat-file', 'checkout', 'commit', 'describe',
                             'diff', 'diff-tree', 'fetch', 'log', 'ls-files', 'merge',
                             'rebase', 'restore', 'rev-parse', 'show', 'status', 'switch'}
+    prefix_tools = {'ls', 'grep', 'sed', 'rg', 'cat', 'head', 'tail', 'wc', 'find',
+                    'echo', 'printf'}
     for pattern in allowed:
-        if any(char in pattern for char in (';', '|', '&', '`', '$', '>', '<', '\n', '\r')):
+        # v1.18.32 scans each command in a shell chain independently. A
+        # trailing ` *` is therefore a bounded argument prefix; a bare `*`
+        # or a wildcard inside the executable/subcommand remains too broad.
+        prefix = pattern.endswith(' *')
+        literal = pattern[:-2] if prefix else pattern
+        if any(char in literal for char in (';', '|', '&', '`', '$', '>', '<', '\n', '\r')):
             raise ValueError('OpenCode allowed_bash cannot contain shell operators')
-        # OpenCode matches permission patterns against the whole command. An
-        # allow wildcard could also match a command suffix containing `; git
-        # push` or a Git global option before the real subcommand.
-        if any(char in pattern for char in ('*', '?', '[', ']')):
-            raise ValueError('OpenCode allowed_bash commands must be literal')
+        if any(char in literal for char in ('*', '?', '[', ']')) or (not prefix and '*' in pattern):
+            raise ValueError('OpenCode allowed_bash supports only trailing argument prefixes')
         try:
-            tokens = shlex.split(pattern)
+            tokens = shlex.split(literal)
         except ValueError as exc:
             raise ValueError('invalid OpenCode allowed_bash command') from exc
         if not tokens or '/' in tokens[0] or tokens[0] in ('gh', 'curl', 'wget', 'ssh', 'scp', 'open', 'osascript',
-                                      'sudo', 'env', 'sh', 'bash', 'zsh'):
+                                      'sudo', 'env', 'sh', 'zsh'):
             raise ValueError('OpenCode allowed_bash includes an unsafe command')
         if tokens[0] == 'git' and (len(tokens) < 2 or tokens[1] not in safe_git_subcommands):
             raise ValueError('OpenCode allowed_bash requires a literal safe Git subcommand')
+        if tokens[0] == 'bash':
+            script_arg = tokens[2] if len(tokens) >= 3 and tokens[1] == '-n' else (
+                tokens[1] if len(tokens) >= 2 else None)
+            script = Path(script_arg) if script_arg is not None else None
+            if (script is None or script.is_absolute() or '..' in script.parts
+                    or script.suffix != '.sh' or str(script) in ('.', '..')):
+                raise ValueError('OpenCode bash permission requires a repo-relative .sh script')
+        if tokens[0] == 'dotnet' and (len(tokens) < 2 or tokens[1] not in
+                                      {'test', 'build', 'restore', 'format'}):
+            raise ValueError('OpenCode dotnet permission requires a bounded subcommand')
+        if tokens[0] in ('python', 'python3') and (len(tokens) < 3 or tokens[1] != '-m'
+                                                  or tokens[2] not in ('unittest', 'pytest')):
+            raise ValueError('OpenCode Python permission requires a test module')
+        if prefix and tokens[0] not in prefix_tools | {'git', 'bash', 'dotnet', 'python', 'python3'}:
+            raise ValueError('OpenCode allowed_bash prefix requires a qualified command')
         if any(re.search(r'(^|[^a-z])(gh|browser|chrome)([^a-z]|$)', token.lower()) for token in tokens):
             raise ValueError('OpenCode allowed_bash includes publication or browser access')
         bash[pattern] = 'allow'
-    # Last matching rule wins in the supported OpenCode permission map. Keep
-    # denies after the coordinator's exact command allow-list.
-    bash.update({'git push*': 'deny', 'gh*': 'deny', '*browser*': 'deny', '*chrome*': 'deny'})
+    # Last matching rule wins. The v1.18.32 scanner checks every chained
+    # command, so a later forbidden command cannot inherit an allowed prefix.
+    bash.update({'git push*': 'deny', 'gh*': 'deny', 'curl*': 'deny', 'wget*': 'deny',
+                 'ssh*': 'deny', 'scp*': 'deny', 'open*': 'deny', 'osascript*': 'deny',
+                 '*browser*': 'deny', '*chrome*': 'deny', '*playwright*': 'deny',
+                 '*computer*': 'deny'})
     permissions = {'read': 'allow', 'edit': 'allow', 'glob': 'allow', 'grep': 'allow',
                    'list': 'allow', 'todowrite': 'allow', 'bash': bash,
                    'webfetch': 'deny', 'websearch': 'deny', 'task': 'deny',
@@ -228,6 +250,15 @@ def _verify_worker_adapter(manifest, environment, privilege_drop):
     if 'post_return' not in manifest:
         return
     argv = manifest['argv']
+    if any(pattern.endswith(' *') for pattern in manifest['worker_adapter']['allowed_bash']):
+        try:
+            version = subprocess.run([argv[0], '--version'], cwd=manifest['cwd'], env=environment,
+                                     preexec_fn=privilege_drop, stdin=subprocess.DEVNULL,
+                                     capture_output=True, timeout=10)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise ValueError('OpenCode Bash prefix version probe did not complete') from exc
+        if version.returncode or version.stdout.decode(errors='replace').strip() != '1.18.32':
+            raise ValueError('OpenCode Bash prefixes require qualified version 1.18.32')
     try:
         check = subprocess.run([argv[0], 'debug', 'config', '--pure'], cwd=manifest['cwd'],
                                env=environment, preexec_fn=privilege_drop, stdin=subprocess.DEVNULL,
@@ -578,6 +609,8 @@ def run(manifest, state, directory):
                         else:
                             should_kill = False
                     out.write(captured)
+                    if captured:
+                        out.flush()  # publish short structured events before process exit
                     if should_kill:
                         stop(proc)
             stream.close()

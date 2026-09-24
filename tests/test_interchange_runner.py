@@ -3,6 +3,8 @@ import json
 from pathlib import Path
 import sys
 import tempfile
+import threading
+import time
 import unittest
 
 SCRIPTS=Path(__file__).parents[1]/'skills/interchange/scripts'
@@ -78,6 +80,30 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual(receipt['process_outcome'],'timeout')
         self.assertTrue(receipt['output_truncated'])
         self.assertTrue(receipt['ownership_check_required'])
+
+    def test_short_stream_event_is_visible_before_child_exits(self):
+        release = self.root / 'release-child'
+        code = ('import pathlib,time\nprint("SHORT-STRUCTURED-EVENT",flush=True)\n'
+                f'p=pathlib.Path({str(release)!r})\n'
+                'while not p.exists(): time.sleep(.02)\n')
+        finished = []
+        thread = threading.Thread(target=lambda: finished.append(self.execute(code, timeout=5)))
+        thread.start()
+        log = self.root / 'run/stdout.log'
+        seen_while_running = False
+        try:
+            deadline = time.monotonic() + 2
+            while time.monotonic() < deadline:
+                if log.exists() and 'SHORT-STRUCTURED-EVENT' in log.read_text():
+                    seen_while_running = thread.is_alive()
+                    break
+                time.sleep(.02)
+        finally:
+            release.touch()
+            thread.join(timeout=6)
+        self.assertTrue(seen_while_running)
+        self.assertFalse(thread.is_alive())
+        self.assertEqual(finished[0]['result']['exit_code'], 0)
 
     def test_missing_final_artifact_stays_unverified(self):
         result=self.execute('print("completed")',final_artifact=str(self.root/'run/missing.json'))

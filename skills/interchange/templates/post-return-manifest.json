@@ -14,8 +14,10 @@
   "worker_adapter": {
     "kind": "opencode-headless",
     "allowed_bash": [
-      "git status --short", "git diff --check",
-      "<exact-gate-command>", "<exact-owned-git-add-command>", "<exact-git-commit-command>"
+      "git status *", "git diff *", "ls *", "rg *", "sed *",
+      "mkdir -p .interchange", "bash <approved-repo-relative-gate>.sh *",
+      "python3 -m unittest *", "dotnet test *",
+      "git add <owned-path>", "git commit -m *"
     ]
   },
   "post_return": {
