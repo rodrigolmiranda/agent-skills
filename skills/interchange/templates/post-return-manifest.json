@@ -3,15 +3,20 @@
   "attempt": "<attempt-id>",
   "sender": "<registered-worker-sender>",
   "cwd": "<absolute-owned-worktree>",
-  "argv": ["<absolute-worker-cli>", "<literal-args-and-packet-path>"],
+  "argv": [
+    "<absolute-opencode-cli>", "run", "--pure", "--format", "json",
+    "--model", "<verified-provider/model>", "<literal-packet-message>"
+  ],
   "timeout_seconds": 3600,
   "max_output_bytes": 2000000,
   "final_artifact_source": ".interchange/<attempt-id>-final.json",
-  "execution_isolation": {
-    "mode": "distinct_uid",
-    "uid": 1002,
-    "gid": 1002,
-    "home": "<absolute-private-worker-home>"
+  "execution_isolation": {"mode": "same_user"},
+  "worker_adapter": {
+    "kind": "opencode-headless",
+    "allowed_bash": [
+      "git status --short", "git diff --check",
+      "<exact-gate-command>", "<exact-owned-git-add-command>", "<exact-git-commit-command>"
+    ]
   },
   "post_return": {
     "version": 1,
@@ -44,12 +49,7 @@
       "timeout_seconds": 3600,
       "startup_seconds": 120,
       "route": "manual",
-      "execution_isolation": {
-        "mode": "distinct_uid",
-        "uid": 1003,
-        "gid": 1003,
-        "home": "<absolute-private-reviewer-home>"
-      }
+      "execution_isolation": {"mode": "same_user"}
     }
   }
 }

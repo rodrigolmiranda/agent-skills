@@ -9,6 +9,7 @@ import argparse
 from collections import Counter
 from datetime import datetime
 import json
+import importlib.util
 import re
 from pathlib import Path
 import sys
@@ -87,6 +88,25 @@ def evidence_pointer(value):
     # A bare file name with an extension (e.g. HANDOVER.md) is a local path under the artifact root;
     # validate_local_evidence still requires it to resolve to an existing file.
     return '/' in text or '#' in text or bool(re.fullmatch(r'[\w.-]+\.[A-Za-z0-9]{1,8}', text))
+
+
+def validate_yield_recovery(receipt, artifact_root):
+    """Use Interchange's one recovery-proof contract for native and external work."""
+    if not any(isinstance(row, dict) and row.get('disposition') in ('active', 'dispatched')
+               for row in receipt.get('items', [])):
+        return []
+    checked = timestamp(receipt.get('checked_at'))
+    if checked is None:
+        return ['recovery route needs a valid checked_at']
+    helper = Path(__file__).resolve().parents[2] / 'interchange/scripts/relay.py'
+    try:
+        spec = importlib.util.spec_from_file_location('schedule_recovery_contract', helper)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        errors = module.validate_recovery_route(receipt.get('recovery_route'), checked, artifact_root)
+    except (OSError, ImportError, AttributeError) as error:
+        return ['recovery validation unavailable: ' + str(error)]
+    return ['recovery_route: ' + error for error in errors]
 
 
 def validate_local_evidence(receipt, artifact_root):
@@ -339,6 +359,8 @@ def validate_schedule(receipt, before_yield=False, artifact_root=None):
                 f'{prefix} is ready but idle; use active/dispatched or an evidence-backed '
                 'conflict-blocked, capacity-blocked, or authority-held exclusion')
 
+    if before_yield:
+        errors.extend(validate_yield_recovery(receipt, artifact_root))
     errors.extend(validate_progress(receipt, before_yield=before_yield))
     errors.extend(validate_local_evidence(receipt, artifact_root))
     return errors

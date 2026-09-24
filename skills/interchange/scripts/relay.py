@@ -4,6 +4,7 @@ import argparse
 import datetime as dt
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -13,7 +14,7 @@ import uuid
 
 IDENTIFIER = re.compile(r'[A-Za-z0-9._-]{1,100}\Z')
 PROJECT_IDENTIFIER = re.compile(r'[A-Za-z0-9_-]{1,100}\Z')
-KINDS = {'started', 'result', 'question', 'failed', 'exited'}
+KINDS = {'started', 'result', 'question', 'failed', 'exited', 'native-completed'}
 
 
 def now():
@@ -66,6 +67,17 @@ def connect(path):
       project TEXT NOT NULL, generation INTEGER NOT NULL, job TEXT NOT NULL,
       attempt TEXT NOT NULL, status TEXT NOT NULL, notified TEXT, acknowledged TEXT,
       PRIMARY KEY(project,generation,job,attempt));
+    CREATE UNIQUE INDEX IF NOT EXISTS one_native_completion_per_attempt
+      ON events(job,attempt) WHERE kind='native-completed';
+    CREATE TABLE IF NOT EXISTS next_actions (
+      action_id TEXT PRIMARY KEY, project TEXT NOT NULL, generation INTEGER NOT NULL,
+      source_job TEXT NOT NULL, source_attempt TEXT NOT NULL, source_kind TEXT NOT NULL,
+      recovery_argv TEXT NOT NULL, cwd TEXT NOT NULL, deadline_at TEXT NOT NULL,
+      recovery_route TEXT NOT NULL, state TEXT NOT NULL, source_event_id TEXT,
+      claim_token TEXT, queued_at TEXT, delivered_at TEXT, awake_at TEXT,
+      action_started_at TEXT, adapter_pid INTEGER, execution_evidence TEXT,
+      error TEXT, declared_at TEXT NOT NULL,
+      UNIQUE(project,source_job,source_attempt,source_kind));
     ''')
     return db
 
@@ -80,6 +92,102 @@ def project_identifier(value):
     if not isinstance(value, str) or not PROJECT_IDENTIFIER.fullmatch(value):
         raise ValueError('invalid project identifier')
     return value
+
+
+def validate_recovery_route(route, now, artifact_root=None):
+    """Validate independent recovery qualification; [] means the smoke proof is usable.
+
+    A queued callback alone is insufficient. This validates a local proof record,
+    not the installation or continued operation of an external scheduler.
+    """
+    errors = []
+    if not isinstance(route, dict):
+        return ['recovery route must be an object']
+    if route.get('kind') not in ('heartbeat', 'supervisor'):
+        errors.append('unsupported recovery route kind')
+    for name in ('schedule_id', 'owner', 'coordinator_id'):
+        if not isinstance(route.get(name), str) or not route[name].strip():
+            errors.append(f'missing {name}')
+    if route.get('independently_scheduled') is not True:
+        errors.append('route is not independently scheduled')
+    if route.get('acceptance') != 'next_action_started':
+        errors.append('route acceptance must be next_action_started')
+    generation = route.get('ownership_generation')
+    if not isinstance(generation, int) or isinstance(generation, bool) or generation < 1:
+        errors.append('invalid ownership_generation')
+    maximum = route.get('max_action_latency_seconds')
+    if (not isinstance(maximum, (int, float)) or isinstance(maximum, bool)
+            or not math.isfinite(maximum) or maximum <= 0):
+        errors.append('invalid max_action_latency_seconds')
+    try:
+        now_seconds = now.timestamp() if isinstance(now, dt.datetime) else float(now)
+    except (TypeError, ValueError):
+        return errors + ['invalid current time']
+    if not math.isfinite(now_seconds):
+        return errors + ['invalid current time']
+    def timestamp(value, field):
+        try:
+            parsed = dt.datetime.fromisoformat(value.replace('Z', '+00:00'))
+            if parsed.tzinfo is None:
+                raise ValueError()
+            return parsed.timestamp()
+        except (AttributeError, TypeError, ValueError):
+            errors.append(f'invalid {field}')
+            return None
+    verified = timestamp(route.get('verified_at'), 'verified_at')
+    expires = timestamp(route.get('expires_at'), 'expires_at')
+    if verified is not None and verified > now_seconds:
+        errors.append('recovery route verified_at is in the future')
+    if expires is not None and expires <= now_seconds:
+        errors.append('recovery route qualification expired')
+    if verified is not None and expires is not None and verified >= expires:
+        errors.append('recovery route verification does not precede expiry')
+    proof = route.get('proof')
+    if not isinstance(proof, dict):
+        return errors + ['missing recovery proof']
+    proof_path = proof.get('path')
+    digest = proof.get('sha256')
+    if not isinstance(proof_path, str) or not proof_path:
+        return errors + ['missing recovery proof path']
+    if not isinstance(digest, str) or not re.fullmatch(r'[0-9a-fA-F]{64}', digest):
+        return errors + ['invalid recovery proof digest']
+    path = Path(proof_path)
+    if not path.is_absolute():
+        if artifact_root is None:
+            return errors + ['relative recovery proof needs artifact_root']
+        root = Path(artifact_root).resolve()
+        path = (root / path).resolve()
+        if not path.is_relative_to(root):
+            return errors + ['recovery proof escapes artifact_root']
+    try:
+        if not path.is_file() or path.stat().st_size > 1_000_000:
+            return errors + ['recovery proof missing or oversized']
+        content = path.read_bytes()
+        if hashlib.sha256(content).hexdigest() != digest.lower():
+            return errors + ['recovery proof digest mismatch']
+        record = json.loads(content)
+    except (OSError, ValueError):
+        return errors + ['recovery proof unreadable']
+    if not isinstance(record, dict):
+        return errors + ['recovery proof must be an object']
+    for name in ('schedule_id', 'coordinator_id', 'ownership_generation'):
+        if record.get(name) != route.get(name):
+            errors.append(f'recovery proof {name} mismatch')
+    points = [timestamp(record.get(name), name) for name in
+              ('worker_completed_at', 'queued_at', 'delivered_at', 'awake_at', 'action_started_at')]
+    if all(point is not None for point in points):
+        if points != sorted(points):
+            errors.append('recovery proof event order invalid')
+        if isinstance(maximum, (int, float)) and math.isfinite(maximum) and points[-1] - points[0] > maximum:
+            errors.append('recovery action exceeded configured latency')
+        if verified is not None and points[-1] > verified:
+            errors.append('route verified before action started')
+    if not isinstance(record.get('action_id'), str) or not record['action_id']:
+        errors.append('recovery proof missing action_id')
+    evidence = record.get('execution_evidence')
+    if not isinstance(evidence, (dict, str)) or not evidence:
+        errors.append('recovery proof missing execution_evidence')
+    return errors
 
 
 def _route_values(coordinator, route, receiver):
@@ -143,6 +251,9 @@ def transfer_project(db, project, expected_generation, coordinator=None, route=N
         old = require_current_generation(db, project, expected_generation)
         if db.execute('SELECT 1 FROM managed_actions WHERE project=? LIMIT 1', (project,)).fetchone():
             raise ValueError('managed action in progress; reconcile and release before takeover')
+        if db.execute("SELECT 1 FROM next_actions WHERE project=? AND state IN ('claimed','delivered','awake') LIMIT 1",
+                      (project,)).fetchone():
+            raise ValueError('next action recovery in progress; reconcile before takeover')
         generation = old['generation'] + 1
         changed = now()
         db.execute('UPDATE project_routes SET generation=?,coordinator=?,kind=?,receiver=?,changed=? WHERE project=?',
@@ -154,10 +265,10 @@ def transfer_project(db, project, expected_generation, coordinator=None, route=N
         # new project route. No acknowledgement is fabricated.
         db.execute('''INSERT INTO takeover_notices(project,generation,job,attempt,status)
           SELECT ap.project,?,ap.job,ap.attempt,'pending_next_packet'
-          FROM attempt_projects ap JOIN launches l USING(job,attempt)
+          FROM attempt_projects ap
           WHERE ap.project=? AND NOT EXISTS (
             SELECT 1 FROM events e WHERE e.job=ap.job AND e.attempt=ap.attempt
-            AND e.kind IN ('result','failed','exited'))''', (generation, project))
+            AND e.kind IN ('result','failed','exited','native-completed'))''', (generation, project))
     return require_current_generation(db, project, generation)
 
 
@@ -238,6 +349,197 @@ def bind_attempt(db, project, job, attempt, generation):
     return dict(db.execute('SELECT * FROM attempt_projects WHERE job=? AND attempt=?', (job, attempt)).fetchone())
 
 
+def declare_next_action(db, action_id, project, generation, source_job, source_attempt,
+                        source_kind, recovery_argv, cwd, deadline_at, recovery_route):
+    """Register a coordinator-owned continuation before the source attempt completes."""
+    action_id, project = identifier(action_id), project_identifier(project)
+    source_job, source_attempt = identifier(source_job), identifier(source_attempt)
+    if source_kind not in ('native-completed', 'exited', 'result'):
+        raise ValueError('unsupported completion trigger')
+    if not isinstance(recovery_route, dict):
+        raise ValueError('recovery_route must be an object')
+    if (not isinstance(recovery_argv, list) or not recovery_argv or len(recovery_argv) > 100
+            or any(not isinstance(value, str) or not value or '\0' in value or len(value) > 4096
+                   for value in recovery_argv)):
+        raise ValueError('recovery_argv must be a bounded literal array')
+    executable = Path(recovery_argv[0])
+    if (not executable.is_absolute() or not executable.is_file()
+            or not os.access(executable, os.X_OK)
+            or executable.name.lower() in ('sh', 'bash', 'zsh', 'fish', 'cmd', 'powershell', 'pwsh')):
+        raise ValueError('recovery_argv requires an absolute non-shell executable')
+    cwd = Path(cwd).resolve(strict=True)
+    if not cwd.is_dir():
+        raise ValueError('recovery cwd must be a directory')
+    try:
+        parsed_deadline = dt.datetime.fromisoformat(deadline_at.replace('Z', '+00:00'))
+        if parsed_deadline.tzinfo is None:
+            raise ValueError()
+    except (AttributeError, ValueError):
+        raise ValueError('deadline_at needs an offset-aware timestamp') from None
+    with db:
+        db.execute('BEGIN IMMEDIATE')
+        route = require_current_generation(db, project, generation)
+        receiver = route['coordinator'] if route['kind'] == 'codex-queue' else route['receiver']
+        if not receiver or recovery_route.get('coordinator_id') != receiver:
+            raise ValueError('recovery route does not match current coordinator')
+        proof_errors = validate_recovery_route(recovery_route, dt.datetime.now(dt.timezone.utc), cwd)
+        if proof_errors:
+            raise ValueError('unqualified recovery route: ' + '; '.join(proof_errors))
+        bound = db.execute('SELECT project FROM attempt_projects WHERE job=? AND attempt=?',
+                           (source_job, source_attempt)).fetchone()
+        if not bound or bound['project'] != project:
+            raise ValueError('source attempt is not bound to project')
+        if db.execute('SELECT 1 FROM events WHERE job=? AND attempt=? AND kind=? LIMIT 1',
+                      (source_job, source_attempt, source_kind)).fetchone():
+            raise ValueError('declare next action before completion')
+        values = (action_id, project, generation, source_job, source_attempt, source_kind,
+                  json.dumps(recovery_argv), str(cwd), deadline_at, json.dumps(recovery_route),
+                  'waiting_completion', None, None, None, None, None, None, None, None, None,
+                  now())
+        old = db.execute('SELECT * FROM next_actions WHERE action_id=?', (action_id,)).fetchone()
+        if old and tuple(old)[:10] != values[:10]:
+            raise ValueError('next action identity reused with different contract')
+        if not old:
+            db.execute('INSERT INTO next_actions VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', values)
+    return dict(db.execute('SELECT * FROM next_actions WHERE action_id=?', (action_id,)).fetchone())
+
+
+def claim_next_action(db, action_id):
+    """Atomically claim one completed continuation; never reclaim an uncertain launch."""
+    with db:
+        db.execute('BEGIN IMMEDIATE')
+        action = db.execute('SELECT * FROM next_actions WHERE action_id=?', (identifier(action_id),)).fetchone()
+        if not action:
+            raise ValueError('unknown next action')
+        require_current_generation(db, action['project'], action['generation'])
+        if action['state'] != 'waiting_completion':
+            return None
+        route = json.loads(action['recovery_route'])
+        errors = validate_recovery_route(route, dt.datetime.now(dt.timezone.utc), action['cwd'])
+        if errors:
+            raise ValueError('unqualified recovery route: ' + '; '.join(errors))
+        event = db.execute('SELECT * FROM events WHERE job=? AND attempt=? AND kind=? ORDER BY created LIMIT 1',
+                           (action['source_job'], action['source_attempt'], action['source_kind'])).fetchone()
+        if not event:
+            return None
+        attempt = db.execute('SELECT root FROM attempts WHERE job=? AND attempt=?',
+                             (action['source_job'], action['source_attempt'])).fetchone()
+        artifact = Path(event['artifact']).resolve(strict=True)
+        if not attempt or not artifact.is_file() or not artifact.is_relative_to(Path(attempt['root'])):
+            raise ValueError('source completion artifact escaped assigned root')
+        if hashlib.sha256(artifact.read_bytes()).hexdigest() != event['digest']:
+            raise ValueError('source completion artifact changed')
+        token = uuid.uuid4().hex
+        db.execute("UPDATE next_actions SET state='claimed',source_event_id=?,claim_token=?,queued_at=? WHERE action_id=?",
+                   (event['id'], token, now(), action_id))
+    return dict(db.execute('SELECT * FROM next_actions WHERE action_id=?', (action_id,)).fetchone())
+
+
+def mark_recovery_delivered(db, action_id, generation, claim_token, adapter_pid):
+    with db:
+        db.execute('BEGIN IMMEDIATE')
+        action = _owned_next_action(db, action_id, generation, claim_token)
+        if action['state'] not in ('claimed', 'delivered', 'awake', 'action_started'):
+            raise ValueError('next action was not claimed')
+        db.execute("UPDATE next_actions SET delivered_at=COALESCE(delivered_at,?),adapter_pid=COALESCE(adapter_pid,?),"
+                   "state=CASE WHEN state='claimed' THEN 'delivered' ELSE state END WHERE action_id=?",
+                   (now(), adapter_pid, action_id))
+    return next_action(db, action_id)
+
+
+def acknowledge_recovery_awake(db, action_id, generation, claim_token):
+    with db:
+        db.execute('BEGIN IMMEDIATE')
+        action = _owned_next_action(db, action_id, generation, claim_token)
+        if action['state'] not in ('claimed', 'delivered', 'awake', 'action_started'):
+            raise ValueError('next action was not delivered')
+        stamp = now()
+        db.execute("UPDATE next_actions SET delivered_at=COALESCE(delivered_at,?),awake_at=COALESCE(awake_at,?),"
+                   "state=CASE WHEN state IN ('claimed','delivered') THEN 'awake' ELSE state END WHERE action_id=?",
+                   (stamp, stamp, action_id))
+    return next_action(db, action_id)
+
+
+def record_next_action_started(db, action_id, generation, claim_token, evidence):
+    """Record actual authorized executor startup, not an adapter launch receipt."""
+    if not isinstance(evidence, dict) or not isinstance(evidence.get('path'), str):
+        raise ValueError('action start needs a reviewer execution proof file')
+    digest = evidence.get('sha256')
+    if not isinstance(digest, str) or not re.fullmatch(r'[0-9a-fA-F]{64}', digest):
+        raise ValueError('invalid action start proof digest')
+    with db:
+        db.execute('BEGIN IMMEDIATE')
+        action = _owned_next_action(db, action_id, generation, claim_token)
+        if action['state'] == 'action_started':
+            if action['execution_evidence'] != json.dumps(evidence, sort_keys=True):
+                raise ValueError('action start already recorded with different evidence')
+            return next_action(db, action_id)
+        if action['state'] != 'awake':
+            raise ValueError('coordinator awake proof required before action started')
+        path = Path(evidence['path'])
+        if not path.is_absolute():
+            path = Path(action['cwd']) / path
+        path = path.resolve(strict=True)
+        if not path.is_file() or path.stat().st_size > 1_000_000:
+            raise ValueError('action start proof missing or oversized')
+        content = path.read_bytes()
+        if hashlib.sha256(content).hexdigest() != digest.lower():
+            raise ValueError('action start proof digest mismatch')
+        try:
+            proof = json.loads(content)
+        except ValueError:
+            raise ValueError('action start proof must be JSON') from None
+        if (not isinstance(proof, dict) or proof.get('action_id') != action_id
+                or proof.get('generation') != generation or proof.get('kind') != 'reviewer_started'):
+            raise ValueError('action start proof identity/type mismatch')
+        reviewer_job, reviewer_attempt = proof.get('reviewer_job'), proof.get('reviewer_attempt')
+        if reviewer_job and reviewer_attempt:
+            if not db.execute('SELECT 1 FROM launches WHERE job=? AND attempt=?',
+                              (reviewer_job, reviewer_attempt)).fetchone():
+                raise ValueError('reviewer launch is not recorded')
+        else:
+            pid = proof.get('reviewer_pid')
+            if not isinstance(pid, int) or pid <= 0:
+                raise ValueError('reviewer process evidence missing')
+            try:
+                os.kill(pid, 0)
+            except OSError as exc:
+                raise ValueError('reviewer process is not running') from exc
+        db.execute("UPDATE next_actions SET state='action_started',action_started_at=?,execution_evidence=? WHERE action_id=?",
+                   (now(), json.dumps(evidence, sort_keys=True), action_id))
+    return next_action(db, action_id)
+
+
+def _owned_next_action(db, action_id, generation, claim_token):
+    action = db.execute('SELECT * FROM next_actions WHERE action_id=?', (identifier(action_id),)).fetchone()
+    if not action or action['claim_token'] != claim_token or not claim_token:
+        raise ValueError('unknown next action claim')
+    require_current_generation(db, action['project'], generation)
+    if action['generation'] != generation:
+        raise ValueError('stale next action generation')
+    return action
+
+
+def next_action(db, action_id):
+    row = db.execute('SELECT * FROM next_actions WHERE action_id=?', (identifier(action_id),)).fetchone()
+    if not row:
+        raise ValueError('unknown next action')
+    result = dict(row)
+    result['acceptance_met'] = False
+    if row['state'] == 'action_started' and row['source_event_id']:
+        source = db.execute('SELECT created FROM events WHERE id=?', (row['source_event_id'],)).fetchone()
+        try:
+            started = dt.datetime.fromisoformat(row['action_started_at'].replace('Z', '+00:00'))
+            completed = dt.datetime.fromisoformat(source['created'].replace('Z', '+00:00'))
+            deadline = dt.datetime.fromisoformat(row['deadline_at'].replace('Z', '+00:00'))
+            maximum = json.loads(row['recovery_route'])['max_action_latency_seconds']
+            result['acceptance_met'] = (started <= deadline and
+                                        0 <= (started - completed).total_seconds() <= maximum)
+        except (AttributeError, KeyError, TypeError, ValueError):
+            pass
+    return result
+
+
 def register(db, job, attempt, sender, root, coordinator=None, route=None, receiver=None):
     route = route or ("codex-queue" if coordinator else "manual")
     if route not in ("codex-queue", "claude-task", "manual"):
@@ -286,8 +588,16 @@ def emit(db, job, attempt, sender, kind, artifact, event_id):
         old = db.execute('SELECT * FROM events WHERE id=?', (event_id,)).fetchone()
         if old and tuple(old)[:7] != values:
             raise ValueError('event ID reused with different content')
-        db.execute('INSERT OR IGNORE INTO events VALUES (?,?,?,?,?,?,?,?,?,?,?)',
-                   (*values, now(), 'pending', None, None))
+        if kind == 'native-completed':
+            prior = db.execute("SELECT id FROM events WHERE job=? AND attempt=? AND kind='native-completed'",
+                               (job, attempt)).fetchone()
+            if prior and prior['id'] != event_id:
+                raise ValueError('attempt already has a different native completion')
+        try:
+            db.execute('INSERT OR IGNORE INTO events VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+                       (*values, now(), 'pending', None, None))
+        except sqlite3.IntegrityError as exc:
+            raise ValueError('attempt already has a different native completion') from exc
     return dict(db.execute('SELECT * FROM events WHERE id=?', (event_id,)).fetchone())
 
 
@@ -469,6 +779,18 @@ def main():
     notice.add_argument('--generation', required=True, type=int)
     notice.add_argument('--acknowledged', action='store_true')
     retry = sub.add_parser('retry-failed'); retry.add_argument('--event-id', required=True)
+    declare = sub.add_parser('declare-next-action'); declare.add_argument('--contract', required=True)
+    next_record = sub.add_parser('next-action'); next_record.add_argument('--action-id', required=True)
+    awake = sub.add_parser('recovery-awake')
+    awake.add_argument('--action-id', default=os.environ.get('INTERCHANGE_ACTION_ID'))
+    awake.add_argument('--generation', type=int, default=os.environ.get('INTERCHANGE_OWNERSHIP_GENERATION'))
+    awake.add_argument('--claim-token', default=os.environ.get('INTERCHANGE_CLAIM_TOKEN'))
+    started = sub.add_parser('action-started')
+    started.add_argument('--action-id', default=os.environ.get('INTERCHANGE_ACTION_ID'))
+    started.add_argument('--generation', type=int, default=os.environ.get('INTERCHANGE_OWNERSHIP_GENERATION'))
+    started.add_argument('--claim-token', default=os.environ.get('INTERCHANGE_CLAIM_TOKEN'))
+    started.add_argument('--evidence-path', required=True)
+    started.add_argument('--evidence-sha256', required=True)
     sub.add_parser('list')
     args = vars(parser.parse_args()); db = connect(args.pop('state')); command = args.pop('command')
     try:
@@ -485,6 +807,15 @@ def main():
         elif command == 'takeover-roster': result = takeover_roster(db, **args)
         elif command == 'mark-takeover-notice': result = mark_takeover_notice(db, **args)
         elif command == 'retry-failed': result = retry_failed_delivery(db, **args)
+        elif command == 'declare-next-action':
+            result = declare_next_action(db, **json.loads(Path(args['contract']).read_text()))
+        elif command == 'next-action': result = next_action(db, **args)
+        elif command == 'recovery-awake': result = acknowledge_recovery_awake(db, **args)
+        elif command == 'action-started':
+            result = record_next_action_started(db, args['action_id'], args['generation'],
+                                                args['claim_token'],
+                                                {'path': args['evidence_path'],
+                                                 'sha256': args['evidence_sha256']})
         else: result = [dict(row) for row in db.execute('SELECT * FROM events ORDER BY created')]
         print(json.dumps(result, indent=2))
     finally:

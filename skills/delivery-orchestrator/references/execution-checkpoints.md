@@ -56,3 +56,7 @@ For every unfinished activity retain expected transition, executor, deadline/che
 ## Recover uncommitted work
 
 An interrupted worker may leave useful changes; a normal return may deliberately leave publication to its declared pipeline. Preserve the worktree, restricted logs and recovery inventory. Inspect ownership before another writer starts. Prefer worker-authored checkpoint commits; never have the wrapper indiscriminately commit or publish dirty changes. Exclude secrets from portable recovery records. Select checkpoint/deadline thresholds by task class: investigation and tests need not produce commits.
+
+## Yield requires recovery, including native work
+
+For every unfinished native or headless assignment, apply [native completions and independent recovery](observability.md#native-completions-and-independent-recovery). Store the next action before yielding and use its durable identity through completion, recovery and reviewer start. A result sent, a transport acknowledgement or a red dashboard alert does not satisfy the continuation acceptance criterion. The deadline ends at verified start of the next authorized action. Keep human merge, CI and independent review as separate controls; the post-return pipeline only publishes a draft and starts review.

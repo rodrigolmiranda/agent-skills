@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -180,13 +181,12 @@ class PipelineTests(unittest.TestCase):
         self.spec['reviewer']['argv'] = ['codex', 'exec', '--sandbox', 'read-only', '--json', 'review']
         self.assertEqual(self.execute()['stage'], 'review_started')
 
-    def test_isolation_configuration_fails_closed_for_same_user(self):
+    def test_same_user_default_and_invalid_distinct_uid(self):
         env = os.environ.copy()
         with self.assertRaises(ValueError):
             run_job._isolated_worker({'post_return': {}, 'execution_isolation': {
                 'mode': 'distinct_uid', 'uid': os.geteuid(), 'gid': os.getegid(), 'home': str(self.root)}}, env)
-        with self.assertRaises(ValueError):
-            run_job._isolated_worker({'post_return': {}}, env)
+        self.assertIsNone(run_job._isolated_worker({'post_return': {}}, env))
 
     def test_hook_config_and_transient_probe_failure_cannot_prove_denial(self):
         git(self.repo, 'config', 'core.hooksPath', str(self.root / 'fake-hooks'))
@@ -255,6 +255,147 @@ class PipelineTests(unittest.TestCase):
         (review_dir / 'stdout.log').write_text(json.dumps({'type': 'assistant', 'message': {
             'model': 'claude-opus', 'content': [{'type': 'tool_use', 'name': 'Read'}]}}) + '\n')
         self.assertTrue(post_return._reviewer_evidence(review_dir, self.spec['reviewer'], self.head))
+
+    def test_same_user_adapter_policy_rejects_publication_browser_and_broad_shell(self):
+        argv = ['opencode', 'run', '--pure', '--format', 'json', '--model', 'fixture/model', 'packet']
+        manifest = {'post_return': {}, 'argv': argv, 'cwd': str(self.repo),
+                    'worker_adapter': {'kind': 'opencode-headless',
+                                       'allowed_bash': ['git status --short', 'git add owned.txt']}}
+        environment = {'OPENCODE_CONFIG_CONTENT': '{"permission":"allow"}'}
+        receipt = run_job._worker_adapter(manifest, environment)
+        self.assertEqual(receipt['kind'], 'opencode-headless')
+        policy = json.loads(environment['OPENCODE_CONFIG_CONTENT'])['permission']
+        self.assertEqual(policy['bash']['*'], 'deny')
+        self.assertEqual(policy['bash']['git push*'], 'deny')
+        self.assertEqual(policy['bash']['gh*'], 'deny')
+        self.assertEqual(policy['webfetch'], 'deny')
+        self.assertEqual(policy['browser'], 'deny')
+        self.assertEqual(policy['mcp__*'], 'deny')
+        self.assertEqual(policy['playwright*'], 'deny')
+        for unsafe in ('git push origin feature/one', 'gh pr create', 'open -a Chrome',
+                       'git status; gh pr create', '*'):
+            with self.subTest(unsafe=unsafe), self.assertRaises(ValueError):
+                run_job._worker_adapter({**manifest,
+                    'worker_adapter': {'kind': 'opencode-headless', 'allowed_bash': [unsafe]}}, {})
+        with self.assertRaises(ValueError):
+            run_job._worker_adapter({**manifest, 'argv': argv + ['--attach', 'http://localhost:4096']}, {})
+        with self.assertRaises(ValueError):
+            run_job._worker_adapter({**manifest, 'env': {'OPENCODE_CONFIG_CONTENT': '{}'}}, {})
+        inherited = subprocess.CompletedProcess([], 0, stdout=json.dumps({
+            'permission': policy, 'mcp': {'owner-browser': {'type': 'local'}}, 'plugin': []}).encode(), stderr=b'')
+        with mock.patch.object(run_job.subprocess, 'run', return_value=inherited):
+            with self.assertRaisesRegex(ValueError, 'inherited external MCP'):
+                run_job._verify_worker_adapter(manifest, environment, None)
+
+    @unittest.skipUnless(shutil.which('opencode'), 'OpenCode CLI unavailable')
+    def test_generated_policy_is_loaded_by_installed_opencode(self):
+        manifest = {'post_return': {},
+                    'argv': ['opencode', 'run', '--pure', '--format', 'json', '--model', 'fixture/model', 'packet'],
+                    'worker_adapter': {'kind': 'opencode-headless', 'allowed_bash': ['git status --short']}}
+        environment = os.environ.copy()
+        run_job._worker_adapter(manifest, environment)
+        loaded = subprocess.run(['opencode', 'debug', 'config', '--pure'], cwd=self.repo,
+                                env=environment, capture_output=True, timeout=20, check=True)
+        policy = json.loads(loaded.stdout)['permission']
+        self.assertEqual(policy['bash']['git status --short'], 'allow')
+        self.assertEqual(policy['bash']['git push*'], 'deny')
+        self.assertEqual(policy['bash']['gh*'], 'deny')
+        self.assertEqual(policy['webfetch'], 'deny')
+
+    def test_same_user_full_return_draft_pr_and_headless_review(self):
+        git(self.repo, 'reset', '--hard', self.start)
+        exclude = self.repo / '.git/info/exclude'
+        with exclude.open('a') as stream:
+            stream.write('\n.worker-final.json\n')
+        fake_bin = self.root / 'bin'
+        fake_bin.mkdir()
+        worker = fake_bin / 'opencode'
+        worker.write_text('''#!/usr/bin/env python3
+import json,os,subprocess,sys
+from pathlib import Path
+policy=json.loads(os.environ['OPENCODE_CONFIG_CONTENT'])['permission']
+if sys.argv[1:4]==['debug','config','--pure']:
+    print(json.dumps({'permission':policy,'mcp':{},'plugin':[]}))
+    raise SystemExit(0)
+assert policy['bash']['git push*']=='deny'
+assert policy['bash']['gh*']=='deny'
+assert policy['browser']=='deny'
+Path('owned.txt').write_text('worker implementation\\n')
+subprocess.run(['git','add','owned.txt'],check=True)
+subprocess.run(['git','commit','-m','worker implementation'],check=True,stdout=subprocess.DEVNULL)
+head=subprocess.run(['git','rev-parse','HEAD'],check=True,capture_output=True,text=True).stdout.strip()
+Path(os.environ['INTERCHANGE_FINAL_ARTIFACT']).write_text(json.dumps({
+  'job':'job','attempt':'same','packet_revision':'r1','head':head,
+  'result':'ready_for_review','required_gates':{'unit':'passed'}}))
+print(json.dumps({'type':'tool','part':{'type':'tool','name':'bash'}}),flush=True)
+''')
+        worker.chmod(0o755)
+        pr_state = self.root / 'pr.json'
+        pr_count = self.root / 'pr-count.txt'
+        gh = fake_bin / 'gh'
+        gh.write_text('#!/usr/bin/env python3\n'
+                      'import json,subprocess,sys\nfrom pathlib import Path\n'
+                      f'state=Path({str(pr_state)!r}); count=Path({str(pr_count)!r})\n'
+                      'if sys.argv[1:3]==["pr","list"]:\n'
+                      '    print(json.dumps([json.loads(state.read_text())] if state.exists() else []))\n'
+                      'elif sys.argv[1:3]==["pr","create"]:\n'
+                      '    head=subprocess.run(["git","rev-parse","HEAD"],check=True,capture_output=True,text=True).stdout.strip()\n'
+                      '    state.write_text(json.dumps({"number":7,"url":"https://example.test/pr/7",'
+                      '"headRefName":"feature/one","baseRefName":"test","isDraft":True,"headRefOid":head}))\n'
+                      '    count.write_text(str(int(count.read_text())+1 if count.exists() else 1))\n'
+                      '    print("https://example.test/pr/7")\n')
+        gh.chmod(0o755)
+        review_count = self.root / 'review-count.txt'
+        claude = fake_bin / 'claude'
+        claude.write_text('#!/usr/bin/env python3\n'
+                          'import json,re,sys\nfrom pathlib import Path\n'
+                          f'count=Path({str(review_count)!r})\n'
+                          'head=re.search(r"[0-9a-f]{40}", " ".join(sys.argv)).group()\n'
+                          'count.write_text(str(int(count.read_text())+1 if count.exists() else 1))\n'
+                          'print(json.dumps({"type":"assistant","message":'
+                          '{"model":"fixture-claude","content":[{"type":"tool_use","name":"Read"}]}}),flush=True)\n'
+                          'print(json.dumps({"type":"result","result":json.dumps('
+                          '{"reviewed_head":head,"verdict":"passed"})}),flush=True)\n')
+        claude.chmod(0o755)
+        spec = dict(self.spec)
+        spec['gh_executable'] = str(gh)
+        spec['reviewer'] = {'adapter': 'claude-headless',
+                            'argv': [str(claude), '--no-chrome', '--disallowedTools', 'Browser*',
+                                     '--output-format', 'stream-json', '--model', 'fixture-claude',
+                                     '--effort', 'medium', '-p', 'Review {head} at {pr_url}'],
+                            'timeout_seconds': 15, 'startup_seconds': 10, 'route': 'manual'}
+        manifest = {'job': 'job', 'attempt': 'same', 'sender': 'worker', 'cwd': str(self.repo),
+                    'argv': [str(worker), 'run', '--pure', '--format', 'json', '--model',
+                             'fixture/model', 'packet'], 'timeout_seconds': 15,
+                    'final_artifact_source': '.worker-final.json',
+                    'worker_adapter': {'kind': 'opencode-headless',
+                                       'allowed_bash': ['git add owned.txt', 'git commit -m worker implementation']},
+                    'post_return': spec}
+        relay.register(self.db, 'job', 'same', 'worker', self.root)
+        relay.bind_attempt(self.db, 'project', 'job', 'same', 1)
+        attempt = self.root / 'same-attempt'
+        with mock.patch.object(post_return, '_verify_publication_url', return_value=None):
+            receipt = run_job.run(manifest, self.state, attempt)
+        self.assertEqual(receipt['result']['exit_code'], 0)
+        self.assertEqual(receipt['result']['post_return']['stage'], 'review_started')
+        published_head = git(self.repo, 'rev-parse', 'HEAD')
+        self.assertEqual(git(self.repo, 'ls-remote', '--heads', str(self.remote), 'feature/one').split()[0], published_head)
+        self.assertEqual(pr_count.read_text(), '1')
+        review_dir = Path(receipt['result']['post_return']['reviewer_directory'])
+        deadline = time.monotonic() + 10
+        while not (review_dir / 'process-result.json').exists() and time.monotonic() < deadline:
+            time.sleep(.1)
+        self.assertTrue((review_dir / 'process-result.json').exists())
+        self.assertEqual(json.loads((review_dir / 'review.json').read_text())['reviewed_head'], published_head)
+        self.assertEqual(review_count.read_text(), '1')
+        with mock.patch.object(post_return, '_verify_publication_url', return_value=None):
+            db = relay.connect(self.state)
+            try:
+                again = post_return.execute(spec, manifest, receipt['result'], db, self.state, attempt)
+            finally:
+                db.close()
+        self.assertEqual(again['stage'], 'review_started')
+        self.assertEqual((pr_count.read_text(), review_count.read_text()), ('1', '1'))
 
 
 @unittest.skipUnless(hasattr(os, 'geteuid') and os.geteuid() == 0,

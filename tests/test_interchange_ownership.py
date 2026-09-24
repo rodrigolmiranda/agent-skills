@@ -1,4 +1,6 @@
 import concurrent.futures
+import hashlib
+import json
 import importlib.util
 from pathlib import Path
 import sqlite3
@@ -200,6 +202,41 @@ class OwnershipTests(unittest.TestCase):
     def test_project_identifier_matches_board_identity_contract(self):
         with self.assertRaises(ValueError):
             relay.register_project(self.db, 'other.project', route='manual')
+
+    def test_recovery_route_requires_independent_action_start_proof(self):
+        proof = {'schedule_id':'scheduled-monitor','coordinator_id':self.old,'ownership_generation':1,
+                 'worker_completed_at':'2026-09-24T00:00:00+00:00',
+                 'queued_at':'2026-09-24T00:00:01+00:00',
+                 'delivered_at':'2026-09-24T00:00:02+00:00',
+                 'awake_at':'2026-09-24T00:00:03+00:00',
+                 'action_started_at':'2026-09-24T00:00:04+00:00',
+                 'action_id':'review-1','execution_evidence':{'launch':'review-1'}}
+        proof_path = self.root/'proof.json'
+        proof_path.write_text(json.dumps(proof))
+        route = {'kind':'supervisor','schedule_id':'scheduled-monitor','owner':'supervisor',
+                 'coordinator_id':self.old,'ownership_generation':1,'independently_scheduled':True,
+                 'acceptance':'next_action_started','max_action_latency_seconds':30,
+                 'verified_at':'2026-09-24T00:00:05+00:00',
+                 'expires_at':'2026-09-25T00:00:00+00:00',
+                 'proof':{'path':'proof.json','sha256':hashlib.sha256(proof_path.read_bytes()).hexdigest()}}
+        checked_at = 1790208010  # 2026-09-24T00:00:10Z
+        self.assertEqual(relay.validate_recovery_route(route, checked_at, self.root), [])
+        queued_only = dict(proof); queued_only.pop('action_started_at')
+        proof_path.write_text(json.dumps(queued_only))
+        route['proof']['sha256'] = hashlib.sha256(proof_path.read_bytes()).hexdigest()
+        self.assertIn('invalid action_started_at', relay.validate_recovery_route(route, checked_at, self.root))
+        route['ownership_generation'] = 2
+        self.assertIn('recovery proof ownership_generation mismatch',
+                      relay.validate_recovery_route(route, checked_at, self.root))
+        route['ownership_generation'] = 1
+        route['max_action_latency_seconds'] = float('nan')
+        self.assertIn('invalid max_action_latency_seconds',
+                      relay.validate_recovery_route(route, checked_at, self.root))
+        route['max_action_latency_seconds'] = 30
+        proof_path.write_text('null')
+        route['proof']['sha256'] = hashlib.sha256(proof_path.read_bytes()).hexdigest()
+        self.assertIn('recovery proof must be an object',
+                      relay.validate_recovery_route(route, checked_at, self.root))
 
 
 if __name__ == '__main__':

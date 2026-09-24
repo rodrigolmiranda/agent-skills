@@ -10,10 +10,61 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import subprocess
 import tempfile
 import time
 
-from relay import connect, notify, retry_failed_delivery
+from relay import (claim_next_action, connect, mark_recovery_delivered, notify,
+                   retry_failed_delivery, validate_recovery_route)
+
+
+def recover_next_actions(db, *, project=None):
+    """Launch each pre-authorized recovery adapter once after its completion event.
+
+    This function must itself be invoked by a qualified independent schedule.
+    A claimed action is never automatically relaunched after an ambiguous crash.
+    """
+    outcomes = []
+    rows = db.execute("SELECT action_id FROM next_actions WHERE state='waiting_completion'"
+                      + (' AND project=?' if project else '') + ' ORDER BY declared_at',
+                      (project,) if project else ()).fetchall()
+    for row in rows:
+        try:
+            action = claim_next_action(db, row['action_id'])
+        except (ValueError, OSError) as exc:
+            outcomes.append({'action_id': row['action_id'], 'status': 'not_claimed',
+                             'reason': type(exc).__name__})
+            continue
+        if action is None:
+            continue
+        # The argv is registered by the coordinator before completion. The
+        # worker's event/artifact cannot supply executable text or parameters.
+        argv = json.loads(action['recovery_argv'])
+        state_path = db.execute('PRAGMA database_list').fetchone()['file']
+        environment = {key: os.environ[key] for key in ('PATH', 'HOME', 'TMPDIR') if key in os.environ}
+        environment.update(INTERCHANGE_ACTION_ID=action['action_id'],
+                           INTERCHANGE_PROJECT=action['project'],
+                           INTERCHANGE_OWNERSHIP_GENERATION=str(action['generation']),
+                           INTERCHANGE_SOURCE_EVENT_ID=action['source_event_id'],
+                           INTERCHANGE_CLAIM_TOKEN=action['claim_token'],
+                           INTERCHANGE_RELAY_STATE=state_path)
+        try:
+            proc = subprocess.Popen(argv, cwd=action['cwd'], env=environment,
+                                    stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                                    stderr=subprocess.DEVNULL, start_new_session=True)
+            mark_recovery_delivered(db, action['action_id'], action['generation'],
+                                    action['claim_token'], proc.pid)
+            outcomes.append({'action_id': action['action_id'], 'status': 'delivered',
+                             'adapter_pid': proc.pid})
+        except (OSError, ValueError) as exc:
+            # Claim remains durable and uncertain. Reconciliation must inspect
+            # the adapter and its side effects before a human-authorized retry.
+            with db:
+                db.execute('UPDATE next_actions SET error=? WHERE action_id=?',
+                           (type(exc).__name__, action['action_id']))
+            outcomes.append({'action_id': action['action_id'], 'status': 'uncertain',
+                             'reason': type(exc).__name__})
+    return outcomes
 
 
 def _age(seconds, now_seconds):
@@ -82,6 +133,30 @@ def scan(db, *, project=None, activities=None, now_seconds=None, overdue_seconds
                                      f"{event['id']}: {event['delivery']}",
                                      'inspect registered receiver and manual fallback', event['job'], event['attempt'],
                                      event_project))
+    for action in db.execute('SELECT * FROM next_actions').fetchall():
+        if project is not None and action['project'] != project:
+            continue
+        source = db.execute('SELECT created FROM events WHERE id=?',
+                            (action['source_event_id'],)).fetchone() if action['source_event_id'] else None
+        if action['state'] == 'waiting_completion':
+            pending = db.execute('SELECT 1 FROM events WHERE job=? AND attempt=? AND kind=? LIMIT 1',
+                                 (action['source_job'], action['source_attempt'], action['source_kind'])).fetchone()
+            if not pending:
+                continue
+        if action['state'] != 'action_started':
+            route = json.loads(action['recovery_route'])
+            errors = validate_recovery_route(route, now_seconds, action['cwd'])
+            code = 'unqualified_recovery_route' if errors else 'next_action_not_started'
+            findings.append(_finding('next:'+action['action_id'], code, 'supervisor',
+                                     action['action_id'], 'inspect qualified independent recovery and action claim',
+                                     action['source_job'], action['source_attempt'], action['project']))
+        elif source:
+            latency = _event_age(source['created'], dt_from_iso(action['action_started_at']))
+            maximum = json.loads(action['recovery_route'])['max_action_latency_seconds']
+            if latency > maximum or _event_age(action['deadline_at'], dt_from_iso(action['action_started_at'])) >= 0:
+                findings.append(_finding('next:'+action['action_id'], 'next_action_late', 'supervisor',
+                                         action['action_id'], 'record missed action-start deadline',
+                                         action['source_job'], action['source_attempt'], action['project']))
     for action in db.execute('SELECT * FROM managed_actions').fetchall():
         if project is not None and action['project'] != project:
             continue
@@ -266,6 +341,13 @@ def _event_age(value, now_seconds):
         return float('inf')
 
 
+def dt_from_iso(value):
+    try:
+        return datetime.fromisoformat(value.replace('Z', '+00:00')).timestamp()
+    except (AttributeError, ValueError):
+        return float('inf')
+
+
 def _runner_state(path):
     try:
         state = json.loads(path.read_text())
@@ -284,6 +366,8 @@ def main():
     parser.add_argument('--output', help='atomic monitor.json projection for a read-only board')
     parser.add_argument('--project', help='required with --output; filter one project board')
     parser.add_argument('--activities', help='full project activity ledger JSON with workflow_steps')
+    parser.add_argument('--recover', action='store_true',
+                        help='execute pre-authorized next actions; requires a qualified independent schedule')
     args = parser.parse_args()
     if args.output and not args.project:
         parser.error('--output requires --project so the board contains only its own alerts')
@@ -292,6 +376,7 @@ def main():
     db = connect(args.state)
     try:
         while True:
+            recoveries = recover_next_actions(db, project=args.project) if args.recover else []
             activities = json.loads(Path(args.activities).read_text()) if args.activities else None
             findings = scan(db, project=args.project, overdue_seconds=args.overdue_seconds,
                             retry_delivery=args.retry_delivery, activities=activities)
@@ -300,6 +385,8 @@ def main():
                 'updated_at': datetime.now(timezone.utc).isoformat(),
                 'notification_available': False, 'alerts': findings}
             print(json.dumps(payload, indent=2), flush=True)
+            if recoveries:
+                print(json.dumps({'recoveries': recoveries}, indent=2), flush=True)
             if args.interval <= 0:
                 break
             time.sleep(args.interval)

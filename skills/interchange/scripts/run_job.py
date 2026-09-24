@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import shutil
 import stat
 from pathlib import Path
@@ -106,7 +107,9 @@ def _isolated_worker(manifest, environment):
     """
     if 'post_return' not in manifest and 'execution_isolation' not in manifest:
         return None
-    config = manifest.get('execution_isolation')
+    config = manifest.get('execution_isolation') or {'mode': 'same_user'}
+    if config.get('mode') == 'same_user':
+        return None
     if not isinstance(config, dict) or config.get('mode') != 'distinct_uid':
         raise ValueError('post_return requires distinct_uid execution isolation')
     uid, gid = config.get('uid'), config.get('gid')
@@ -138,9 +141,102 @@ def _isolated_worker(manifest, environment):
     return drop
 
 
+def _worker_adapter(manifest, environment):
+    """Install the declared OpenCode tool policy for an opt-in implementation job.
+
+    Same-user permissions guard routine model tool use, not arbitrary code run
+    by a hostile process with access to the same account.
+    """
+    if 'post_return' not in manifest:
+        return None
+    adapter = manifest.get('worker_adapter')
+    if not isinstance(adapter, dict) or adapter.get('kind') != 'opencode-headless':
+        raise ValueError('post_return requires the supported opencode-headless worker adapter')
+    argv = manifest['argv']
+    if (Path(argv[0]).name != 'opencode' or len(argv) < 2 or argv[1] != 'run'
+            or '--pure' not in argv or '--format' not in argv
+            or argv[argv.index('--format') + 1:argv.index('--format') + 2] != ['json']):
+        raise ValueError('OpenCode worker must use run --pure --format json')
+    if any(flag in argv for flag in ('--attach', '--auto', '--share', '--continue', '--session', '--agent', '--command')):
+        raise ValueError('OpenCode worker may not attach, auto-approve, share, or override its agent')
+    model = None
+    for flag in ('--model', '-m'):
+        if flag in argv and argv.index(flag) + 1 < len(argv):
+            model = argv[argv.index(flag) + 1]
+    if not isinstance(model, str) or '/' not in model:
+        raise ValueError('OpenCode worker requires an explicit provider/model')
+    allowed = adapter.get('allowed_bash')
+    if not isinstance(allowed, list) or not allowed or not all(isinstance(x, str) and x.strip() for x in allowed):
+        raise ValueError('OpenCode adapter needs explicit allowed_bash commands')
+    bash = {'*': 'deny'}
+    for pattern in allowed:
+        if any(char in pattern for char in (';', '|', '&', '`', '$', '>', '<', '\n', '\r')):
+            raise ValueError('OpenCode allowed_bash cannot contain shell operators')
+        try:
+            tokens = shlex.split(pattern)
+        except ValueError as exc:
+            raise ValueError('invalid OpenCode allowed_bash command') from exc
+        if not tokens or tokens[0] in ('gh', 'curl', 'wget', 'ssh', 'scp', 'open', 'osascript',
+                                      'sudo', 'env', 'sh', 'bash', 'zsh'):
+            raise ValueError('OpenCode allowed_bash includes an unsafe command')
+        if tokens[0] == 'git' and (len(tokens) < 2 or tokens[1] in ('push', 'remote', 'config', '-c')):
+            raise ValueError('OpenCode allowed_bash cannot publish or change Git routing')
+        if any(re.search(r'(^|[^a-z])(gh|browser|chrome)([^a-z]|$)', token.lower()) for token in tokens):
+            raise ValueError('OpenCode allowed_bash includes publication or browser access')
+        if pattern == '*' or pattern.startswith('*'):
+            raise ValueError('OpenCode allowed_bash must name a bounded command')
+        bash[pattern] = 'allow'
+    # Last matching rule wins in the supported OpenCode permission map. Keep
+    # denies after the coordinator's exact command allow-list.
+    bash.update({'git push*': 'deny', 'gh*': 'deny', '*browser*': 'deny', '*chrome*': 'deny'})
+    permissions = {'read': 'allow', 'edit': 'allow', 'glob': 'allow', 'grep': 'allow',
+                   'list': 'allow', 'todowrite': 'allow', 'bash': bash,
+                   'webfetch': 'deny', 'websearch': 'deny', 'task': 'deny',
+                   'question': 'deny', 'skill': 'deny', 'external_directory': 'deny',
+                   'browser': 'deny', 'chrome': 'deny', 'browser*': 'deny',
+                   'chrome*': 'deny', 'playwright*': 'deny', 'computer*': 'deny',
+                   'mcp*': 'deny', 'mcp__*': 'deny'}
+    configured = manifest.get('env') or {}
+    if any(name.startswith('OPENCODE_CONFIG') for name in configured):
+        raise ValueError('worker adapter owns OpenCode permission configuration')
+    for name in list(environment):
+        if name.startswith('OPENCODE_CONFIG'):
+            environment.pop(name, None)
+    environment['OPENCODE_CONFIG_CONTENT'] = json.dumps({'permission': permissions, 'mcp': {}, 'plugin': []},
+                                                        separators=(',', ':'))
+    return {'kind': 'opencode-headless', 'model_requested': model,
+            'permission_sha256': hashlib.sha256(environment['OPENCODE_CONFIG_CONTENT'].encode()).hexdigest()}
+
+
+def _verify_worker_adapter(manifest, environment, privilege_drop):
+    """Resolve the exact client config before model launch; reject inherited MCP/plugins."""
+    if 'post_return' not in manifest:
+        return
+    argv = manifest['argv']
+    try:
+        check = subprocess.run([argv[0], 'debug', 'config', '--pure'], cwd=manifest['cwd'],
+                               env=environment, preexec_fn=privilege_drop, stdin=subprocess.DEVNULL,
+                               capture_output=True, timeout=30)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise ValueError('OpenCode adapter configuration probe did not complete') from exc
+    if check.returncode:
+        raise ValueError('OpenCode adapter configuration probe failed')
+    try:
+        loaded = json.loads(check.stdout)
+        declared = json.loads(environment['OPENCODE_CONFIG_CONTENT'])
+    except (ValueError, KeyError) as exc:
+        raise ValueError('OpenCode adapter configuration was not JSON') from exc
+    if loaded.get('mcp') or loaded.get('plugin'):
+        raise ValueError('OpenCode adapter inherited external MCP/plugins')
+    actual = loaded.get('permission') or {}
+    expected = declared['permission']
+    if any(actual.get(key) != value for key, value in expected.items()):
+        raise ValueError('OpenCode adapter did not load declared tool denies')
+
+
 def _private_artifact_root(manifest, row, directory, cwd):
     """Create private supervisor artifacts before an isolated child can execute."""
-    if 'post_return' not in manifest and 'execution_isolation' not in manifest:
+    if (manifest.get('execution_isolation') or {}).get('mode') != 'distinct_uid':
         return
     config = manifest.get('execution_isolation') or {}
     uid, gid = config.get('uid'), config.get('gid')
@@ -174,7 +270,7 @@ def _private_artifact_root(manifest, row, directory, cwd):
 
 
 def _private_state_path(manifest, state, cwd):
-    if 'post_return' not in manifest and 'execution_isolation' not in manifest:
+    if (manifest.get('execution_isolation') or {}).get('mode') != 'distinct_uid':
         return
     config = manifest.get('execution_isolation') or {}
     uid, gid = config.get('uid'), config.get('gid')
@@ -404,10 +500,13 @@ def run(manifest, state, directory):
     captured_bytes = 0
     logs = []
     publication_preflight = None
+    worker_adapter_receipt = None
     try:
         environment = os.environ.copy()
         environment.update(extra_env)
         privilege_drop = _isolated_worker(manifest, environment)
+        worker_adapter_receipt = _worker_adapter(manifest, environment)
+        _verify_worker_adapter(manifest, environment, privilege_drop)
         if 'post_return' in manifest:
             import post_return
             publication_preflight = post_return.preflight(manifest['post_return'], manifest, cwd,
@@ -497,6 +596,7 @@ def run(manifest, state, directory):
                   'final_artifact':final_proof,
                   'final_artifact_validated':final_proof['validated'],
                   'publication_preflight':publication_preflight,
+                  'worker_adapter':worker_adapter_receipt,
                   'accepted':False,'worker_result_verified':False,
                   'ownership_check_required':outcome!='exited' or exit_code!=0 or
                   output_truncated.is_set() or not final_proof['validated'],
@@ -510,6 +610,7 @@ def run(manifest, state, directory):
                 'output_limit_action':'kill' if kill_on_output_limit else 'drain',
                 'final_artifact':_final_artifact_proof(final_artifact_path, directory),
                 'publication_preflight':publication_preflight,
+                'worker_adapter':worker_adapter_receipt,
                 'accepted':False,'worker_result_verified':False,'ownership_check_required':True}
     artifact=directory/'process-result.json'
     if 'post_return' in manifest:

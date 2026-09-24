@@ -242,11 +242,13 @@ def _validate_spec(spec, manifest, cwd):
             raise PipelineException('Codex reviewer requires JSON execution evidence')
         # Codex's read-only sandbox does not prove owner-browser/profile isolation by itself.
         # A distinct UID and private HOME are required by run_job for this route as well.
-    isolation = reviewer.get('execution_isolation')
-    if not isinstance(isolation, dict) or isolation.get('mode') != 'distinct_uid':
-        raise PipelineException('reviewer requires distinct_uid owner-browser isolation')
-    if isolation.get('uid') == manifest.get('execution_isolation', {}).get('uid'):
-        raise PipelineException('reviewer must use a separate identity from the worker')
+    isolation = reviewer.get('execution_isolation') or {'mode': 'same_user'}
+    if isolation.get('mode') not in ('same_user', 'distinct_uid'):
+        raise PipelineException('unsupported reviewer execution isolation')
+    if isolation['mode'] == 'distinct_uid' and isolation.get('uid') == (manifest.get('execution_isolation') or {}).get('uid'):
+        raise PipelineException('distinct reviewer must use a separate identity from the worker')
+    if reviewer['adapter'] == 'codex-headless' and isolation['mode'] == 'same_user':
+        raise PipelineException('same-user Codex reviewer lacks a verified owner-browser deny adapter')
     if not (Path(argv[0]).is_file() or shutil.which(argv[0])):
         raise PipelineException('reviewer CLI unavailable on this host')
     if not isinstance(reviewer.get('timeout_seconds'), (int, float)) or not 0 < reviewer['timeout_seconds'] <= 10800:
@@ -261,7 +263,7 @@ def _validate_spec(spec, manifest, cwd):
 
 
 def preflight(spec, manifest, cwd, environment, privilege_drop):
-    """Before the worker starts, prove this checkout and its identity cannot publish."""
+    """Bind the clean owned checkout and selected worker permission boundary."""
     _validate_spec(spec, manifest, cwd)
     if git(cwd, 'rev-parse', 'HEAD') != spec['start_head']:
         raise PipelineException('start head differs from declared packet head')
@@ -271,7 +273,15 @@ def preflight(spec, manifest, cwd, environment, privilege_drop):
         raise PipelineException('worker checkout must start clean')
     _verify_publication_url(spec)
     if privilege_drop is None:
-        raise PipelineException('worker publication isolation not installed')
+        if (manifest.get('execution_isolation') or {'mode': 'same_user'}).get('mode') != 'same_user':
+            raise PipelineException('worker isolation mode was not installed')
+        if not environment.get('OPENCODE_CONFIG_CONTENT'):
+            raise PipelineException('same-user worker tool permissions were not installed')
+        if not _remote_git(spec, cwd, 'ls-remote', '--heads', spec['remote_url'], spec['base']):
+            raise PipelineException('supervisor cannot read authorized remote/base')
+        return {'permission_boundary': 'opencode-tool-policy-same-user',
+                'remote_readable_by_supervisor': True,
+                'git_control_digest': _control_digest(cwd)}
     _worker_credential_boundary(spec, manifest, environment, privilege_drop, cwd)
     probe_env = dict(environment)
     probe_env['GIT_TERMINAL_PROMPT'] = '0'
@@ -293,7 +303,8 @@ def preflight(spec, manifest, cwd, environment, privilege_drop):
         raise PipelineException('worker can publish owned branch; isolation denied')
     if not _permission_denial(denied.stderr + denied.stdout):
         raise PipelineException('worker push probe failed for an unclassified reason; publication denial unproved')
-    return {'remote_readable_by_supervisor': True,
+    return {'permission_boundary': 'distinct-uid-plus-tool-policy',
+            'remote_readable_by_supervisor': True,
             'remote_readable_by_worker': readable.returncode == 0 and bool(readable.stdout.strip()),
             'push_dry_run_denied': True,
             'git_control_digest': _control_digest(cwd)}
@@ -454,7 +465,7 @@ def _reviewer_stage(db, spec, head, cwd, directory, state, journal, journal_path
                 'max_output_bytes': reviewer.get('max_output_bytes', 2_000_000),
                 'final_artifact': str(final_path),
                 'final_artifact_from_stdout': True,
-                'execution_isolation': reviewer['execution_isolation'],
+                'execution_isolation': reviewer.get('execution_isolation', {'mode': 'same_user'}),
                 'launch_generation': {'project': spec['project'], 'generation': spec['generation']}}
     manifest_path = review_dir / 'reviewer-manifest.json'
     _save(manifest_path, manifest)
