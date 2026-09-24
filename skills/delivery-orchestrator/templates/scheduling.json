@@ -19,7 +19,7 @@
   ],
   "write_leases": [],
   "checkpoint": {
-    "trigger": "yield",
+    "trigger": "material-return",
     "assessment_evidence": "artifact://scheduling/current-assessment",
     "source_query": "artifact://inventory/paginated-query",
     "hierarchy_evidence": "artifact://inventory/parents-and-children",
@@ -29,5 +29,6 @@
     "unchanged_checks": 0,
     "next_owner": "coordinator",
     "next_event": "verified worker return"
-  }
+  },
+  "source_kind": "github"
 }

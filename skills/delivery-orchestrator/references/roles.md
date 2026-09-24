@@ -21,3 +21,6 @@ The Planner owns project context and the accepted breakdown. Include routine pre
 Requested model/effort and observed provider identity are distinct fields. Resolve explicit versions first. An approved latest-in-family policy may resolve a newer documented successor before dispatch; record the exact resolution and pin the attempt. Never switch family, provider, billing pool or effort silently because availability changed. Unavailable settings trigger a question or an already-approved fallback. Do not claim current availability from the example profile.
 
 Per-request choices win, then the adopter's project profile, then the user profile. The example profile documents shape only; it is not a live source of defaults or an automatic fallback. Reviewer independence means a separate session from the author, not a different vendor. Author can repair UX findings; a UX specialist can be an explicitly scoped repair writer, but another session must verify those repairs.
+
+
+For risk surfaces, keep the preferred economical builder first when the accepted packet resolves the design. Escalate an unresolved design question or the second substantive CHANGES-NEEDED on the same surface; preserve configured model/approval authority. Merely touching money, concurrency, tenancy or a cross-repository contract does not force a model switch.

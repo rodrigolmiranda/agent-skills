@@ -119,3 +119,8 @@ Review is for delivery awaiting independent acceptance. Completed intermediate c
 ## Completed slices and progress
 
 Publish each independently accepted delivery slice as a stable activity linked to its PR/evidence and parent issue. Use `completion_scope: step` while the parent remains open; keep the parent as its own unfinished activity. Do not count a finished reviewer invocation as a delivered slice. This preserves visible delivery without closing partially completed issues. Orchestrator supplies acceptance, last meaningful progress and follow-up deadlines from the scheduling checkpoint; Interchange renders these facts without assigning readiness or acceptance. Never refresh progress time merely because the snapshot was republished.
+
+
+## Dashboard delivery mode
+
+Give the owner the board URL when the plan starts. Owner-approved hosting may provide one read-only, local-only service across project records, with sanitized execution facts and an explicit lifecycle/health owner. Static file publication remains a supported fallback. Hosting/refresh mechanics belong to Interchange; they neither replace the scheduling checkpoint nor turn process output into acceptance. Surface rendering failures and stale observations. The separate hosting change supplies Docker/launchd/foreground mechanics; this workflow change does not install or start a service.

@@ -6,7 +6,7 @@ Delivery-orchestrator owns these decisions; Interchange supplies transport evide
 
 Complete the [scheduling gate and progress checkpoint](scheduling.md) and validate its receipt with `check_schedule.py <receipt> --before-yield` before yielding; checking a sample of tasks is insufficient.
 
-Keep progressing through the approved dependency graph; an owner reply is not needed merely to start the next ready assignment. Before ending a turn:
+Keep progressing through the approved dependency graph; an owner reply is not needed merely to start the next ready assignment. Before going idle (including a turn that relinquishes control, not only session termination):
 
 1. Reconcile received results, startup receipts and provider errors. A live PID proves only a process, not model execution; record quota/auth/startup failures as blocked.
 2. Reassess ready work and ownership conflicts. Dispatch executable authorized work or continue the coordinator's independent work. Do not stop after describing a plan while such work remains.

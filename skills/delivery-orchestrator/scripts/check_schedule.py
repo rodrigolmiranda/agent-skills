@@ -11,7 +11,7 @@ from datetime import datetime
 import json
 from pathlib import Path
 import sys
-from urllib.parse import urlparse
+from urllib.parse import urlparse, unquote
 
 
 DISPOSITIONS = {
@@ -52,6 +52,59 @@ def evidence_pointer(value):
     return '/' in text or '#' in text
 
 
+def validate_local_evidence(receipt, artifact_root):
+    """Resolve local evidence without fetching remote sources or reading contents."""
+    errors = []
+    root = Path(artifact_root).resolve() if artifact_root is not None else None
+    def check(value, field):
+        if not evidence_pointer(value):
+            return  # Structural validators report malformed required pointers.
+        parsed = urlparse(value)
+        if parsed.scheme in ('http', 'https'):
+            return
+        if root is None:
+            errors.append(f'{field}: local evidence requires artifact_root')
+            return
+        if parsed.scheme == 'artifact':
+            path = root / unquote(parsed.netloc + parsed.path)
+        elif parsed.scheme == 'file':
+            if parsed.netloc not in ('', 'localhost'):
+                errors.append(f'{field}: remote file authority is not local evidence')
+                return
+            path = Path(unquote(parsed.path))
+        elif not parsed.scheme:
+            path = root / unquote(parsed.path)
+        else:
+            errors.append(f'{field}: unsupported evidence scheme')
+            return
+        try:
+            resolved = path.resolve()
+            if parsed.scheme == 'artifact' and not resolved.is_relative_to(root):
+                errors.append(f'{field}: artifact path escapes declared root')
+            elif not resolved.is_file():
+                errors.append(f'{field}: local evidence file does not exist: {path}')
+        except (OSError, ValueError, RuntimeError):
+            errors.append(f'{field}: invalid local evidence path')
+    checkpoint = receipt.get('checkpoint')
+    if isinstance(checkpoint, dict):
+        for field in ('assessment_evidence', 'last_progress_evidence', 'source_query', 'hierarchy_evidence'):
+            check(checkpoint.get(field), 'checkpoint.' + field)
+        recovery = checkpoint.get('recovery')
+        if isinstance(recovery, dict):
+            for field in ('blocker_recheck', 'authorized_alternatives', 'independent_work'):
+                check(recovery.get(field), 'checkpoint.recovery.' + field)
+    for collection in ('items', 'write_leases'):
+        rows = receipt.get(collection)
+        if isinstance(rows, list):
+            for index, row in enumerate(rows):
+                if isinstance(row, dict):
+                    for field in ('evidence', 'supervised_wait'):
+                        check(row.get(field), f'{collection}[{index}].{field}')
+    if receipt.get('source_kind', 'github') == 'files':
+        check(receipt.get('scope_url'), 'scope_url')
+    return errors
+
+
 def timestamp(value):
     try:
         result = datetime.fromisoformat(value.replace('Z', '+00:00'))
@@ -79,7 +132,7 @@ def validate_progress(receipt, before_yield=False):
         errors.append('checkpoint.last_progress_evidence is required; polling is not progress')
     for field in ('source_query', 'hierarchy_evidence'):
         if not evidence_pointer(checkpoint.get(field)):
-            errors.append(f'checkpoint.{field} must link the paginated parent/child inventory')
+            errors.append(f'checkpoint.{field} must link the complete adopted backlog inventory')
     retrieved = timestamp(checkpoint.get('source_retrieved_at'))
     if retrieved is None or (checked and retrieved > checked):
         errors.append('checkpoint.source_retrieved_at must be a timestamp no later than checked_at')
@@ -139,7 +192,7 @@ def validate_progress(receipt, before_yield=False):
     return errors
 
 
-def validate_schedule(receipt, before_yield=False):
+def validate_schedule(receipt, before_yield=False, artifact_root=None):
     """Return consistency errors for one scheduling receipt."""
     errors = []
     if not isinstance(receipt, dict):
@@ -150,8 +203,15 @@ def validate_schedule(receipt, before_yield=False):
         parsed_scope = urlparse(scope_url) if nonempty_text(scope_url) else None
     except ValueError:
         parsed_scope = None
-    if parsed_scope is None or parsed_scope.scheme not in {'http', 'https'} or not parsed_scope.netloc:
-        errors.append('scope_url must be an absolute HTTP(S) link to the approved source scope')
+    source_kind = receipt.get('source_kind', 'github')
+    if source_kind == 'github':
+        if parsed_scope is None or parsed_scope.scheme not in {'http', 'https'} or not parsed_scope.netloc:
+            errors.append('scope_url must be an absolute HTTP(S) link to the approved source scope')
+    elif source_kind == 'files':
+        if not evidence_pointer(scope_url) or parsed_scope is None or parsed_scope.scheme not in ('', 'file', 'artifact'):
+            errors.append('file backlog scope_url must identify a local inventory file')
+    else:
+        errors.append('source_kind must be github or files')
 
     checked_at = receipt.get('checked_at')
     try:
@@ -242,6 +302,7 @@ def validate_schedule(receipt, before_yield=False):
                 'conflict-blocked, capacity-blocked, or authority-held exclusion')
 
     errors.extend(validate_progress(receipt, before_yield=before_yield))
+    errors.extend(validate_local_evidence(receipt, artifact_root))
     return errors
 
 
@@ -249,6 +310,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('receipt', help='path to a scheduling receipt JSON file')
     parser.add_argument('--before-yield', action='store_true', help='enforce turn-exit readiness independently of event trigger')
+    parser.add_argument('--artifact-root', help='local artifact root; defaults to receipt directory')
     args = parser.parse_args(argv)
     try:
         receipt = json.loads(Path(args.receipt).read_text(encoding='utf-8'))
@@ -256,7 +318,8 @@ def main(argv=None):
         print(f'invalid schedule receipt: {error}', file=sys.stderr)
         return 2
 
-    errors = validate_schedule(receipt, before_yield=args.before_yield)
+    errors = validate_schedule(receipt, before_yield=args.before_yield,
+                               artifact_root=args.artifact_root or Path(args.receipt).resolve().parent)
     if errors:
         print('invalid schedule receipt:')
         for error in errors:
