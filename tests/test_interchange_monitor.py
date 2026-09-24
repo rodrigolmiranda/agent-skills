@@ -60,9 +60,9 @@ class MonitorTests(unittest.TestCase):
         monitor.scan(self.db, now_seconds=2000000000, overdue_seconds=1)
         relay.transfer_project(self.db, 'sales', 1, route='manual')
         relay.notify(self.db, 'event')
-        relay.acknowledge(self.db, 'event', 2)
+        relay.acknowledge(self.db, 'event', 2, 'manual')
         self.assertEqual(monitor.scan(self.db, now_seconds=2000000001, overdue_seconds=1), [])
-        self.assertIsNotNone(self.db.execute('SELECT resolved FROM monitor_findings WHERE key=?', ('event:event',)).fetchone()[0])
+        self.assertIsNotNone(self.db.execute('SELECT resolved FROM monitor_findings WHERE key=?', ('sales:event:event',)).fetchone()[0])
 
     def test_long_running_worker_inside_declared_deadline_is_not_missing(self):
         directory = self.root/'long'; directory.mkdir()
@@ -104,6 +104,26 @@ class MonitorTests(unittest.TestCase):
         alerts = monitor.scan(self.db, project='other', now_seconds=2000000000)
         self.assertEqual(len(alerts), 1)
         self.assertEqual(alerts[0]['job'], 'other-job')
+
+    def test_same_activity_id_is_isolated_and_scoped_scan_resolves_only_own_finding(self):
+        relay.register_project(self.db, 'other', route='manual')
+        step = {'id':'same-id','state':'next','owner':'lead','expected_transition':'working',
+                'deadline_at':'2026-01-01T00:00:00+00:00'}
+        for project in ('sales', 'other'):
+            monitor.scan(self.db, project=project,
+                         activities={'project_id':project,'workflow_steps':[step]},
+                         now_seconds=1767312000)
+        rows = self.db.execute("SELECT key,project,resolved FROM monitor_findings WHERE key LIKE '%activity:same-id' ORDER BY project").fetchall()
+        self.assertEqual([(r['key'], r['project']) for r in rows],
+                         [('other:activity:same-id','other'), ('sales:activity:same-id','sales')])
+        self.assertTrue(all(r['resolved'] is None for r in rows))
+        monitor.scan(self.db, project='sales',
+                     activities={'project_id':'sales','workflow_steps':[]},
+                     now_seconds=1767312001)
+        statuses = {r['project']: r['resolved'] for r in self.db.execute(
+            "SELECT project,resolved FROM monitor_findings WHERE key LIKE '%activity:same-id'")}
+        self.assertIsNotNone(statuses['sales'])
+        self.assertIsNone(statuses['other'])
 
 
 if __name__ == '__main__':

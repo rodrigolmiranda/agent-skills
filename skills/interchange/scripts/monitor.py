@@ -23,10 +23,11 @@ def _age(seconds, now_seconds):
         return None
 
 
-def _finding(key, kind, owner, detail, recovery, job=None, attempt=None):
+def _finding(key, kind, owner, detail, recovery, job=None, attempt=None, project=None):
     return {'id': key, 'kind': kind, 'severity': 'error', 'next_owner': owner,
             'message': detail, 'next_check': recovery,
-            'notification_available': False, 'job': job, 'attempt': attempt}
+            'notification_available': False, 'job': job, 'attempt': attempt,
+            'project': project}
 
 
 def scan(db, *, project=None, activities=None, now_seconds=None, overdue_seconds=300, retry_delivery=False):
@@ -37,9 +38,11 @@ def scan(db, *, project=None, activities=None, now_seconds=None, overdue_seconds
     if project is not None and project not in {r['project'] for r in db.execute('SELECT project FROM project_routes')}:
         raise ValueError('unknown project monitor scope')
     db.execute('''CREATE TABLE IF NOT EXISTS monitor_findings (
-      key TEXT PRIMARY KEY, kind TEXT NOT NULL, next_owner TEXT NOT NULL,
+      key TEXT PRIMARY KEY, project TEXT, kind TEXT NOT NULL, next_owner TEXT NOT NULL,
       detail TEXT NOT NULL, next_check TEXT NOT NULL,
       first_seen TEXT NOT NULL, last_seen TEXT NOT NULL, resolved TEXT)''')
+    if 'project' not in {row['name'] for row in db.execute('PRAGMA table_info(monitor_findings)')}:
+        db.execute('ALTER TABLE monitor_findings ADD COLUMN project TEXT')
     findings = []
     routes = {r['project']: dict(r) for r in db.execute('SELECT * FROM project_routes')}
     for event in db.execute('SELECT * FROM events WHERE acknowledged IS NULL ORDER BY created').fetchall():
@@ -52,7 +55,8 @@ def scan(db, *, project=None, activities=None, now_seconds=None, overdue_seconds
             route = routes.get(event_project)
             if not route:
                 findings.append(_finding('event:'+event['id'], 'missing_route', 'supervisor',
-                                         event['id'], 'restore a project route', event['job'], event['attempt']))
+                                         event['id'], 'restore a project route', event['job'], event['attempt'],
+                                         event_project))
                 continue
             delivery = db.execute('SELECT * FROM event_deliveries WHERE event_id=? AND generation=?',
                                   (event['id'], route['generation'])).fetchone()
@@ -72,11 +76,12 @@ def scan(db, *, project=None, activities=None, now_seconds=None, overdue_seconds
                                          route['coordinator'] or route['receiver'] or 'supervisor',
                                          f"{event['id']} at generation {route['generation']}: {status}",
                                          'acknowledge receipt through supported current route; inspect fallback',
-                                         event['job'], event['attempt']))
+                                         event['job'], event['attempt'], event_project))
         elif event['delivery'] not in ('queued',):
             findings.append(_finding('event:'+event['id'], 'undelivered_event', 'supervisor',
                                      f"{event['id']}: {event['delivery']}",
-                                     'inspect registered receiver and manual fallback', event['job'], event['attempt']))
+                                     'inspect registered receiver and manual fallback', event['job'], event['attempt'],
+                                     event_project))
     for action in db.execute('SELECT * FROM managed_actions').fetchall():
         if project is not None and action['project'] != project:
             continue
@@ -84,7 +89,8 @@ def scan(db, *, project=None, activities=None, now_seconds=None, overdue_seconds
             findings.append(_finding('action:'+action['token'], 'overdue_managed_action',
                                      routes.get(action['project'], {}).get('coordinator') or 'supervisor',
                                      f"{action['project']} generation {action['generation']} {action['action']}",
-                                     'inspect process and remote side effect before releasing action'))
+                                     'inspect process and remote side effect before releasing action',
+                                     project=action['project']))
     for notice in db.execute('''SELECT n.* FROM takeover_notices n
       JOIN project_routes r USING(project) WHERE n.generation=r.generation
       AND n.acknowledged IS NULL''').fetchall():
@@ -95,18 +101,19 @@ def scan(db, *, project=None, activities=None, now_seconds=None, overdue_seconds
                                  routes.get(notice['project'], {}).get('coordinator') or 'supervisor',
                                  f"{notice['job']}/{notice['attempt']}: {notice['status']}",
                                  'deliver on next supported worker interaction and retain forwarding',
-                                 notice['job'], notice['attempt']))
+                                 notice['job'], notice['attempt'], notice['project']))
     for launch in db.execute('SELECT * FROM launches').fetchall():
+        bound = db.execute('SELECT project FROM attempt_projects WHERE job=? AND attempt=?',
+                           (launch['job'], launch['attempt'])).fetchone()
+        launch_project = bound['project'] if bound else None
         if project is not None:
-            bound = db.execute('SELECT project FROM attempt_projects WHERE job=? AND attempt=?',
-                               (launch['job'], launch['attempt'])).fetchone()
-            if not bound or bound['project'] != project:
+            if launch_project != project:
                 continue
         age = _age(launch['started'], now_seconds)
         if age is None:
             findings.append(_finding('launch:'+launch['job']+':'+launch['attempt'], 'invalid_launch_time',
                                      'supervisor', 'launch age unavailable', 'inspect attempt record',
-                                     launch['job'], launch['attempt']))
+                                     launch['job'], launch['attempt'], launch_project))
             continue
         if age < overdue_seconds:
             continue
@@ -127,13 +134,13 @@ def scan(db, *, project=None, activities=None, now_seconds=None, overdue_seconds
             findings.append(_finding('launch:'+launch['job']+':'+launch['attempt'], 'missing_terminal_return',
                                      'supervisor', f"{launch['job']}/{launch['attempt']}",
                                      'inspect owned process, descendants, logs and worktree',
-                                     launch['job'], launch['attempt']))
+                                     launch['job'], launch['attempt'], launch_project))
         elif not terminal and declared_deadline is None:
             findings.append(_finding('deadline:'+launch['job']+':'+launch['attempt'],
                                      'missing_launch_deadline', 'supervisor',
                                      f"{launch['job']}/{launch['attempt']}",
                                      'inspect running attempt and restore a declared deadline',
-                                     launch['job'], launch['attempt']))
+                                     launch['job'], launch['attempt'], launch_project))
         journal = directory / 'post-return.json'
         if journal.is_file():
             try:
@@ -153,32 +160,35 @@ def scan(db, *, project=None, activities=None, now_seconds=None, overdue_seconds
                                              'supervisor',
                                              f"{launch['job']}/{launch['attempt']}",
                                              'inspect reviewer launch and retry only reviewer stage',
-                                             launch['job'], launch['attempt']))
+                                             launch['job'], launch['attempt'], launch_project))
             elif stage == 'exception' or (old_stage and stage not in ('review_started', 'done')):
                 findings.append(_finding('pipeline:'+launch['job']+':'+launch['attempt'],
                                          'stalled_pipeline', 'supervisor',
                                          f"{launch['job']}/{launch['attempt']}: {stage}",
                                          'resume only the failed authorized stage after reconciliation',
-                                         launch['job'], launch['attempt']))
+                                         launch['job'], launch['attempt'], launch_project))
     if activities is not None:
         findings.extend(_activity_findings(activities, project, now_seconds))
     stamp = datetime.fromtimestamp(now_seconds, timezone.utc).isoformat()
     with db:
         for item in findings:
-            db.execute('''INSERT INTO monitor_findings VALUES (?,?,?,?,?,?,?,NULL)
+            storage_key = f"{item['project'] or 'legacy'}:{item['id']}"
+            db.execute('''INSERT INTO monitor_findings
+              (key,project,kind,next_owner,detail,next_check,first_seen,last_seen,resolved)
+              VALUES (?,?,?,?,?,?,?,?,NULL)
               ON CONFLICT(key) DO UPDATE SET kind=excluded.kind,next_owner=excluded.next_owner,
               detail=excluded.detail,next_check=excluded.next_check,last_seen=excluded.last_seen,resolved=NULL''',
-                       (item['id'], item['kind'], item['next_owner'], item['message'],
+                       (storage_key, item['project'], item['kind'], item['next_owner'], item['message'],
                         item['next_check'], stamp, stamp))
-        # A scoped scan must never resolve findings for other projects.
-        if project is None:
-            keys = [item['id'] for item in findings]
-            if keys:
-                marks = ','.join('?' for _ in keys)
-                db.execute(f'UPDATE monitor_findings SET resolved=? WHERE resolved IS NULL AND key NOT IN ({marks})',
-                           (stamp, *keys))
-            else:
-                db.execute('UPDATE monitor_findings SET resolved=? WHERE resolved IS NULL', (stamp,))
+        keys = [f"{item['project'] or 'legacy'}:{item['id']}" for item in findings]
+        where = 'resolved IS NULL' + (' AND project=?' if project is not None else '')
+        params = (project,) if project is not None else ()
+        if keys:
+            marks = ','.join('?' for _ in keys)
+            db.execute(f'UPDATE monitor_findings SET resolved=? WHERE {where} AND key NOT IN ({marks})',
+                       (stamp, *params, *keys))
+        else:
+            db.execute(f'UPDATE monitor_findings SET resolved=? WHERE {where}', (stamp, *params))
     return findings
 
 
@@ -204,7 +214,7 @@ def _activity_findings(record, project, now_seconds):
         deadline = step.get('deadline_at')
         if not all(isinstance(value, str) and value.strip() for value in (owner, expected, deadline)):
             findings.append(_finding('activity:'+ident, 'incomplete_supervision', 'supervisor',
-                                     ident, 'supply owner, expected transition and deadline'))
+                                     ident, 'supply owner, expected transition and deadline', project=project))
             continue
         if _event_age(deadline, now_seconds) < 0:
             continue
@@ -219,7 +229,7 @@ def _activity_findings(record, project, now_seconds):
         else:
             continue
         findings.append(_finding('activity:'+ident, code, owner, ident,
-                                 'reconcile current execution and record next transition'))
+                                 'reconcile current execution and record next transition', project=project))
     return findings
 
 

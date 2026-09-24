@@ -409,7 +409,14 @@ def acknowledge(db, event_id, generation=None, coordinator=None):
                            (row['job'], row['attempt'])).fetchone()
         if bound:
             route = require_current_generation(db, bound['project'], generation)
-            if coordinator != route['coordinator'] and coordinator != route['receiver']:
+            if route['kind'] == 'codex-queue':
+                expected_receiver = route['coordinator']
+            elif route['kind'] == 'claude-task':
+                expected_receiver = route['receiver']
+            else:
+                # Manual receipt must be explicit. None is never an identity.
+                expected_receiver = 'manual'
+            if not expected_receiver or coordinator != expected_receiver:
                 raise ValueError('acknowledgement receiver differs from current route')
             sent = db.execute('SELECT status FROM event_deliveries WHERE event_id=? AND generation=?',
                               (event_id, generation)).fetchone()

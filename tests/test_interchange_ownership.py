@@ -105,6 +105,27 @@ class OwnershipTests(unittest.TestCase):
             self.assertEqual(relay.notify(self.db, 'result')['delivery'], 'manual')
             run.assert_not_called()
         self.assertIsNone(self.db.execute('SELECT acknowledged FROM events WHERE id=?', ('result',)).fetchone()[0])
+        with self.assertRaises(ValueError):
+            relay.acknowledge(self.db, 'result', 2)
+        self.assertFalse(relay.acknowledge(self.db, 'result', 2, 'manual')['accepted'])
+
+    def test_codex_ack_requires_current_nonnull_coordinator_identity(self):
+        self.event()
+        with patch.object(relay.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, '', '')):
+            relay.notify(self.db, 'result')
+        for identity in (None, 'manual', 'wrong'):
+            with self.assertRaises(ValueError):
+                relay.acknowledge(self.db, 'result', 1, identity)
+        self.assertFalse(relay.acknowledge(self.db, 'result', 1, self.old)['accepted'])
+
+    def test_claude_ack_requires_current_nonnull_receiver_identity(self):
+        relay.transfer_project(self.db, 'sales', 1, route='claude-task', receiver='parent-task')
+        self.event()
+        self.assertEqual(relay.notify(self.db, 'result')['delivery'], 'harness-pending')
+        for identity in (None, self.old, 'wrong'):
+            with self.assertRaises(ValueError):
+                relay.acknowledge(self.db, 'result', 2, identity)
+        self.assertFalse(relay.acknowledge(self.db, 'result', 2, 'parent-task')['accepted'])
 
     def test_action_lease_serializes_takeover_and_does_not_expire_automatically(self):
         token = relay.acquire_managed_action(self.db, 'sales', 1, 'push', lease_seconds=1)
