@@ -13,7 +13,8 @@ import subprocess
 import threading
 import time
 
-from relay import connect, emit, notify
+from relay import (acquire_managed_action, connect, emit, notify,
+                   release_managed_action)
 
 SUPERVISOR_ARTIFACTS = frozenset({'process-result.json', 'runner.json', 'stdout.log', 'stderr.log'})
 
@@ -85,6 +86,47 @@ def _manifest_env(manifest):
             raise ValueError(f'env value for {name} must be a string of at most 64 KiB')
         result[name] = value
     return result
+
+
+def _isolated_worker(manifest, environment):
+    """Return a privilege drop for opt-in publication jobs.
+
+    A same-user tool policy cannot deny GitHub credentials or the owner's browser.
+    The supervisor therefore needs a distinct local account with its own private
+    home and provider login. This is unavailable to an unprivileged supervisor.
+    """
+    if 'post_return' not in manifest and 'execution_isolation' not in manifest:
+        return None
+    config = manifest.get('execution_isolation')
+    if not isinstance(config, dict) or config.get('mode') != 'distinct_uid':
+        raise ValueError('post_return requires distinct_uid execution isolation')
+    uid, gid = config.get('uid'), config.get('gid')
+    if (not isinstance(uid, int) or isinstance(uid, bool) or not isinstance(gid, int)
+            or isinstance(gid, bool) or uid <= 0 or gid <= 0 or uid == os.geteuid()):
+        raise ValueError('worker must use a distinct unprivileged UID/GID')
+    if os.geteuid() != 0:
+        raise ValueError('distinct_uid isolation requires a privileged supervisor')
+    home = Path(config.get('home', '')).resolve(strict=True)
+    stat = home.stat()
+    if not home.is_dir() or stat.st_uid != uid or stat.st_mode & 0o077:
+        raise ValueError('isolated worker home must be private and owned by its UID')
+    # Never pass the coordinator's publication credentials or browser profile.
+    for name in list(environment):
+        if (SECRET_NAME.search(name) or name.startswith(('GH_', 'GITHUB_', 'GIT_', 'SSH_',
+                                                         'CODEX_', 'CLAUDE_', 'CHROME_', 'BROWSER_'))
+                or name in {'HOME', 'XDG_CONFIG_HOME', 'XDG_DATA_HOME', 'XDG_CACHE_HOME'}):
+            environment.pop(name, None)
+    environment['HOME'] = str(home)
+    environment['XDG_CONFIG_HOME'] = str(home / '.config')
+    environment['XDG_DATA_HOME'] = str(home / '.local/share')
+    environment['XDG_CACHE_HOME'] = str(home / '.cache')
+    environment['GIT_CONFIG_GLOBAL'] = os.devnull
+    environment['GIT_CONFIG_SYSTEM'] = os.devnull
+    def drop():
+        os.setgroups([])
+        os.setgid(gid)
+        os.setuid(uid)
+    return drop
 
 
 def _final_artifact_source(manifest, cwd):
@@ -189,6 +231,44 @@ def _final_artifact_proof(path, directory):
                 'error_type': type(exc).__name__}
 
 
+def _collect_stream_final(manifest, target, directory):
+    """Copy a structured headless reviewer verdict from its bounded event stream."""
+    if not manifest.get('final_artifact_from_stdout') or target is None:
+        return
+    if target.exists() or target.is_symlink():
+        return
+    stdout = directory / 'stdout.log'
+    if not stdout.is_file():
+        return
+    verdict = None
+    with stdout.open('rb') as stream:
+        for raw in stream:
+            if len(raw) > 100_000:
+                continue
+            try:
+                event = json.loads(raw)
+            except ValueError:
+                continue
+            if event.get('type') == 'result' and isinstance(event.get('result'), str):
+                candidate = event['result']
+            elif event.get('type') == 'item.completed' and event.get('item', {}).get('type') == 'agent_message':
+                candidate = event['item'].get('text')
+            else:
+                continue
+            try:
+                parsed = json.loads(candidate)
+            except (TypeError, ValueError):
+                continue
+            if (isinstance(parsed, dict) and parsed.get('verdict') in ('passed', 'changes_needed')
+                    and isinstance(parsed.get('reviewed_head'), str)):
+                verdict = parsed
+    if verdict is not None:
+        fd = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, 'O_NOFOLLOW', 0), 0o600)
+        with os.fdopen(fd, 'w') as out:
+            json.dump(verdict, out)
+            out.write('\n')
+
+
 def run(manifest, state, directory):
     argv = manifest['argv']
     if not isinstance(argv,list) or not argv or any(not isinstance(x,str) for x in argv):
@@ -210,6 +290,11 @@ def run(manifest, state, directory):
                      (manifest['job'],manifest['attempt'])).fetchone()
     if not row or row['sender'] != manifest['sender'] or not directory.is_relative_to(Path(row['root'])):
         db.close(); raise ValueError('register matching attempt and artifact root first')
+    bound = db.execute('SELECT project,registered_generation FROM attempt_projects WHERE job=? AND attempt=?',
+                       (manifest['job'], manifest['attempt'])).fetchone()
+    if 'post_return' in manifest and (not bound or bound['project'] != manifest['post_return'].get('project')
+                                      or bound['registered_generation'] != manifest['post_return'].get('generation')):
+        db.close(); raise ValueError('post_return requires a matching project-bound worker attempt')
     try:
         with db:
             db.execute('INSERT INTO launches VALUES (?,?,?,?)',
@@ -228,6 +313,7 @@ def run(manifest, state, directory):
         raise
     begun = time.monotonic()
     launched_wall = time.time() - 1  # mtime granularity margin
+    deadline_wall = time.time() + timeout
     proc = None
     output_truncated = threading.Event()
     output_limit_kill_requested = threading.Event()
@@ -235,20 +321,43 @@ def run(manifest, state, directory):
     seen_bytes = 0
     captured_bytes = 0
     logs = []
+    publication_preflight = None
     try:
         environment = os.environ.copy()
         environment.update(extra_env)
+        privilege_drop = _isolated_worker(manifest, environment)
+        if 'post_return' in manifest:
+            import post_return
+            publication_preflight = post_return.preflight(manifest['post_return'], manifest, cwd,
+                                                          environment, privilege_drop)
         if final_source is not None:
             # The worker writes where it can: its own cwd. The runner copies it into the attempt root.
             environment['INTERCHANGE_FINAL_ARTIFACT'] = str(final_source)
-        elif final_artifact_path is not None:
+        elif final_artifact_path is not None and not manifest.get('final_artifact_from_stdout'):
             environment['INTERCHANGE_FINAL_ARTIFACT'] = str(final_artifact_path)
         # stdin is always closed: an inherited open, non-TTY stdin makes some headless workers
         # (OpenCode) wait forever and print nothing.
-        proc = subprocess.Popen(argv,cwd=cwd,env=environment,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE,start_new_session=True)
+        launch_owner = manifest.get('launch_generation')
+        if bound:
+            registered_owner = {'project': bound['project'], 'generation': bound['registered_generation']}
+            if launch_owner is not None and launch_owner != registered_owner:
+                raise ValueError('launch generation conflicts with bound attempt')
+            launch_owner = registered_owner
+        if launch_owner is None and 'post_return' in manifest:
+            launch_owner = {key: manifest['post_return'][key] for key in ('project', 'generation')}
+        launch_token = None
+        try:
+            if launch_owner is not None:
+                launch_token = acquire_managed_action(db, launch_owner['project'],
+                                                      launch_owner['generation'], 'worker-launch')
+            proc = subprocess.Popen(argv,cwd=cwd,env=environment,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE,start_new_session=True,preexec_fn=privilege_drop)
+        finally:
+            if launch_token is not None:
+                release_managed_action(db, launch_token)
         lease.write_text(json.dumps({'runner_pid':os.getpid(),'worker_pid':proc.pid,'state':'running',
-                                    'job':manifest['job'],'attempt':manifest['attempt']}))
+                                    'job':manifest['job'],'attempt':manifest['attempt'],
+                                    'timeout_seconds':timeout,'deadline_at':deadline_wall}))
         def drain(stream,path):
             nonlocal seen_bytes, captured_bytes
             outfd = os.open(path,os.O_CREAT|os.O_EXCL|os.O_WRONLY,0o600)
@@ -296,6 +405,7 @@ def run(manifest, state, directory):
         else:
             outcome='exited'
         _collect_final_artifact(final_source, final_artifact_path, cwd, directory, launched_wall)
+        _collect_stream_final(manifest, final_artifact_path, directory)
         final_proof = _final_artifact_proof(final_artifact_path, directory)
         result = {'job':manifest['job'],'attempt':manifest['attempt'],'sender':manifest['sender'],
                   'process_outcome':outcome,'exit_code':exit_code,'seconds':round(time.monotonic()-begun,3),
@@ -304,6 +414,7 @@ def run(manifest, state, directory):
                   'output_limit_action':'kill' if kill_on_output_limit else 'drain',
                   'final_artifact':final_proof,
                   'final_artifact_validated':final_proof['validated'],
+                  'publication_preflight':publication_preflight,
                   'accepted':False,'worker_result_verified':False,
                   'ownership_check_required':outcome!='exited' or exit_code!=0 or
                   output_truncated.is_set() or not final_proof['validated'],
@@ -316,10 +427,20 @@ def run(manifest, state, directory):
                 'output_truncated':output_truncated.is_set(),
                 'output_limit_action':'kill' if kill_on_output_limit else 'drain',
                 'final_artifact':_final_artifact_proof(final_artifact_path, directory),
+                'publication_preflight':publication_preflight,
                 'accepted':False,'worker_result_verified':False,'ownership_check_required':True}
     artifact=directory/'process-result.json'
+    if 'post_return' in manifest:
+        try:
+            import post_return
+            result['post_return'] = post_return.execute(manifest['post_return'], manifest, result,
+                                                        db, state, directory)
+        except Exception as exc:
+            result['post_return'] = {'stage': 'exception', 'error_type': type(exc).__name__,
+                                     'error': str(exc)[:500]}
     artifact.write_text(json.dumps(result,indent=2)+'\n');os.chmod(artifact,0o600)
-    lease.write_text(json.dumps({'runner_pid':os.getpid(),'state':'terminal','artifact':str(artifact)}))
+    lease.write_text(json.dumps({'runner_pid':os.getpid(),'state':'terminal','artifact':str(artifact),
+                                 'timeout_seconds':timeout,'deadline_at':deadline_wall}))
     event_id='exit-'+hashlib.sha256(json.dumps([manifest['job'],manifest['attempt']],separators=(',',':')).encode()).hexdigest()
     emit(db,manifest['job'],manifest['attempt'],manifest['sender'],'exited',artifact,event_id)
     delivery=notify(db,event_id)

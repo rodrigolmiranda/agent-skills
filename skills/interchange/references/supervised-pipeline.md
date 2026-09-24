@@ -1,46 +1,27 @@
-# Supervised return pipeline and portable ownership
+# Declared post-return publication
 
-Use this contract for an explicitly authorized automatic worker-return pipeline, a supervisor transfer, or recovery of missing transitions. The caller supplies accepted scope, permitted publication target and reviewer selection. Neither process exit nor this mechanism grants acceptance or merge authority.
+`run_job.py` accepts an **opt-in** `post_return` version 1 implementation contract. It is transport, not acceptance authority. The coordinator supplies the accepted packet revision, owned branch and paths, required gates, exact base/repository, current project generation, and independent reviewer route before worker launch. An ordinary manifest without `post_return` keeps the prior behavior. The runner never commits, merges, deploys, or declares acceptance.
 
-## Ownership and neutral inbox
+## Host prerequisites
 
-The private relay database must be accessible to the supervisor host. Register a project route before binding new pipeline attempts:
+A privileged supervisor launches the implementation worker under a dedicated unprivileged UID with a private home. The reviewer uses a **different** unprivileged UID and private home. Both homes must be owned by their UID and mode `0700`. The supervisor's GitHub authentication and browser profile stay in its own account. The worker account must have its provider login but no GitHub publication credentials. The reviewer account needs its own model login. `run_job` drops UID/GID and groups, scrubs coordinator credential/browser environment variables, and sets private HOME/XDG and empty Git global/system config. This is a host provisioning requirement, not something a JSON field creates. Same-user execution and unsupported hosts fail closed for this pipeline. Validate actual file/agent/socket permissions before use; a tool deny list or hidden token in the manifest does not establish isolation.
 
-```sh
-python3 scripts/relay.py --state "$STATE" register-project --project "$PROJECT" --route codex-queue --coordinator "$COORDINATOR"
-python3 scripts/relay.py --state "$STATE" bind-attempt --project "$PROJECT" --generation 1 --job "$JOB" --attempt "$ATTEMPT"
+Use an owned isolated worktree whose Git control metadata is trusted at launch. The runner records its control digest and refuses publication if `.git`, `config` or `config.worktree` changes. It rejects dangerous local Git config keys, suppresses hooks, fsmonitor, external diff and local credential helpers in publication Git commands, and pushes the exact validated SHA. Each commit in the worker range is checked for paths; merge commits require supervised integration. The declared GitHub URL and `repository` must match; a trusted absolute `gh_executable` is required. HTTPS uses that `gh` executable as the supervisor's Git credential helper. SSH uses the supervisor's batch SSH route. The worker's dry-run push must fail with a recognizable permission/authentication error. A transient network error, non-fast-forward, or a fake pre-push hook is not proof of denial. This probe is scoped evidence, not a universal OS sandbox proof.
+
+The current host has not been provisioned or verified for this route. The tests cover controlled local Git and UID fixtures; they do not prove a real provider account, GitHub permission mapping, browser integration state, or a live review/CI overlap. Qualify the exact adapter and model/effort using a supervised smoke before declaring unattended use. Do not silently substitute another model.
+
+## Contract and run
+
+Start from [post-return-manifest.json](../templates/post-return-manifest.json). Replace every placeholder and bind the worker attempt to the registered project/generation before launch (`relay.py register-project`, `register`, `bind-attempt`). The worker must begin at `start_head` on `branch` with a clean checkout. It writes a compact JSON final to `final_artifact_source` under the worktree; ignore that attempt-specific path in the common Git exclude. The runner copies and hashes it into the private attempt root. A ready final has exact `job`, `attempt`, `packet_revision`, and committed `head`, `result: "ready_for_review"`, and `required_gates` mapping each declared gate to `"passed"`. A known required-gate failure, question, dirty checkout, absent commit, out-of-scope commit, changed Git control metadata or changed head becomes a durable `post-return.json` exception. Existing Markdown finals remain valid for ordinary jobs but cannot authorize this pipeline.
+
+Run `run_job.py --manifest <manifest> --state <private-state.db> --directory <attempt-root>` under a supervised background service. The parent process receipt and callback remain immutable evidence. `post-return.json` records `new`, `pushed`, `pr_created`, `review_started`, or `exception`, including the exact head and PR/reviewer references. The pipeline queries the remote and existing open draft PR before each stage. A retry never reruns the worker. For a failed or interrupted publication stage, inspect the lease/process/remote state and then run:
+
+```text
+python3 skills/interchange/scripts/post_return.py --manifest <manifest> --state <private-state.db> --directory <attempt-root>
 ```
 
-Register the attempt normally first. Its original route remains immutable provenance; a bound project's current generation controls delivery. Transfer with the observed generation:
+This command updates only the post-return journal. It leaves the hashed process result intact. A lost or uncertain external operation requires inspection before retry; an existing managed-action lease must not be cleared merely because its inspection deadline passed. The monitor exposes exceptions and missing later stages. The coordinator handles corrections, verdict disposition, CI state and all merge/acceptance decisions.
 
-```sh
-python3 scripts/relay.py --state "$STATE" transfer-project --project "$PROJECT" --expected-generation 1 --route codex-queue --coordinator "$INCOMING"
-```
+## Reviewer adapter
 
-Python callers use `register_project`, `bind_attempt`, `require_current_generation`, and an `acquire_managed_action` / `release_managed_action` pair around each managed write. `takeover_roster` records notice state; `mark_takeover_notice` records delivery and later acknowledgement separately. Managed actions fence publication/dispatch against transfer. A transfer refuses while an action is held; an overdue action is inspected before release, never automatically stolen. This does not prevent an old chat from running arbitrary shell commands outside these helpers. Restrict publication credentials to the supervisor process and reconcile old automation ownership.
-
-Re-notify unacknowledged event IDs through the current project route; acknowledge with the current generation and coordinator. Never repeat the worker or publication to recover a lost notification. Native messageable workers receive takeover notice immediately; non-messageable headless workers keep running and receive the notice in their next packet. Record those different states honestly. Verify an actual receiver acknowledgement, not just queued delivery. Cross-machine use needs reachable storage and a supported wake adapter; the local SQLite file is not a network service.
-
-## Monitor and board
-
-Run the monitor as a separate supervised process; the dashboard stays read-only:
-
-```sh
-python3 scripts/monitor.py --state "$STATE" --project "$PROJECT" --output "$PROJECT_ROOT/monitor.json" --interval 60 --overdue-seconds 300
-```
-
-Choose the overdue interval for the assignment/transport; a long test is not necessarily stalled. Add `--retry-delivery` only for the supported bounded retry of definite delivery failures. Uncertain or queued-but-unacknowledged sends require reconciliation, not blind resend. The project dashboard reads the sanitized `monitor.json` beside `continuation.json`, showing observed time and recovery owner. It does not emit owner notifications. Owner notification remains explicitly unavailable until a separate channel is configured and tested. A visible warning is not proof the owner was alerted.
-
-For full activity coverage add `--activities LEDGER.json`: the record must match `project_id` and enumerate `workflow_steps`, with `owner`, `expected_transition`, and `deadline_at` for each unfinished activity. Use the existing continuation as that ledger when it carries these fields. Without it the monitor covers registered attempts/events only and cannot claim all approved work was checked. Track every job, review and expected transition in the authoritative records. Preserve worktrees on interruption; do not auto-commit dirty work or use commit count as the only progress signal. A known required-gate failure routes to correction; diagnostic review can be separately authorized. Never edit an acknowledged result to correct its claims—write a linked disposition/revision.
-
-## CI cancellation
-
-`watch_pr_checks.py` reports cancelled/stale registered runs as incomplete (exit 2), not failed or green. It is not a merge gate. For a verified concurrency cancellation, `retry_cancelled_ci.py --policy POLICY.json --state-dir PRIVATE_DIR` accepts an explicit policy containing `repo`, `pr`, `head`, `run_id`, `reason`, and `retry_authorized: true`.
-
-An optional `lane_workflow_ids` list narrows the lane to workflow IDs whose actual concurrency configuration was verified; omitting it conservatively treats the repository as one lane. The retry helper checks the live open PR/head and cancelled run, waits while repo runs are active, and stores intent before requesting one rerun. An uncertain API result returns to reconciliation instead of automatic repetition. Cooperating callers share the same state directory; the local lock cannot prevent unrelated GitHub actors from launching CI. Do not authorize retries for intentionally cancelled or superseded work. Respect actual repo concurrency configuration and re-query every merge gate afterward.
-
-## Security boundaries
-
-Worker command permissions alone are not an OS sandbox. Pipeline publication requires the supported worker-isolation preflight, including distinct credentials and a denied publication probe; unsupported configurations fail visibly. Do not silently run a privileged supervisor or provision identities to satisfy it. Reviewer launch must disable owner-browser integration and isolate credentials/profile; no secrets belong in manifests or portable artifacts. Headless execution is a separate supervised attempt and must prove actual activity, not just a PID.
-
-See the process template and runner's opt-in contract for concrete publication/reviewer configuration. Existing jobs without that contract remain compatible; they do not acquire automatic GitHub writes.
+The reviewer argv is literal and supplied in the manifest. Supported shapes are Claude headless with `--no-chrome`, `--disallowedTools` including browser tools, and `--output-format stream-json`, or Codex `exec` with `--sandbox read-only --json`. Both run under the separate UID/private home. Include explicit model and effort flags only after verifying account support. `{head}` and `{pr_url}` in argv are replaced at launch. Require the reviewer to return one JSON object as its final response with `reviewed_head` equal to the PR head and `verdict` equal to `passed` or `changes_needed`; the root runner extracts it from the structured event stream. The startup stage requires actual assistant/tool activity or a valid immediate terminal verdict. PID, empty init, stderr or queue receipt alone are insufficient. Review may start while hosted CI runs, but CI and review remain separate acceptance gates.

@@ -1,0 +1,55 @@
+{
+  "job": "<job-id>",
+  "attempt": "<attempt-id>",
+  "sender": "<registered-worker-sender>",
+  "cwd": "<absolute-owned-worktree>",
+  "argv": ["<absolute-worker-cli>", "<literal-args-and-packet-path>"],
+  "timeout_seconds": 3600,
+  "max_output_bytes": 2000000,
+  "final_artifact_source": ".interchange/<attempt-id>-final.json",
+  "execution_isolation": {
+    "mode": "distinct_uid",
+    "uid": 1002,
+    "gid": 1002,
+    "home": "<absolute-private-worker-home>"
+  },
+  "post_return": {
+    "version": 1,
+    "kind": "implementation",
+    "project": "<registered-project-id>",
+    "generation": 1,
+    "packet_revision": "<accepted-revision>",
+    "start_head": "<40-character-start-sha>",
+    "branch": "feature/<owned-branch>",
+    "base": "test",
+    "remote": "origin",
+    "remote_url": "https://github.com/<owner>/<repo>.git",
+    "repository": "<owner>/<repo>",
+    "github_host": "github.com",
+    "gh_executable": "<absolute-trusted-gh-binary>",
+    "title": "<draft-pr-title>",
+    "allowed_paths": ["src/Owned/", "tests/Owned/"],
+    "required_gates": ["unit", "docs"],
+    "known_limitations": "none reported",
+    "reviewer_job": "<review-job-id>",
+    "reviewer_sender": "<reviewer-sender>",
+    "reviewer": {
+      "adapter": "claude-headless",
+      "argv": [
+        "<absolute-claude-cli>", "--no-chrome", "--disallowedTools", "Browser*",
+        "--output-format", "stream-json", "--verbose",
+        "--model", "<verified-model>", "--effort", "<verified-effort>",
+        "-p", "<review-prompt-with-{head}-and-{pr_url}; final output is JSON verdict>"
+      ],
+      "timeout_seconds": 3600,
+      "startup_seconds": 120,
+      "route": "manual",
+      "execution_isolation": {
+        "mode": "distinct_uid",
+        "uid": 1003,
+        "gid": 1003,
+        "home": "<absolute-private-reviewer-home>"
+      }
+    }
+  }
+}
