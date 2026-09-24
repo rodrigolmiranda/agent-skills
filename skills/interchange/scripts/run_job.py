@@ -249,6 +249,10 @@ def _verify_worker_adapter(manifest, environment, privilege_drop):
     """Resolve the exact client config before model launch; reject inherited MCP/plugins."""
     if 'post_return' not in manifest:
         return
+    # OpenCode's run command prefers PWD over process.cwd() when selecting its
+    # project. Its config probe must observe the same canonical checkout.
+    environment['PWD'] = str(Path(manifest['cwd']).resolve(strict=True))
+    environment.pop('OLDPWD', None)
     argv = manifest['argv']
     if any(pattern.endswith(' *') for pattern in manifest['worker_adapter']['allowed_bash']):
         try:
@@ -550,9 +554,18 @@ def run(manifest, state, directory):
     try:
         environment = os.environ.copy()
         environment.update(extra_env)
+        # Popen(cwd=...) changes the OS cwd but some clients (OpenCode included)
+        # select their project from inherited PWD. Bind both before any probe.
+        environment['PWD'] = str(cwd)
+        environment.pop('OLDPWD', None)
         privilege_drop = _isolated_worker(manifest, environment)
         worker_adapter_receipt = _worker_adapter(manifest, environment)
         _verify_worker_adapter(manifest, environment, privilege_drop)
+        if worker_adapter_receipt is not None:
+            # Caller-supplied --dir is forbidden by _worker_adapter. This
+            # runner-owned absolute argument pins OpenCode's session directory.
+            argv = [argv[0], 'run', '--dir', str(cwd), *argv[2:]]
+            worker_adapter_receipt['session_directory'] = str(cwd)
         if 'post_return' in manifest:
             import post_return
             publication_preflight = post_return.preflight(manifest['post_return'], manifest, cwd,

@@ -6,6 +6,7 @@ import tempfile
 import threading
 import time
 import unittest
+from unittest import mock
 
 SCRIPTS=Path(__file__).parents[1]/'skills/interchange/scripts'
 sys.path.insert(0,str(SCRIPTS))
@@ -83,7 +84,8 @@ class RunnerTests(unittest.TestCase):
 
     def test_short_stream_event_is_visible_before_child_exits(self):
         release = self.root / 'release-child'
-        code = ('import pathlib,time\nprint("SHORT-STRUCTURED-EVENT",flush=True)\n'
+        code = ('import json,pathlib,time\n'
+                'print(json.dumps({"type":"assistant","message":{"content":[]}}),flush=True)\n'
                 f'p=pathlib.Path({str(release)!r})\n'
                 'while not p.exists(): time.sleep(.02)\n')
         finished = []
@@ -94,7 +96,7 @@ class RunnerTests(unittest.TestCase):
         try:
             deadline = time.monotonic() + 2
             while time.monotonic() < deadline:
-                if log.exists() and 'SHORT-STRUCTURED-EVENT' in log.read_text():
+                if log.exists() and '"type": "assistant"' in log.read_text():
                     seen_while_running = thread.is_alive()
                     break
                 time.sleep(.02)
@@ -139,6 +141,18 @@ class RunnerTests(unittest.TestCase):
         result=self.execute('import sys;print(repr(sys.stdin.read()))')
         self.assertEqual(result['result']['exit_code'],0)
         self.assertIn("''",(self.root/'run/stdout.log').read_text())
+
+    def test_child_pwd_is_bound_to_manifest_cwd(self):
+        code=('import json,os;print(json.dumps({"cwd":os.getcwd(),'
+              '"pwd":os.environ.get("PWD"),"oldpwd":os.environ.get("OLDPWD")}))')
+        with mock.patch.dict('os.environ', {'PWD': str(self.root/'wrong-checkout'),
+                                            'OLDPWD': str(self.root/'stale-checkout')}):
+            result=self.execute(code)
+        self.assertEqual(result['result']['exit_code'],0)
+        child=json.loads((self.root/'run/stdout.log').read_text())
+        self.assertEqual(child['cwd'],str(self.root.resolve()))
+        self.assertEqual(child['pwd'],child['cwd'])
+        self.assertIsNone(child['oldpwd'])
 
     def test_env_map_reaches_the_worker_and_refuses_secret_names(self):
         result=self.execute('import os;print(os.environ["WORKER_CONFIG"])',env={'WORKER_CONFIG':'{"a":1}'})

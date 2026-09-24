@@ -376,12 +376,14 @@ class PipelineTests(unittest.TestCase):
 import json,os,subprocess,sys
 from pathlib import Path
 policy=json.loads(os.environ['OPENCODE_CONFIG_CONTENT'])['permission']
+assert os.environ['PWD']==os.getcwd()
 if sys.argv[1:4]==['debug','config','--pure']:
     print(json.dumps({'permission':policy,'mcp':{},'plugin':[]}))
     raise SystemExit(0)
 if sys.argv[1:]==['--version']:
     print('1.18.32')
     raise SystemExit(0)
+assert sys.argv[1:4]==['run','--dir',os.environ['PWD']]
 assert policy['bash']['git push*']=='deny'
 assert policy['bash']['gh*']=='deny'
 assert policy['browser']=='deny'
@@ -413,7 +415,8 @@ print(json.dumps({'type':'tool','part':{'type':'tool','name':'bash'}}),flush=Tru
         review_count = self.root / 'review-count.txt'
         claude = fake_bin / 'claude'
         claude.write_text('#!/usr/bin/env python3\n'
-                          'import json,re,sys\nfrom pathlib import Path\n'
+                          'import json,os,re,sys\nfrom pathlib import Path\n'
+                          'assert os.environ["PWD"]==os.getcwd()\n'
                           'assert all(flag in sys.argv for flag in '
                           '["--safe-mode","--restricted","--strict-mcp-config","--no-chrome"])\n'
                           'assert sys.argv[sys.argv.index("--mcp-config")+1]=='
@@ -445,8 +448,10 @@ print(json.dumps({'type':'tool','part':{'type':'tool','name':'bash'}}),flush=Tru
         relay.bind_attempt(self.db, 'project', 'job', 'same', 1)
         attempt = self.root / 'same-attempt'
         with mock.patch.object(post_return, '_verify_publication_url', return_value=None):
-            receipt = run_job.run(manifest, self.state, attempt)
+            with mock.patch.dict(os.environ, {'PWD': str(self.root / 'wrong-parent-checkout')}):
+                receipt = run_job.run(manifest, self.state, attempt)
         self.assertEqual(receipt['result']['exit_code'], 0)
+        self.assertEqual(receipt['result']['worker_adapter']['session_directory'], str(self.repo.resolve()))
         self.assertEqual(receipt['result']['post_return']['stage'], 'review_started')
         published_head = git(self.repo, 'rev-parse', 'HEAD')
         self.assertEqual(git(self.repo, 'ls-remote', '--heads', str(self.remote), 'feature/one').split()[0], published_head)
