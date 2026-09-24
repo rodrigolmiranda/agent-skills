@@ -196,6 +196,42 @@ class PipelineTests(unittest.TestCase):
         self.assertFalse(post_return._permission_denial(b'non-fast-forward'))
         self.assertTrue(post_return._permission_denial(b'Permission denied (publickey).'))
 
+    def test_worker_home_gh_credentials_block_publication_preflight(self):
+        home = self.root / 'worker-home'
+        (home / '.config/gh').mkdir(parents=True)
+        (home / '.config/gh/hosts.yml').write_text('github.com: token: sentinel')
+        self.manifest['execution_isolation']['home'] = str(home)
+        self.spec['gh_executable'] = '/usr/bin/true'
+        with self.assertRaisesRegex(post_return.PipelineException, 'credential path'):
+            post_return._worker_credential_boundary(self.spec, self.manifest, {}, lambda: None, self.repo)
+
+    def test_actual_gh_identity_probe_rejects_available_token_without_logging_it(self):
+        home = self.root / 'empty-worker-home'
+        home.mkdir()
+        self.manifest['execution_isolation']['home'] = str(home)
+        self.spec['gh_executable'] = '/usr/bin/true'
+        token = subprocess.CompletedProcess([], 0, stdout=b'secret-value', stderr=b'')
+        with mock.patch.object(post_return.subprocess, 'run', return_value=token):
+            with self.assertRaisesRegex(post_return.PipelineException, 'CLI credentials') as error:
+                post_return._worker_credential_boundary(self.spec, self.manifest, {}, lambda: None, self.repo)
+        self.assertNotIn('secret-value', str(error.exception))
+
+    def test_worker_writable_artifact_root_is_rejected_before_launch(self):
+        home = self.root / 'worker-home'
+        home.mkdir()
+        os.chmod(self.repo, 0o700)
+        db = self.db
+        relay.register(db, 'unsafe', 'one', 'worker', self.repo)
+        manifest = {'job': 'unsafe', 'attempt': 'one', 'sender': 'worker',
+                    'cwd': str(self.repo), 'argv': [sys.executable, '-c', 'print("unsafe")'],
+                    'timeout_seconds': 10,
+                    'execution_isolation': {'mode': 'distinct_uid', 'uid': 1002,
+                                            'gid': 1002, 'home': str(home)}}
+        with self.assertRaisesRegex(ValueError, 'overlap'):
+            run_job.run(manifest, self.state, self.repo / 'attempt')
+        self.assertIsNone(db.execute('SELECT 1 FROM launches WHERE job=? AND attempt=?',
+                                     ('unsafe', 'one')).fetchone())
+
     def test_reviewer_pid_or_error_output_is_not_startup(self):
         review_dir = self.root / 'review'
         review_dir.mkdir()
@@ -216,6 +252,12 @@ class RootIsolationTests(unittest.TestCase):
 
     def test_distinct_worker_cannot_push_and_reviewer_launches_under_second_uid(self):
         os.chmod(self.root, 0o755)
+        self.db.close()
+        private_state = self.root / 'private-state'
+        private_state.mkdir(mode=0o700)
+        self.state = private_state / 'state.db'
+        self.db = relay.connect(self.state)
+        relay.register_project(self.db, 'project')
         worker_uid, reviewer_uid = 1002, 1003
         for name, uid in [('worker-home', worker_uid), ('review-home', reviewer_uid)]:
             home = self.root / name
@@ -225,7 +267,9 @@ class RootIsolationTests(unittest.TestCase):
         for path in [self.repo, *self.repo.rglob('*')]:
             os.chown(path, worker_uid, worker_uid)
         db = self.db
-        relay.register(db, 'uidworker', 'one', 'worker', self.root)
+        private_worker_root = self.root / 'private-worker-root'
+        private_worker_root.mkdir(mode=0o700)
+        relay.register(db, 'uidworker', 'one', 'worker', private_worker_root)
         worker_code = ("import subprocess;"
                        "r=subprocess.run(['git','-c','safe.directory=*','push','origin','HEAD:refs/heads/feature/one'],"
                        "stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL);"
@@ -236,9 +280,9 @@ class RootIsolationTests(unittest.TestCase):
                            'execution_isolation': {'mode': 'distinct_uid', 'uid': worker_uid,
                                                    'gid': worker_uid,
                                                    'home': str(self.root / 'worker-home')}}
-        worker_receipt = run_job.run(worker_manifest, self.state, self.root / 'uid-attempt')
+        worker_receipt = run_job.run(worker_manifest, self.state, private_worker_root / 'uid-attempt')
         self.assertEqual(worker_receipt['result']['exit_code'], 0)
-        self.assertIn('push_denied=True', (self.root / 'uid-attempt/stdout.log').read_text())
+        self.assertIn('push_denied=True', (private_worker_root / 'uid-attempt/stdout.log').read_text())
         self.assertFalse(git(self.repo, 'ls-remote', '--heads', str(self.remote), 'feature/one'))
         # The supervisor can publish the same SHA to that remote.
         subprocess.run(['git', '-c', f'safe.directory={self.repo}', 'push', str(self.remote),

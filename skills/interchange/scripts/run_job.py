@@ -6,6 +6,7 @@ import json
 import os
 import re
 import shutil
+import stat
 from pathlib import Path
 import signal
 import sqlite3
@@ -27,6 +28,14 @@ def stop(proc):
     except (ProcessLookupError, PermissionError):
         if proc.poll() is None:
             proc.kill()
+
+
+def _write_existing_regular(path, payload):
+    fd = os.open(path, os.O_WRONLY | os.O_TRUNC | getattr(os, 'O_NOFOLLOW', 0))
+    with os.fdopen(fd, 'w') as stream:
+        if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
+            raise ValueError('runner artifact is not a regular file')
+        stream.write(json.dumps(payload))
 
 
 def _output_limit_kill(manifest):
@@ -127,6 +136,70 @@ def _isolated_worker(manifest, environment):
         os.setgid(gid)
         os.setuid(uid)
     return drop
+
+
+def _private_artifact_root(manifest, row, directory, cwd):
+    """Create private supervisor artifacts before an isolated child can execute."""
+    if 'post_return' not in manifest and 'execution_isolation' not in manifest:
+        return
+    config = manifest.get('execution_isolation') or {}
+    uid, gid = config.get('uid'), config.get('gid')
+    if not isinstance(uid, int) or not isinstance(gid, int):
+        raise ValueError('isolated artifact root needs worker UID/GID')
+    root = Path(row['root']).resolve(strict=True)
+    home = Path(config.get('home', '')).resolve(strict=True)
+    if (root.is_relative_to(cwd) or cwd.is_relative_to(root)
+            or root.is_relative_to(home) or home.is_relative_to(root)):
+        raise ValueError('isolated artifacts cannot overlap worker checkout or home')
+    root_stat = root.stat()
+    if root_stat.st_uid != os.geteuid() or stat.S_IMODE(root_stat.st_mode) & 0o077:
+        raise ValueError('registered artifact root must be supervisor-owned and mode 0700')
+    for ancestor in (root, *root.parents):
+        info = ancestor.stat()
+        mode = stat.S_IMODE(info.st_mode)
+        if info.st_uid == uid:
+            raise ValueError('worker owns an artifact ancestor')
+        if (mode & 0o002 and not mode & stat.S_ISVTX) or (info.st_gid == gid and mode & 0o020):
+            raise ValueError('worker can mutate an artifact ancestor')
+    current = root
+    for part in directory.relative_to(root).parts:
+        current = current / part
+        if current.is_symlink():
+            raise ValueError('artifact path contains a symlink')
+        if not current.exists():
+            current.mkdir(mode=0o700)
+        info = current.stat()
+        if not current.is_dir() or info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) & 0o077:
+            raise ValueError('artifact directory must be supervisor-owned and mode 0700')
+
+
+def _private_state_path(manifest, state, cwd):
+    if 'post_return' not in manifest and 'execution_isolation' not in manifest:
+        return
+    config = manifest.get('execution_isolation') or {}
+    uid, gid = config.get('uid'), config.get('gid')
+    if not isinstance(uid, int) or not isinstance(gid, int):
+        raise ValueError('isolated state needs worker UID/GID')
+    path = Path(state).absolute()
+    parent = path.parent.resolve(strict=True)
+    home = Path(config.get('home', '')).resolve(strict=True)
+    if (parent.is_relative_to(cwd) or cwd.is_relative_to(parent)
+            or parent.is_relative_to(home) or home.is_relative_to(parent)):
+        raise ValueError('isolated state cannot overlap worker checkout or home')
+    if path.is_symlink():
+        raise ValueError('state path cannot be a symlink')
+    info = parent.stat()
+    if info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) & 0o077:
+        raise ValueError('state parent must be supervisor-owned and mode 0700')
+    for ancestor in (parent, *parent.parents):
+        info = ancestor.stat()
+        mode = stat.S_IMODE(info.st_mode)
+        if info.st_uid == uid or (mode & 0o002 and not mode & stat.S_ISVTX) or (info.st_gid == gid and mode & 0o020):
+            raise ValueError('worker can mutate a state ancestor')
+    if path.exists():
+        info = path.stat()
+        if not stat.S_ISREG(info.st_mode) or info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) & 0o077:
+            raise ValueError('state file must be supervisor-owned and private')
 
 
 def _final_artifact_source(manifest, cwd):
@@ -285,6 +358,7 @@ def run(manifest, state, directory):
     if final_source is not None and manifest.get('final_artifact') is None:
         manifest = {**manifest, 'final_artifact': 'final.md'}
     final_artifact_path = _final_artifact_path(manifest, directory)
+    _private_state_path(manifest, state, cwd)
     db = connect(state)
     row = db.execute('SELECT * FROM attempts WHERE job=? AND attempt=?',
                      (manifest['job'],manifest['attempt'])).fetchone()
@@ -295,6 +369,7 @@ def run(manifest, state, directory):
     if 'post_return' in manifest and (not bound or bound['project'] != manifest['post_return'].get('project')
                                       or bound['registered_generation'] != manifest['post_return'].get('generation')):
         db.close(); raise ValueError('post_return requires a matching project-bound worker attempt')
+    _private_artifact_root(manifest, row, directory, cwd)
     try:
         with db:
             db.execute('INSERT INTO launches VALUES (?,?,?,?)',
@@ -355,9 +430,9 @@ def run(manifest, state, directory):
         finally:
             if launch_token is not None:
                 release_managed_action(db, launch_token)
-        lease.write_text(json.dumps({'runner_pid':os.getpid(),'worker_pid':proc.pid,'state':'running',
-                                    'job':manifest['job'],'attempt':manifest['attempt'],
-                                    'timeout_seconds':timeout,'deadline_at':deadline_wall}))
+        _write_existing_regular(lease, {'runner_pid':os.getpid(),'worker_pid':proc.pid,'state':'running',
+                                        'job':manifest['job'],'attempt':manifest['attempt'],
+                                        'timeout_seconds':timeout,'deadline_at':deadline_wall})
         def drain(stream,path):
             nonlocal seen_bytes, captured_bytes
             outfd = os.open(path,os.O_CREAT|os.O_EXCL|os.O_WRONLY,0o600)
@@ -438,9 +513,11 @@ def run(manifest, state, directory):
         except Exception as exc:
             result['post_return'] = {'stage': 'exception', 'error_type': type(exc).__name__,
                                      'error': str(exc)[:500]}
-    artifact.write_text(json.dumps(result,indent=2)+'\n');os.chmod(artifact,0o600)
-    lease.write_text(json.dumps({'runner_pid':os.getpid(),'state':'terminal','artifact':str(artifact),
-                                 'timeout_seconds':timeout,'deadline_at':deadline_wall}))
+    artifact_fd = os.open(artifact, os.O_CREAT | os.O_EXCL | os.O_WRONLY | getattr(os, 'O_NOFOLLOW', 0), 0o600)
+    with os.fdopen(artifact_fd, 'w') as stream:
+        stream.write(json.dumps(result, indent=2) + '\n')
+    _write_existing_regular(lease, {'runner_pid':os.getpid(),'state':'terminal','artifact':str(artifact),
+                                    'timeout_seconds':timeout,'deadline_at':deadline_wall})
     event_id='exit-'+hashlib.sha256(json.dumps([manifest['job'],manifest['attempt']],separators=(',',':')).encode()).hexdigest()
     emit(db,manifest['job'],manifest['attempt'],manifest['sender'],'exited',artifact,event_id)
     delivery=notify(db,event_id)

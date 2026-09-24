@@ -15,6 +15,7 @@ import shutil
 from urllib.parse import urlparse
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 
@@ -134,15 +135,54 @@ def _permission_denial(output):
     return any(marker in denial for marker in markers)
 
 
+def _worker_credential_boundary(spec, manifest, environment, privilege_drop, cwd):
+    """Reject known on-disk publication credentials and probe gh under the actual child UID.
+
+    This does not claim to discover every possible secret. It binds the supported
+    adapter to a dedicated, credential-free account and refuses ambiguous probes.
+    """
+    home = Path(manifest['execution_isolation']['home']).resolve(strict=True)
+    forbidden = ('.config/gh', '.local/share/gh', '.config/hub',
+                 '.git-credentials', '.gitconfig', '.config/git', '.netrc',
+                 '.ssh', '.local/share/git-credential-manager',
+                 '.config/git-credential-manager', 'Library/Application Support/gh')
+    for relative in forbidden:
+        path = home / relative
+        if path.exists() or path.is_symlink():
+            raise PipelineException('worker home contains a GitHub/Git/SSH credential path')
+    probe_env = dict(environment)
+    probe_env['GH_PROMPT_DISABLED'] = '1'
+    probe_env['GIT_TERMINAL_PROMPT'] = '0'
+    try:
+        check = subprocess.run([spec['gh_executable'], 'auth', 'token',
+                                '--hostname', spec.get('github_host', 'github.com')],
+                               cwd=cwd, env=probe_env, preexec_fn=privilege_drop,
+                               stdin=subprocess.DEVNULL, capture_output=True, timeout=15)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise PipelineException('worker GitHub credential probe did not complete') from exc
+    if check.returncode == 0:
+        raise PipelineException('worker identity has GitHub CLI credentials')
+    # gh auth token is a local credential lookup. Unknown errors or unsupported
+    # CLI behavior are not evidence that the identity lacks a publication route.
+    detail = check.stderr.decode(errors='replace').lower()
+    if not any(marker in detail for marker in ('not logged in', 'not logged into',
+                                               'no oauth token', 'no authentication')):
+        raise PipelineException('worker GitHub credential probe inconclusive')
+
+
 def _save(path, data):
-    temporary = path.with_suffix('.tmp')
-    fd = os.open(temporary, os.O_CREAT | os.O_TRUNC | os.O_WRONLY, 0o600)
-    with os.fdopen(fd, 'w') as stream:
-        json.dump(data, stream, indent=2, sort_keys=True)
-        stream.write('\n')
-        stream.flush()
-        os.fsync(stream.fileno())
-    os.replace(temporary, path)
+    fd, temporary = tempfile.mkstemp(prefix=path.name + '.', dir=path.parent)
+    try:
+        os.fchmod(fd, 0o600)
+        with os.fdopen(fd, 'w') as stream:
+            json.dump(data, stream, indent=2, sort_keys=True)
+            stream.write('\n')
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
 
 
 def _stage(journal, path, stage, **values):
@@ -232,6 +272,7 @@ def preflight(spec, manifest, cwd, environment, privilege_drop):
     _verify_publication_url(spec)
     if privilege_drop is None:
         raise PipelineException('worker publication isolation not installed')
+    _worker_credential_boundary(spec, manifest, environment, privilege_drop, cwd)
     probe_env = dict(environment)
     probe_env['GIT_TERMINAL_PROMPT'] = '0'
     probe_env['GIT_SSH_COMMAND'] = 'ssh -o BatchMode=yes -o IdentitiesOnly=yes'
@@ -367,11 +408,29 @@ def _reviewer_evidence(review_dir, reviewer, head):
     return False
 
 
+def _reviewer_identity(reviewer):
+    argv = reviewer['argv']
+    def after(flag):
+        return argv[argv.index(flag) + 1] if flag in argv and argv.index(flag) + 1 < len(argv) else None
+    requested_model = after('--model') or after('-m')
+    requested_effort = after('--effort')
+    if requested_effort is None:
+        requested_effort = next((part.split('=', 1)[1] for part in argv
+                                 if part.startswith('model_reasoning_effort=')), None)
+    return {'requested_model': requested_model, 'requested_effort': requested_effort,
+            'observed_model': None, 'observed_effort': None,
+            'model_observation': 'unavailable'}
+
+
 def _reviewer_stage(db, spec, head, cwd, directory, state, journal, journal_path):
     reviewer = spec['reviewer']
     reviewer_attempt = f"review-{head[:12]}"
     review_dir = directory / 'review' / head
-    review_dir.mkdir(parents=True, exist_ok=True)
+    for path in (directory / 'review', review_dir):
+        path.mkdir(mode=0o700, exist_ok=True)
+        if path.is_symlink() or path.stat().st_uid != os.geteuid():
+            raise PipelineException('review artifact directory is not supervisor-owned')
+        os.chmod(path, 0o700)
     _fence(db, spec)
     register(db, spec['reviewer_job'], reviewer_attempt, spec['reviewer_sender'], review_dir,
              coordinator=reviewer.get('coordinator'), route=reviewer.get('route', 'manual'),
@@ -381,7 +440,8 @@ def _reviewer_stage(db, spec, head, cwd, directory, state, journal, journal_path
                         (spec['reviewer_job'], reviewer_attempt)).fetchone()
     if launch and _reviewer_evidence(review_dir, reviewer, head):
         _stage(journal, journal_path, 'review_started', reviewer_attempt=reviewer_attempt,
-               reviewer_job=spec['reviewer_job'], reviewer_directory=str(review_dir))
+               reviewer_job=spec['reviewer_job'], reviewer_directory=str(review_dir),
+               **_reviewer_identity(reviewer))
         return
     if launch:
         raise PipelineException('reviewer launch exists without model activity or valid verdict; inspect attempt')
@@ -416,7 +476,8 @@ def _reviewer_stage(db, spec, head, cwd, directory, state, journal, journal_path
             activity = _reviewer_evidence(review_dir, reviewer, head)
             if status.get('state') in ('running', 'terminal') and activity:
                 _stage(journal, journal_path, 'review_started', reviewer_attempt=reviewer_attempt,
-                       reviewer_job=spec['reviewer_job'], reviewer_directory=str(review_dir), reviewer_pid=proc.pid)
+                       reviewer_job=spec['reviewer_job'], reviewer_directory=str(review_dir), reviewer_pid=proc.pid,
+                       **_reviewer_identity(reviewer))
                 return
         if proc.poll() is not None:
             raise PipelineException('reviewer launcher exited before verified startup')
