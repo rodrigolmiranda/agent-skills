@@ -103,11 +103,11 @@ The HTML displays commands, never executes them. An internal child-agent name ma
 
 Treat the initial dashboard and workflow as a trial: record friction and proposed improvements against the existing job, adjust one proven need at a time, and preserve accepted scope, evidence and ownership through a revision. No automatic purge or background refresh is introduced by this feature.
 
-**Give the owner the dashboard URL when the plan starts.** Owners asked for it unprompted.
-- Serve the rendered board (a local HTTP server on a loopback port is enough) and put the URL in the first dispatch
-  message.
-- Keep it fresh without owner action: re-render on relay events or a short timer, and fold in per-attempt live facts
-  from the attempt directory (tool calls so far, last output time, any DSML text).
+**Give the owner the dashboard link when the plan starts.** Owners asked for it unprompted.
+- A `file://` link to the rendered board is acceptable.
+- Use a loopback server and refresh only when the coordinator (or an installed service) owns its lifecycle.
+- The board shows selected, sanitized execution facts (state, tool-call count, last output time), never raw worker
+  output.
 - If the render fails, surface why. A capture-and-ignore wrapper makes the page silently stale, and one completed step
   without an http(s) source link was enough to stop the whole render.
 

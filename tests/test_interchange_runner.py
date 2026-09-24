@@ -130,6 +130,27 @@ class RunnerTests(unittest.TestCase):
         self.assertTrue(proof['validated'])
         self.assertEqual((self.root/'run/final.md').read_text(),'DONE')
 
+    def test_final_artifact_source_env_points_at_the_writable_source(self):
+        (self.root/'wt').mkdir()
+        code='import os;open(os.environ["INTERCHANGE_FINAL_ARTIFACT"],"w").write("VIA ENV")'
+        result=self.execute(code,cwd=str(self.root/'wt'),final_artifact_source='attempt-one-final.md')
+        self.assertTrue(result['result']['final_artifact']['validated'])
+        self.assertEqual((self.root/'run/final.md').read_text(),'VIA ENV')
+
+    def test_a_final_left_by_an_earlier_attempt_is_refused_before_launch(self):
+        (self.root/'wt').mkdir();(self.root/'wt/old-final.md').write_text('OLD ATTEMPT RESULT')
+        with self.assertRaises(ValueError):
+            self.execute('pass',cwd=str(self.root/'wt'),final_artifact_source='old-final.md')
+
+    def test_collection_never_writes_through_a_planted_destination_symlink(self):
+        (self.root/'wt').mkdir();outside=self.root/'outside.txt';outside.write_text('PRESERVE')
+        # The worker plants the link while it runs, after the launch-time containment check.
+        code=('import os;open("result.md","w").write("REPLACED");'
+              f'os.symlink({str(outside)!r},{str(self.root/"run/final.md")!r})')
+        result=self.execute(code,cwd=str(self.root/'wt'),final_artifact_source='result.md')
+        self.assertEqual(outside.read_text(),'PRESERVE')
+        self.assertFalse(result['result']['final_artifact']['validated'])
+
     def test_final_artifact_source_cannot_leave_cwd(self):
         (self.root/'wt').mkdir()
         with self.assertRaises(ValueError):

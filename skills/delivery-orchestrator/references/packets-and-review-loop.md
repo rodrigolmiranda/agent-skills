@@ -7,10 +7,12 @@ recording. They converged after 2–4 rounds.
 
 ## Decision authority
 
-The coordinator answers worker questions itself. It escalates to the owner only for:
+Within the authority the owner delegated, the coordinator answers worker questions itself. It escalates to the owner
+only for:
 - a **product deviation**: user-visible behaviour or scope the owner hasn't decided;
 - an irreversible or outward action;
-- a policy the owner owns (for example, billing).
+- a policy the owner owns (for example, billing);
+- a permission, contract or operational hold that the delegation doesn't cover.
 
 Record each decision and a one-line reason in the job's answers file, and report it afterwards. Don't turn it into a
 question for the owner. Owners who delegate a session expect this; a question that isn't a product deviation costs
@@ -18,12 +20,16 @@ them a round trip.
 
 ## Routing by risk surface
 
-Route slices that touch **money, concurrency, idempotency, tenancy/RLS or cross-repository contracts** to a senior
-profile from the start ([roles](roles.md)). At minimum, re-route after the second CHANGES-NEEDED on the same risk
-surface.
-- A cheap builder converged in 1–2 review rounds on UI, CSS and inspection slices.
-- A charging slice needed four rounds on the same model, each round closing the last findings and opening new edge
-  cases (in-flight markers, shutdown, multi-replica).
+Keep the economical builder for a detailed, accepted contract, even when it touches money, concurrency, idempotency,
+tenancy/RLS or cross-repository contracts ([roles](roles.md)). Escalate to a senior profile when:
+- a high-consequence design question is still unresolved; or
+- the **second CHANGES-NEEDED** arrives on the same risk surface.
+Record the escalation and keep the model authority rules.
+
+Evidence (owner decision 2026-09-24, cheap first):
+- the economical builder converged in 1–2 review rounds on UI, CSS and inspection slices;
+- a charging slice took four rounds on the same model (about 4 h of worker time), each closing the last findings and
+  opening new edge cases (in-flight markers, shutdown, multi-replica), but it converged.
 
 ## What a packet must carry that a sandboxed worker cannot discover
 
@@ -37,12 +43,14 @@ surface.
   A recorder designed on the assumption that its panel survives navigation lost every cross-page recording in the
   real consumer.
 - **Context discipline:**
-  - pipe build and test output through `tail` or `grep`;
+  - write the full build/test log to a file and keep the exit status (`set -o pipefail`, or `cmd > log 2>&1; echo
+    $?`), then show only a short tail or grep. A bare `| tail` can hide a failure;
   - read diffs per file;
-  - never print a full test log;
+  - never print a full test log into the conversation;
   - **commit at checkpoints**, not only at the end.
-  A worker that ran out of model context got an opaque provider 400 after 48 minutes and lost all its uncommitted
-  work ([transport](../../interchange/references/transport.md) lists how to spot this).
+  A worker that most likely ran out of model context got an opaque provider 400 after 48 minutes. It exited with 26
+  files uncommitted; they were still on disk, and a continuation attempt reviewed and committed them
+  ([transport](../../interchange/references/transport.md) says how to check the diagnosis).
 - **Fix packets state the rule, not a pointer.** Write "the browser resource equals the chat turn's resource for the
   same caller; add a test that pins it", not "sm360 uses `portal/{hash}`". The pointer version made the worker adopt
   one host's detail as the SDK default and broke the other hosts.
@@ -67,5 +75,11 @@ surface.
 
 A coordinator woken by harness notifications (Claude Code background tasks and monitors) gets many wakes that carry no
 decision: a single CI step passing, a monitor line. Those wakes are not "unchanged checks" for repeated-wait recovery.
-Count only coordinator-scheduled or idle wakes. Keep the checkpoint record for material events (a return, a verdict, a
-merge, an unblock) and for session exit, rather than rewriting it on every notification turn.
+Count only coordinator-scheduled or idle reassessments. A material return, verdict, merge or unblock still triggers a
+ready-set reassessment even though it isn't counted as an unchanged check.
+
+Update the one evidence-backed receipt at material events, changing only the facts that changed. Before giving up
+control with no further immediate action, run a **cheap pre-idle check**: executable coordinator work is done or
+recorded, and the next wake is verified. Don't create new evidence documents for it, and don't rewrite the receipt for
+routine progress notifications. This applies to both clients: a Codex turn can also yield for hours without its
+session ending.

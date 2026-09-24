@@ -65,10 +65,11 @@ OpenCode: pin provider/model and variant; use JSON events. Some transports retur
 4. **Verify startup with a bound.** The first JSON event arrived 20 s to 3 min after launch. Wait until stdout is
    non-empty with at least one `tool` part and no DSML text, for at most 5 minutes; otherwise classify the attempt
    stuck.
-5. **Recognise context exhaustion.** A `type:"error"` event with `APIError 400 Bad Request {"model":...}` after the last
-   `step_finish` reports `tokens.total` near the model's window (~400k here) means the context is exhausted, not a
-   provider fault. The attempt exits non-zero and leaves uncommitted work. Continue with a fresh attempt on the same
-   worktree: review the uncommitted diff per file, commit, and finish.
+5. **Suspect context exhaustion; don't assume it.** A generic `APIError 400 Bad Request` is a diagnosis to investigate.
+   Treat it as likely context exhaustion only when it's corroborated: the last `step_finish` reports `tokens.total`
+   near the model's window (~397k of ~400k here), and ideally a provider context-limit message. The attempt exits
+   non-zero; its worktree changes stay on disk uncommitted. On takeover, preserve the worktree, review the uncommitted
+   diff per file in a fresh attempt, commit, and finish.
 6. **Clean up your own test processes at handover.** A 2-hour hung stdin experiment from the previous coordinator was
    still running at takeover.
 7. **Watch CI with the shipped watcher.** `scripts/watch_pr_checks.py owner/repo#N ...` is a monitor command. It emits

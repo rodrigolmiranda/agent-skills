@@ -21,7 +21,9 @@ class FakeGh:
         runs = self.current[1]
         if runs is None:
             return None, 'no check runs'
-        return {'check_runs': [{'name': n, 'status': s, 'conclusion': c} for n, s, c in runs]}, None
+        # Shaped like `gh api --paginate --slurp`: an array of page objects.
+        pages = [runs[i:i + 1] for i in range(len(runs))] or [[]]
+        return [{'check_runs': [{'name': n, 'status': s, 'conclusion': c} for n, s, c in page]} for page in pages], None
 
 
 class WatchPrChecksTests(unittest.TestCase):
@@ -40,6 +42,7 @@ class WatchPrChecksTests(unittest.TestCase):
         out, finished = self.run_polls([('a' * 40, [('build', 'completed', 'failure'), ('lint', 'completed', 'success')])])
         self.assertTrue(any('build: failure' in line for line in out))
         self.assertIn('FAILED build', out[-1])
+        self.assertEqual(sum('lint: success' in line for line in out), 1, 'runs from every page are read')
         self.assertEqual(finished, [True])
 
     def test_green_on_an_old_head_is_not_reported_for_the_new_head(self):
@@ -50,12 +53,20 @@ class WatchPrChecksTests(unittest.TestCase):
         ])
         self.assertTrue(any('head moved' in line for line in out))
         self.assertEqual(finished, [False, False, True])
-        self.assertIn('bbbbbbbb ALL CHECKS DONE: all green', out[-1])
+        self.assertIn('bbbbbbbb registered runs finished: all green', out[-1])
 
     def test_no_checks_yet_is_not_done(self):
         out, finished = self.run_polls([('c' * 40, [])])
         self.assertIn('no checks registered yet', out[0])
         self.assertEqual(finished, [False])
+
+    def test_a_push_to_a_finished_pr_restarts_its_watch(self):
+        out, finished = self.run_polls([
+            ('a' * 40, [('build', 'completed', 'success')]),
+            ('d' * 40, [('build', 'in_progress', None)]),
+        ])
+        self.assertEqual(finished, [True, False])
+        self.assertTrue(any('head moved' in line for line in out))
 
 
 if __name__ == '__main__':

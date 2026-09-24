@@ -102,19 +102,39 @@ def _final_artifact_source(manifest, cwd):
     path = (cwd / configured).resolve()
     if not path.is_relative_to(cwd):
         raise ValueError('final_artifact_source must remain inside cwd')
+    if path.exists() or path.is_symlink():
+        raise ValueError('final_artifact_source already exists; use an attempt-specific path so an earlier final is never reused')
     return path
 
 
-def _collect_final_artifact(source, target, cwd):
-    """Copy the worker's in-cwd final into the attempt root; never follow it outside cwd."""
+def _collect_final_artifact(source, target, cwd, directory, launched_at):
+    """Copy the worker's in-cwd final into the attempt root without following either side outside.
+
+    The source must resolve inside cwd, be a regular file and have been written after launch (a final
+    left by an earlier attempt is never reused). The destination is created fresh with O_EXCL|O_NOFOLLOW
+    after removing only a plain file this runner owns, so a planted symlink can never redirect the write.
+    """
     if source is None or target is None:
         return
     try:
         resolved = source.resolve()
-        if not resolved.is_relative_to(cwd) or not resolved.is_file() or resolved.stat().st_size > 1_000_000:
+        if not resolved.is_relative_to(cwd) or not resolved.is_file():
             return
-        shutil.copyfile(resolved, target)
-        os.chmod(target, 0o600)
+        info = resolved.stat()
+        if info.st_size > 1_000_000 or info.st_mtime < launched_at:
+            return
+        if not target.parent.resolve().is_relative_to(directory):
+            return
+        if target.is_symlink():
+            return
+        if target.exists():
+            if not target.is_file():
+                return
+            target.unlink()
+        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, 'O_NOFOLLOW', 0)
+        fd = os.open(target, flags, 0o600)
+        with os.fdopen(fd, 'wb') as out, resolved.open('rb') as src:
+            shutil.copyfileobj(src, out)
     except OSError:
         return
 
@@ -207,6 +227,7 @@ def run(manifest, state, directory):
         db.close()
         raise
     begun = time.monotonic()
+    launched_wall = time.time() - 1  # mtime granularity margin
     proc = None
     output_truncated = threading.Event()
     output_limit_kill_requested = threading.Event()
@@ -217,7 +238,10 @@ def run(manifest, state, directory):
     try:
         environment = os.environ.copy()
         environment.update(extra_env)
-        if final_artifact_path is not None:
+        if final_source is not None:
+            # The worker writes where it can: its own cwd. The runner copies it into the attempt root.
+            environment['INTERCHANGE_FINAL_ARTIFACT'] = str(final_source)
+        elif final_artifact_path is not None:
             environment['INTERCHANGE_FINAL_ARTIFACT'] = str(final_artifact_path)
         # stdin is always closed: an inherited open, non-TTY stdin makes some headless workers
         # (OpenCode) wait forever and print nothing.
@@ -271,7 +295,7 @@ def run(manifest, state, directory):
             outcome='output_limit'
         else:
             outcome='exited'
-        _collect_final_artifact(final_source, final_artifact_path, cwd)
+        _collect_final_artifact(final_source, final_artifact_path, cwd, directory, launched_wall)
         final_proof = _final_artifact_proof(final_artifact_path, directory)
         result = {'job':manifest['job'],'attempt':manifest['attempt'],'sender':manifest['sender'],
                   'process_outcome':outcome,'exit_code':exit_code,'seconds':round(time.monotonic()-begun,3),

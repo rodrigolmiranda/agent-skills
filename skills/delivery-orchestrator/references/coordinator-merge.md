@@ -14,16 +14,16 @@ Optional session mode, off by default. At session start or later, the owner may 
 
 ## Serial merge lanes
 
-When the base branch requires up-to-date heads and CI runs one job at a time:
+Apply this only where the repository's branch protection actually requires up-to-date heads and CI capacity is actually serial:
 - each merge puts every other ready PR behind, so it needs a rebase and a fresh CI run (~20 min each here);
-- plan the merge order (smallest or least conflicting first), rebase the next PR as soon as a merge lands, and cancel
-  CI runs for heads a fix round is about to replace;
+- plan the merge order (smallest or least conflicting first), and rebase the next PR as soon as a merge lands;
+- cancel only CI runs this coordinator owns, and only once the replacement head is confirmed pushed;
 - count CI-lane minutes as capacity alongside writer slots.
 
 Before merging:
 - read the check runs of the exact head commit (not the PR's latest-looking list after a push), and bind the merge to
   that commit;
-- re-run a failed check only after showing locally that the failure is unrelated and flaky, and record it as a
-  follow-up.
+- re-run a failed check after showing it's unrelated: reproduce locally when possible, or document a remote
+  infrastructure failure. Record the flake as a follow-up. Every required check must still pass.
 
 Without this option, follow the repository's normal acceptance and merge authority. The option changes who may complete an eligible merge; it does not lower proof requirements or authorize publication, deployment, release tags, destructive operations or a held target branch.

@@ -8,7 +8,16 @@ deliberately loud about the states a hand-rolled shell loop tends to hide:
 - results are bound to the PR's *current head sha*, so a push that restarts CI resets the watch and
   a green result from an older head is never reported as the current one;
 - every terminal conclusion is emitted (success, failure, cancelled, timed_out, ...), not only
-  success.
+  success;
+- every PR is re-read on every poll, including finished ones, so a push to a PR that finished
+  earlier while another was still running restarts its watch instead of being missed.
+
+It reports a snapshot of the check runs registered for the head at that moment. That is not proof
+that every required check (legacy statuses, late-registered workflows) passed, and it is not a merge
+gate: re-query the live head and required checks before merging.
+
+Exit status: 0 = every PR finished with all registered runs green; 1 = every PR finished and at
+least one run did not succeed; 2 = stopped before every PR finished (--max-polls).
 
 Usage: watch_pr_checks.py owner/repo#123 [owner/repo#456 ...] [--interval 60] [--max-polls N]
 """
@@ -38,10 +47,13 @@ def head_sha(repo, number, fetch=gh_json):
 
 
 def check_runs(repo, sha, fetch=gh_json):
-    data, error = fetch(['api', f'repos/{repo}/commits/{sha}/check-runs', '--paginate'])
-    if not isinstance(data, dict):
+    # --paginate emits one JSON object per page; --slurp wraps them in a single array.
+    data, error = fetch(['api', f'repos/{repo}/commits/{sha}/check-runs', '--paginate', '--slurp'])
+    pages = data if isinstance(data, list) else [data] if isinstance(data, dict) else None
+    if pages is None:
         return None, error or 'no check runs'
-    return [(run['name'], run['status'], run.get('conclusion')) for run in data.get('check_runs', [])], None
+    runs = [run for page in pages if isinstance(page, dict) for run in page.get('check_runs', [])]
+    return [(run['name'], run['status'], run.get('conclusion')) for run in runs], None
 
 
 def poll_once(target, state, fetch=gh_json, emit=print):
@@ -66,7 +78,11 @@ def poll_once(target, state, fetch=gh_json, emit=print):
             emit(f'{target} {sha[:8]} {name}: {conclusion}')
     if all(status == 'completed' for _, status, _ in runs):
         failed = [name for name, _, conclusion in runs if conclusion not in ('success', 'skipped', 'neutral')]
-        emit(f'{target} {sha[:8]} ALL CHECKS DONE: ' + ('FAILED ' + ', '.join(failed) if failed else 'all green'))
+        state['failed'] = bool(failed)
+        if state.get('reported') != sha:
+            state['reported'] = sha
+            emit(f'{target} {sha[:8]} registered runs finished: ' +
+                 ('FAILED ' + ', '.join(failed) if failed else 'all green'))
         return True
     return False
 
@@ -81,18 +97,18 @@ def main(argv=None):
         if '#' not in target or '/' not in target.split('#', 1)[0]:
             parser.error(f'{target} is not owner/repo#number')
     states = {target: {} for target in args.targets}
-    done = set()
     polls = 0
-    while len(done) < len(args.targets):
-        for target in args.targets:
-            if target not in done and poll_once(target, states[target]):
-                done.add(target)
+    while True:
+        # Every PR is re-read on every poll, including ones already finished: a new push to a
+        # finished PR restarts its watch instead of being missed while another PR is still running.
+        done = {target for target in args.targets if poll_once(target, states[target])}
         sys.stdout.flush()
         polls += 1
-        if len(done) == len(args.targets) or (args.max_polls and polls >= args.max_polls):
-            break
+        if len(done) == len(args.targets):
+            return 1 if any(state.get('failed') for state in states.values()) else 0
+        if args.max_polls and polls >= args.max_polls:
+            return 2
         time.sleep(args.interval)
-    return 0 if len(done) == len(args.targets) else 2
 
 
 if __name__ == '__main__':
