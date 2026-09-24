@@ -198,9 +198,14 @@ class DashboardTests(unittest.TestCase):
         unknown, _ = dashboard.task_card(
             {'id': 'shared-step', 'title': 'Unclassified foundation work',
              'state': 'not-started', 'front': '<script>alert(1)</script>'}, [])
-        self.assertIn('<span class="summary-front-badge">Front · Shared</span>', unknown)
-        self.assertIn('<strong>Front:</strong> Shared', unknown)
+        self.assertIn('<span class="summary-front-badge">Front · Unknown front</span>', unknown)
+        self.assertIn('<strong>Front:</strong> Unknown front', unknown)
         self.assertNotIn('<script>', unknown)
+
+        non_string, _ = dashboard.task_card(
+            {'id': 'invalid-step', 'title': 'Invalid front data',
+             'state': 'not-started', 'front': ['retail']}, [])
+        self.assertIn('<strong>Front:</strong> Unknown front', non_string)
 
     def test_missing_requested_identity_and_no_agent_are_explicit(self):
         item = {'id': 'working-id', 'title': 'Run export', 'state': 'running',
@@ -324,6 +329,26 @@ class DashboardTests(unittest.TestCase):
         self.assertIn('<strong>Activity 12</strong>', page)
         for number in range(1, 13):
             self.assertEqual(1, page.count(f'<strong>Activity {number:02d}</strong>'))
+
+    def test_long_board_columns_are_bounded_and_keep_keyboard_focus_visible(self):
+        steps = [{'id': f'done-{number:02d}', 'order': number,
+                  'title': f'Done activity {number:02d}', 'state': 'done',
+                  'pr_url': f'https://example.test/pull/{number}'}
+                 for number in range(1, 19)]
+        record = {'project_id': 'long-done', 'coordinator': {'agent_id': 'planner'},
+                  'workflow_steps': steps}
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            subprocess.run(['git', 'init', '-q', str(repo)], check=True)
+            page = dashboard.publish(repo, record).read_text()
+
+        self.assertIn('max-height:min(70vh,760px)', page)
+        self.assertIn('overflow-y:auto', page)
+        self.assertIn('position:sticky;top:-8px', page)
+        self.assertIn('scroll-margin-top:48px', page)
+        self.assertIn('max-height:min(65vh,560px)', page)
+        self.assertIn('Done <span class="count">18</span>', page)
+        self.assertIn('<strong>Done activity 18</strong>', page)
 
     def test_legacy_attempt_snapshot_and_unknown_identity_remain_clear(self):
         record = {'project_id': 'legacy', 'coordinator': {'agent_id': 'planner'},
