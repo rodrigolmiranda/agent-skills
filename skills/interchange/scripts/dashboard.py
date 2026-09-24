@@ -278,7 +278,9 @@ def activity_column(item, attempts):
     # successful outcome or the coordinator's completed plan state.
     if outcome in blocked or execution in blocked:
         return 'blocked'
-    if state in {'review', 'in_review', 'awaiting_acceptance'}:
+    if state == 'awaiting_acceptance':
+        return 'blocked' if item.get('blocker') else 'next'
+    if state in {'review', 'in_review'}:
         return 'review'
     if state == 'waiting':
         return 'waiting'
