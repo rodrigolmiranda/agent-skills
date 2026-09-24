@@ -404,6 +404,23 @@ class DashboardTests(unittest.TestCase):
         self.assertNotIn('href="javascript:alert(1)"', page)
         self.assertIn('Next <span class="count">0</span>', page)
 
+    def test_upcoming_queue_shows_per_front_order_and_explicit_holds(self):
+        queue = [{'front': front, 'title': f'{front} issue {number}',
+                  'url': f'https://example.test/{front}/{number}',
+                  'status': 'Dependency held', 'prerequisite': 'Published contract needed'}
+                 for front in ('shared', 'mentora', 'b2b', 'retail')
+                 for number in range(1, 12)]
+        queue.append({'front': '<script>x</script>', 'title': '<script>bad</script>',
+                      'url': 'javascript:alert(1)', 'status': '<script>held</script>'})
+        rendered = dashboard.board({'workflow_steps': [], 'upcoming_queue': queue})
+        self.assertIn('Next <span class="count">45</span>', rendered)
+        self.assertEqual(4, rendered.count('Show all 11 planned activities (1 more)'))
+        for front in ('Shared', 'Mentora', 'B2B', 'Retail'):
+            self.assertIn(f'<h4>{front} <span class="count">11</span></h4>', rendered)
+        self.assertIn('Published contract needed', rendered)
+        self.assertIn('&lt;script&gt;held&lt;/script&gt;', rendered)
+        self.assertNotIn('href="javascript:alert(1)"', rendered)
+
     def test_long_board_columns_are_bounded_and_keep_keyboard_focus_visible(self):
         steps = [{'id': f'done-{number:02d}', 'order': number,
                   'title': f'Done activity {number:02d}', 'state': 'done',

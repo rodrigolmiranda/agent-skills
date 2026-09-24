@@ -544,6 +544,17 @@ def board(record):
         content, column = task_card(item, attempts, record)
         date = max((recency_key(attempt)[0] for attempt in attempts), default=float('-inf'))
         columns[column].append((content, position, date, front_label(item.get('front')) or 'Unassigned'))
+    for position, item in enumerate((record.get('upcoming_queue') or [])[:500]):
+        if not isinstance(item, dict):
+            continue
+        front = front_label(item.get('front')) or 'Unassigned'
+        title = str(item.get('title') or item.get('id') or 'Untitled issue')[:160]
+        status = str(item.get('status') or 'Not assessed')[:60]
+        prerequisite = str(item.get('prerequisite') or 'Readiness assessment pending')[:300]
+        content = ('<article class="upcoming-card"><strong>' + safe_link(item.get('url'), title)
+                   + '</strong><span class="upcoming-status">' + esc(status)
+                   + '</span><p>' + esc(prerequisite) + '</p></article>')
+        columns['next'].append((content, len(activities) + position, float('-inf'), front))
     columns['next'].sort(key=lambda entry: entry[1])
     for name in ('working', 'blocked', 'waiting', 'review', 'done'):
         columns[name].sort(key=lambda entry: (entry[2], -entry[1]), reverse=True)
@@ -568,6 +579,8 @@ def board(record):
                               + ' planned activities (' + str(len(group) - 10) + ' more)</summary>'
                               + ''.join(entry[0] for entry in group[10:]) + '</details>')
                 cards += '</div>'
+            if cards:
+                cards = '<p class="note">Planned order by front. A prerequisite on a card is not permission to dispatch.</p>' + cards
         else:
             cards = ''.join(entry[0] for entry in entries)
         if not cards:
@@ -721,6 +734,7 @@ section{border:1px solid var(--line);border-radius:9px;margin:0 0 16px;overflow:
 .task-card>summary.task-summary{padding:0;color:var(--ink);scroll-margin-top:48px}.task-card>summary.task-summary::marker{color:var(--accent)}.summary-top-row{display:flex;align-items:center;gap:6px;min-width:0;line-height:1.3}.summary-title{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:700}.summary-model-badge,.summary-front-badge{flex:none;max-width:52%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:1px solid var(--line);border-radius:4px;background:#f2f5f5;padding:1px 5px;color:var(--muted);font-size:10px;line-height:1.4}.summary-meta{display:flex;align-items:center;gap:5px;min-width:0;font-size:11px;line-height:1.3;overflow:hidden;white-space:nowrap}.summary-owner{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.summary-status{flex:none;font-weight:700}.summary-detail{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;line-height:1.3;color:var(--muted)}.task-card[open]>summary.task-summary{padding-bottom:6px;border-bottom:1px solid var(--line)}.task-card-body{padding-top:6px}
 .column-next{border-top:3px solid #64748b}.column-next>h3{color:#64748b;background:#f1f5f9;border-radius:4px;padding:5px}
 .next-front{border-top:1px solid var(--line);padding-top:4px;margin-top:8px}.next-front:first-of-type{border-top:0;margin-top:0}.next-front h4{display:flex;justify-content:space-between;align-items:center;margin:4px 0 8px;color:#475569}.next-front .show-all{display:block;margin-bottom:8px}
+.upcoming-card{background:white;border:1px solid var(--line);border-radius:6px;padding:8px;margin:0 0 8px;overflow-wrap:anywhere}.upcoming-card strong{display:block;font-size:12px;line-height:1.3}.upcoming-status{display:block;font-size:10px;font-weight:700;color:#8a4b00;margin-top:3px}.upcoming-card p{font-size:11px;color:var(--muted);margin:3px 0 0}
 .approved-scope{margin:0 12px 12px;padding:4px 10px;border:1px solid var(--line);border-radius:7px;background:white}.approved-scope>p{color:var(--muted);font-size:11px}.scope-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.scope-front{padding:8px;min-width:0;max-height:min(28vh,280px);overflow-y:auto;scrollbar-gutter:stable}.scope-front h4{position:sticky;top:-8px;margin:-8px -8px 8px;padding:8px;background:#f7f8f8}.scope-front ul{list-style:none;margin:0;padding:0}.scope-front li{border-top:1px solid var(--line);padding:6px 0;font-size:11px;overflow-wrap:anywhere}.scope-front li:first-child{border-top:0}.scope-front small{display:block;color:var(--muted);text-transform:capitalize}.scope-front p{font-size:11px;color:var(--muted);margin:2px 0}
 .column-blocked{border-top:3px solid #b42332}.column-blocked>h3{color:#b42332;background:#fff1f2;border-radius:4px;padding:5px}
 .column-working{border-top:3px solid #2563eb}.column-working>h3{color:#2563eb;background:#eff6ff;border-radius:4px;padding:5px}
