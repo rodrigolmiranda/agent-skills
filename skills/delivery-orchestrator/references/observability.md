@@ -101,6 +101,8 @@ Examples of supported CLI surfaces (help verified; actual attachment must be ver
 
 The HTML displays commands, never executes them. An internal child-agent name may have no independently openable session; link its handover/evidence instead. Cross-client takeover uses the portable transfer steps above and the same worktree ownership record, **not** a claim that Claude can resume a Codex-native conversation or vice versa. Inspect first; interactive control requires explicit ownership transfer or agreement. Do not start a second writer.
 
+**Central dashboard (optional, owner-installed).** `skills/interchange/scripts/dashboard_server.py` serves one page for every project under the shared coordination root. It reads `projects/*/continuation.json` per request: no registration, no timer, read-only, loopback only, sanitized live facts. Install it with Docker (`deploy/dashboard/docker-compose.yml`, survives reboots), launchd, or in the foreground (see `deploy/dashboard/README.md`). When it answers, give the owner its URL at plan start; otherwise give the `file://` board.
+
 Treat the initial dashboard and workflow as a trial: record friction and proposed improvements against the existing job, adjust one proven need at a time, and preserve accepted scope, evidence and ownership through a revision. No automatic purge or background refresh is introduced by this feature.
 
 ## Waiting and blocked

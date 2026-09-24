@@ -1,0 +1,18 @@
+# One always-on delivery dashboard for every project under the shared coordination root.
+# Usage (from this folder):
+#   INTERCHANGE_ROOT=/path/to/_agent-comms/interchange docker compose up -d
+# Then open http://127.0.0.1:7390/ . It survives reboots (restart: unless-stopped) when Docker starts at login.
+services:
+  dashboard:
+    image: python:3.13-slim
+    command: ["python", "/app/dashboard_server.py", "--root", "/data", "--bind", "0.0.0.0", "--port", "7390"]
+    working_dir: /app
+    volumes:
+      - ../../skills/interchange/scripts:/app:ro
+      - ${INTERCHANGE_ROOT:?set INTERCHANGE_ROOT to the shared coordination root}:/data:ro
+    ports:
+      - "127.0.0.1:${DASHBOARD_PORT:-7390}:7390"
+    read_only: true
+    tmpfs:
+      - /tmp
+    restart: unless-stopped
