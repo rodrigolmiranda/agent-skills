@@ -191,13 +191,16 @@ class PipelineTests(unittest.TestCase):
         owner_home.mkdir()
         (owner_home / '.claude.json').write_text(json.dumps({'mcpServers': {
             'owner-browser': {'command': 'browser-bridge'}}}))
+        fixture_claude = self.root / 'claude'
+        fixture_claude.write_text('#!/bin/sh\nexit 0\n')
+        fixture_claude.chmod(0o755)
         self.spec['reviewer']['execution_isolation'] = {'mode': 'same_user'}
-        self.spec['reviewer']['argv'] = ['claude', '--no-chrome', '--disallowedTools',
+        self.spec['reviewer']['argv'] = [str(fixture_claude), '--no-chrome', '--disallowedTools',
                                         'Browser*', '--output-format', 'stream-json', '-p', 'review']
         with mock.patch.dict(os.environ, {'HOME': str(owner_home)}):
             with self.assertRaisesRegex(post_return.PipelineException, 'browser tool deny'):
                 post_return._validate_spec(self.spec, self.manifest, self.repo.resolve())
-            self.spec['reviewer']['argv'] = ['claude', *CLAUDE_SAFE_ARGS,
+            self.spec['reviewer']['argv'] = [str(fixture_claude), *CLAUDE_SAFE_ARGS,
                                              '--output-format', 'stream-json', '--model', 'fixture-claude',
                                              '--effort', 'medium', '-p', 'review']
             post_return._validate_spec(self.spec, self.manifest, self.repo.resolve())
@@ -211,6 +214,9 @@ class PipelineTests(unittest.TestCase):
                     with self.assertRaises(post_return.PipelineException):
                         post_return._validate_spec(self.spec, self.manifest, self.repo.resolve())
                     del self.spec['reviewer']['argv'][-len(extra):]
+            self.spec['reviewer']['argv'][0] = str(self.root / 'missing' / 'claude')
+            with self.assertRaisesRegex(post_return.PipelineException, 'reviewer CLI unavailable'):
+                post_return._validate_spec(self.spec, self.manifest, self.repo.resolve())
 
     def test_same_user_default_and_invalid_distinct_uid(self):
         env = os.environ.copy()
