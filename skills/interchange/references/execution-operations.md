@@ -28,6 +28,15 @@ open. The issue, parent and PR/evidence links remain visible.
 
 Workflow steps may optionally include the caller-supplied `front` value `mentora`, `b2b`, `retail` or `shared`; the caller owns that classification and the renderer does not infer it.
 
+The coordinator may supply `approved_scope: {source_url, checked_at, items}` in a
+snapshot. Each item supplies a stable `id`, `title`, GitHub `url`, optional
+`front`, `disposition` and short `reason` from its current scheduling receipt.
+The dashboard shows these open approved items in a separate, collapsed,
+scroll-bounded per-front inventory. It never turns approved scope into the
+`Next` execution queue or infers readiness from the number of items. Refresh
+the inventory from the adopted backlog and live issue state at a full scan;
+do not present an incomplete source query as complete coverage.
+
 ## Communication recovery
 
 Diagnose missing startup, duplicate/late callbacks, bad correlation, stale session handles and failed delivery within the existing exchange authority. Safe idempotent notification retries may reuse the event identity. Reconcile uncertain process/write state before any relaunch; never duplicate a writer or replay product mutations to repair messaging. A new executor, changed provider/effort, scope, privilege or material deadline needs orchestrator disposition and any required owner authority.

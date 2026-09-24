@@ -582,6 +582,42 @@ def board(record):
     return ''.join(markup)
 
 
+def approved_scope(record):
+    """Show the adopted backlog separately from the executable activity queue."""
+    scope = record.get('approved_scope')
+    if not isinstance(scope, dict) or not isinstance(scope.get('items'), list):
+        return ''
+    groups = {}
+    for item in scope['items'][:500]:
+        if not isinstance(item, dict):
+            continue
+        front = front_label(item.get('front')) or 'Unassigned'
+        title = str(item.get('title') or item.get('id') or 'Untitled item')[:160]
+        disposition = str(item.get('disposition') or 'Not assessed')[:60].replace('-', ' ')
+        reason = str(item.get('reason') or '')[:400]
+        url = item.get('url')
+        label = safe_link(url, title) if isinstance(url, str) and url.startswith(('https://', 'http://')) else esc(title)
+        groups.setdefault(front, []).append('<li><span>' + label + '</span><small>'
+                                              + esc(disposition) + '</small>'
+                                              + ('<p>' + esc(reason) + '</p>' if reason else '')
+                                              + '</li>')
+    count = sum(map(len, groups.values()))
+    if not count:
+        return ''
+    sections = []
+    for front in ('Shared', 'Mentora', 'B2B', 'Retail', 'Unassigned', 'Unknown front'):
+        items = groups.pop(front, [])
+        if items:
+            sections.append('<section class="scope-front"><h4>' + esc(front) + ' <span class="count">'
+                            + str(len(items)) + '</span></h4><ul>' + ''.join(items) + '</ul></section>')
+    return ('<details class="approved-scope"><summary>Approved H1 scope (' + str(count)
+            + ' open items) · separate from the execution queue</summary>'
+            + '<p>Source: ' + safe_link(scope.get('source_url'), 'GitHub project')
+            + ' · Checked ' + esc(readable_time(scope.get('checked_at')))
+            + '. Approved scope is not a claim that an item is ready to run.</p>'
+            + '<div class="scope-grid">' + ''.join(sections) + '</div></details>')
+
+
 def session_details(agent):
     access = agent.get('session_access') or {}
     rows = '<p class="muted">Session ' + esc(agent.get('session_id')) + '</p>'
@@ -629,7 +665,7 @@ def render(root):
                      + '<div class="eyebrow">PROJECT</div><h2>' + esc(project.replace('-', ' ').title())
                      + '</h2><p class="muted">Coordinated by <strong>' + esc(coordinator['agent_id'])
                      + '</strong> · ' + esc(coordinator.get('client')) + '</p></div>' + link + '</header>'
-                     + supervision_notice(record) + board(record)
+                     + supervision_notice(record) + board(record) + approved_scope(record)
                      + '<details class="coordination"><summary>Coordination and takeover</summary><p>'
                      + esc(record.get('scheduling')) + '</p><p><strong>Takeover:</strong> '
                      + esc((record.get('transfer') or {}).get('state', 'Not requested').replace('-', ' '))
@@ -652,13 +688,14 @@ section{border:1px solid var(--line);border-radius:9px;margin:0 0 16px;overflow:
 .task-card>summary.task-summary{padding:0;color:var(--ink);scroll-margin-top:48px}.task-card>summary.task-summary::marker{color:var(--accent)}.summary-top-row{display:flex;align-items:center;gap:6px;min-width:0;line-height:1.3}.summary-title{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:700}.summary-model-badge,.summary-front-badge{flex:none;max-width:52%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:1px solid var(--line);border-radius:4px;background:#f2f5f5;padding:1px 5px;color:var(--muted);font-size:10px;line-height:1.4}.summary-meta{display:flex;align-items:center;gap:5px;min-width:0;font-size:11px;line-height:1.3;overflow:hidden;white-space:nowrap}.summary-owner{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.summary-status{flex:none;font-weight:700}.summary-detail{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;line-height:1.3;color:var(--muted)}.task-card[open]>summary.task-summary{padding-bottom:6px;border-bottom:1px solid var(--line)}.task-card-body{padding-top:6px}
 .column-next{border-top:3px solid #64748b}.column-next>h3{color:#64748b;background:#f1f5f9;border-radius:4px;padding:5px}
 .next-front{border-top:1px solid var(--line);padding-top:4px;margin-top:8px}.next-front:first-of-type{border-top:0;margin-top:0}.next-front h4{display:flex;justify-content:space-between;align-items:center;margin:4px 0 8px;color:#475569}.next-front .show-all{display:block;margin-bottom:8px}
+.approved-scope{margin:0 12px 12px;padding:4px 10px;border:1px solid var(--line);border-radius:7px;background:white}.approved-scope>p{color:var(--muted);font-size:11px}.scope-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.scope-front{padding:8px;min-width:0;max-height:min(55vh,580px);overflow-y:auto;scrollbar-gutter:stable}.scope-front h4{position:sticky;top:-8px;margin:-8px -8px 8px;padding:8px;background:#f7f8f8}.scope-front ul{list-style:none;margin:0;padding:0}.scope-front li{border-top:1px solid var(--line);padding:6px 0;font-size:11px;overflow-wrap:anywhere}.scope-front li:first-child{border-top:0}.scope-front small{display:block;color:var(--muted);text-transform:capitalize}.scope-front p{font-size:11px;color:var(--muted);margin:2px 0}
 .column-blocked{border-top:3px solid #b42332}.column-blocked>h3{color:#b42332;background:#fff1f2;border-radius:4px;padding:5px}
 .column-working{border-top:3px solid #2563eb}.column-working>h3{color:#2563eb;background:#eff6ff;border-radius:4px;padding:5px}
 .column-waiting{border-top:3px solid #b77900}.column-waiting>h3{color:#b77900;background:#fffbeb;border-radius:4px;padding:5px}
 .column-review{border-top:3px solid #7c3aed}.column-review>h3{color:#7c3aed;background:#f5f3ff;border-radius:4px;padding:5px}
 .column-done{border-top:3px solid #16804a}.column-done>h3{color:#16804a;background:#ecfdf3;border-radius:4px;padding:5px}
-@media(max-width:1100px){.board{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:650px){main{padding:8px}.top{padding:8px 12px}.toolbar{margin-bottom:7px}.toolbar,.project-head{align-items:flex-start;flex-direction:column}.board{grid-template-columns:1fr;padding:0 8px 8px;gap:8px}.board-column{padding:9px;max-height:min(65vh,560px)}.project-head{padding:10px}.card-title{align-items:flex-start}.top span{display:none}}
+@media(max-width:1100px){.board{grid-template-columns:repeat(2,minmax(0,1fr))}.scope-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){main{padding:8px}.top{padding:8px 12px}.toolbar{margin-bottom:7px}.toolbar,.project-head{align-items:flex-start;flex-direction:column}.board{grid-template-columns:1fr;padding:0 8px 8px;gap:8px}.board-column{padding:9px;max-height:min(65vh,560px)}.scope-grid{grid-template-columns:1fr}.scope-front{max-height:min(50vh,460px)}.project-head{padding:10px}.card-title{align-items:flex-start}.top span{display:none}}
 </style><div class="top"><div class="brand">Delivery Orchestrator <span> / Project activity</span></div><button onclick="location.reload()">Refresh</button></div>
 <main><div class="toolbar"><h1>Current execution horizon</h1><label>Project <select id="project"><option value="">All activity</option>''' + options + '</select></label></div>'
     page += ''.join(cards) or '<p class="empty">No coordinator snapshots published yet.</p>'
