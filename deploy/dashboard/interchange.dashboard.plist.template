@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Native fallback (macOS, no Docker): copy to ~/Library/LaunchAgents/interchange.dashboard.plist,
+     replace the three __PLACEHOLDERS__, then: launchctl load ~/Library/LaunchAgents/interchange.dashboard.plist -->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>interchange.dashboard</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/python3</string>
+    <string>__SKILLS_ROOT__/skills/interchange/scripts/dashboard_server.py</string>
+    <string>--root</string><string>__INTERCHANGE_ROOT__</string>
+    <string>--port</string><string>__PORT__</string>
+  </array>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>StandardErrorPath</key><string>/tmp/interchange-dashboard.err</string>
+</dict>
+</plist>
