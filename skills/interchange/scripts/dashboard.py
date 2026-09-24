@@ -197,6 +197,26 @@ def summary_model_badge(attempt):
     return 'Requested · ' + model_effort(attempt, True, compact=True)
 
 
+FRONT_LABELS = {
+    'mentora': 'Mentora',
+    'b2b': 'B2B',
+    'retail': 'Retail',
+    'shared': 'Shared',
+}
+
+
+def front_label(value):
+    """Return the safe display label for an optional workflow front."""
+    if value is None or value == '':
+        return None
+    if isinstance(value, str):
+        normalized = value.strip().casefold()
+        if not normalized:
+            return None
+        return FRONT_LABELS.get(normalized, 'Unknown front')
+    return 'Unknown front'
+
+
 def snapshot_details(title, value, missing='Unknown'):
     if value is None or value == '' or value == [] or value == {}:
         content = esc(missing)
@@ -442,6 +462,9 @@ def task_card(item, attempts, snapshot=None):
     show_models = column in {'working', 'done'}
     model_badge = ('<span class="summary-model-badge">' + esc(summary_model_badge(current))
                    + '</span>') if show_models else ''
+    front = front_label(item.get('front'))
+    front_badge = ('<span class="summary-front-badge">Front · ' + esc(front)
+                   + '</span>') if front else ''
     follow_up_badge = ('<span class="summary-follow-up status-attention">' + esc(follow_up)
                        + '</span>') if follow_up == 'Overdue follow-up' else ''
     attempts_block = ('<details class="attempt-history"><summary>Attempts and retries ('
@@ -450,7 +473,7 @@ def task_card(item, attempts, snapshot=None):
                          or '<p class="empty">No attempts recorded.</p>') + '</details>')
     content = ('<details class="task-card"><summary class="task-summary">'
                + '<span class="summary-top-row"><span class="summary-title">' + esc(title) + '</span>'
-               + model_badge + follow_up_badge + '</span>'
+               + model_badge + front_badge + follow_up_badge + '</span>'
                + '<span class="summary-meta"><span class="summary-owner">' + esc(summary_owner)
                + '</span><span aria-hidden="true">·</span><span class="summary-status '
                + status_class(column) + '">' + esc(logical_status) + '</span></span>'
@@ -458,10 +481,13 @@ def task_card(item, attempts, snapshot=None):
                + '</summary>'
                + '<div class="task-card-body"><div class="card-title"><strong>' + esc(title)
                + '</strong><span class="badge ' + status_class(column) + '">'
-               + 'Board status: ' + esc(logical_status) + '</span></div>'
+               + 'Board status: ' + esc(logical_status) + '</span>'
+               + (('<span class="badge summary-front-badge">Front: ' + esc(front) + '</span>')
+                  if front else '') + '</div>'
                + '<p><strong>Activity:</strong> ' + esc(item.get('id'))
                + ' · <strong>Order:</strong> ' + esc(order) + '</p>'
                + '<p><strong>Plan status:</strong> ' + esc(status_label(item.get('state'))) + '</p>'
+               + ('<p><strong>Front:</strong> ' + esc(front) + '</p>' if front else '')
                + '<p><strong>Owner:</strong> ' + esc(owner_label) + '</p>'
                + '<p><strong>Requested model / effort:</strong> ' + requested + '</p>'
                + '<p><strong>Observed model / effort:</strong> ' + observed + '</p>'
@@ -610,8 +636,8 @@ def render(root):
 .top{border-bottom:1px solid var(--line);padding:10px 20px;display:flex;justify-content:space-between;align-items:center}.brand{font-weight:750;letter-spacing:-.5px;font-size:17px}.top span{font-size:12px;color:var(--muted)}
 main{max-width:1400px;margin:auto;padding:12px 20px}h1{font-size:19px;letter-spacing:-.3px;margin:0}h2{font-size:19px;letter-spacing:-.3px;margin:2px 0}h3{font-size:14px;margin:0 0 10px}h4{font-size:13px;margin:24px 0 4px}p{margin:5px 0 8px}.muted,footer{color:var(--muted);font-size:12px}
 .toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}.toolbar p{display:none}select,.button,button{font:inherit;border:1px solid var(--line);border-radius:6px;padding:6px 10px;background:transparent;color:var(--ink)}a{color:var(--accent);overflow-wrap:anywhere}.button{text-decoration:none;font-size:12px;white-space:nowrap}.button:hover,button:hover{background:#edf2f1}button{cursor:pointer}select:focus-visible,a:focus-visible,summary:focus-visible,button:focus-visible{outline:3px solid #71a7a1;outline-offset:3px}
-section{border:1px solid var(--line);border-radius:9px;margin:0 0 16px;overflow:hidden;background:#fcfcfc}.project-head{padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:12px}.eyebrow{font-size:10px;letter-spacing:1px;font-weight:700;color:var(--muted)}.count,.badge{font-size:11px;background:#edf0f2;padding:2px 6px;border-radius:4px;font-weight:600;display:inline-block}.count{margin-left:4px}.empty{padding:12px;border:1px dashed var(--line);border-radius:6px;color:var(--muted);font-size:12px}.board{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;padding:0 12px 12px}.board-column{border:1px solid var(--line);border-radius:7px;padding:8px;background:#f7f8f8;min-width:0}.board-column h3{display:flex;justify-content:space-between;align-items:center}.task-card{background:white;border:1px solid var(--line);border-radius:6px;padding:9px;margin:0 0 8px;min-width:0;overflow-wrap:anywhere}.card-title{display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:6px}.card-title strong{font-size:13px;line-height:1.3}.task-card p{font-size:11.5px;margin:4px 0}.task-card .badge{white-space:normal;text-align:left}.status-text{font-weight:700}.status-good{color:#176b45}.status-attention{color:#8a4b00}.status-terminal{color:#545c65}.status-unknown{color:#586674}.attempt-history{border-top:1px solid var(--line);margin-top:7px;padding-top:4px}.attempt-record{border-top:1px solid var(--line);padding:7px 0;font-size:11px;overflow-wrap:anywhere}.attempt-details{display:grid;gap:4px;margin:5px 0 0}.attempt-details>span{font-size:11px}.attempt-details pre{max-height:200px;overflow:auto}.attempt-history details,.attempt-history summary,.agent-details details{font-size:11px}.show-all{grid-column:1/-1;background:white;border:1px solid var(--line);padding:4px 8px;border-radius:6px}.show-all .task-card{max-width:360px}.unmapped{margin:0 12px 12px;padding:4px 8px;background:#fff8e8;border:1px solid #ead6af;border-radius:6px}.history{padding:0 14px 8px}.coordination{padding:4px 14px 10px;border-top:1px solid var(--line)}.agent-details{display:grid;gap:6px;margin-top:6px}details{font-size:12px}summary{cursor:pointer;color:var(--accent);padding:6px 0}code,pre{font:11px/1.5 ui-monospace,monospace;overflow-wrap:anywhere;white-space:pre-wrap}footer{padding:10px 14px;border-top:1px solid var(--line);font-size:11px}.raw{padding:0 14px 10px}.raw summary{color:var(--muted)}.note{font-size:11px;color:var(--muted)}[hidden]{display:none!important}
-.task-card>summary.task-summary{padding:0;color:var(--ink)}.task-card>summary.task-summary::marker{color:var(--accent)}.summary-top-row{display:flex;align-items:center;gap:6px;min-width:0;line-height:1.3}.summary-title{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:700}.summary-model-badge{flex:none;max-width:52%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:1px solid var(--line);border-radius:4px;background:#f2f5f5;padding:1px 5px;color:var(--muted);font-size:10px;line-height:1.4}.summary-meta{display:flex;align-items:center;gap:5px;min-width:0;font-size:11px;line-height:1.3;overflow:hidden;white-space:nowrap}.summary-owner{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.summary-status{flex:none;font-weight:700}.summary-detail{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;line-height:1.3;color:var(--muted)}.task-card[open]>summary.task-summary{padding-bottom:6px;border-bottom:1px solid var(--line)}.task-card-body{padding-top:6px}
+section{border:1px solid var(--line);border-radius:9px;margin:0 0 16px;overflow:hidden;background:#fcfcfc}.project-head{padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:12px}.eyebrow{font-size:10px;letter-spacing:1px;font-weight:700;color:var(--muted)}.count,.badge{font-size:11px;background:#edf0f2;padding:2px 6px;border-radius:4px;font-weight:600;display:inline-block}.count{margin-left:4px}.empty{padding:12px;border:1px dashed var(--line);border-radius:6px;color:var(--muted);font-size:12px}.board{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;padding:0 12px 12px}.board-column{border:1px solid var(--line);border-radius:7px;padding:8px;background:#f7f8f8;min-width:0;max-height:min(70vh,760px);overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable}.board-column h3{display:flex;justify-content:space-between;align-items:center;position:sticky;top:-8px;z-index:2;margin:-8px -8px 10px;padding:8px;background:#f7f8f8}.task-card{background:white;border:1px solid var(--line);border-radius:6px;padding:9px;margin:0 0 8px;min-width:0;overflow-wrap:anywhere}.card-title{display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:6px}.card-title strong{font-size:13px;line-height:1.3}.task-card p{font-size:11.5px;margin:4px 0}.task-card .badge{white-space:normal;text-align:left}.status-text{font-weight:700}.status-good{color:#176b45}.status-attention{color:#8a4b00}.status-terminal{color:#545c65}.status-unknown{color:#586674}.attempt-history{border-top:1px solid var(--line);margin-top:7px;padding-top:4px}.attempt-record{border-top:1px solid var(--line);padding:7px 0;font-size:11px;overflow-wrap:anywhere}.attempt-details{display:grid;gap:4px;margin:5px 0 0}.attempt-details>span{font-size:11px}.attempt-details pre{max-height:200px;overflow:auto}.attempt-history details,.attempt-history summary,.agent-details details{font-size:11px}.show-all{grid-column:1/-1;background:white;border:1px solid var(--line);padding:4px 8px;border-radius:6px}.show-all .task-card{max-width:360px}.unmapped{margin:0 12px 12px;padding:4px 8px;background:#fff8e8;border:1px solid #ead6af;border-radius:6px}.history{padding:0 14px 8px}.coordination{padding:4px 14px 10px;border-top:1px solid var(--line)}.agent-details{display:grid;gap:6px;margin-top:6px}details{font-size:12px}summary{cursor:pointer;color:var(--accent);padding:6px 0}code,pre{font:11px/1.5 ui-monospace,monospace;overflow-wrap:anywhere;white-space:pre-wrap}footer{padding:10px 14px;border-top:1px solid var(--line);font-size:11px}.raw{padding:0 14px 10px}.raw summary{color:var(--muted)}.note{font-size:11px;color:var(--muted)}[hidden]{display:none!important}
+.task-card>summary.task-summary{padding:0;color:var(--ink);scroll-margin-top:48px}.task-card>summary.task-summary::marker{color:var(--accent)}.summary-top-row{display:flex;align-items:center;gap:6px;min-width:0;line-height:1.3}.summary-title{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:700}.summary-model-badge,.summary-front-badge{flex:none;max-width:52%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:1px solid var(--line);border-radius:4px;background:#f2f5f5;padding:1px 5px;color:var(--muted);font-size:10px;line-height:1.4}.summary-meta{display:flex;align-items:center;gap:5px;min-width:0;font-size:11px;line-height:1.3;overflow:hidden;white-space:nowrap}.summary-owner{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.summary-status{flex:none;font-weight:700}.summary-detail{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;line-height:1.3;color:var(--muted)}.task-card[open]>summary.task-summary{padding-bottom:6px;border-bottom:1px solid var(--line)}.task-card-body{padding-top:6px}
 .column-next{border-top:3px solid #64748b}.column-next>h3{color:#64748b;background:#f1f5f9;border-radius:4px;padding:5px}
 .column-blocked{border-top:3px solid #b42332}.column-blocked>h3{color:#b42332;background:#fff1f2;border-radius:4px;padding:5px}
 .column-working{border-top:3px solid #2563eb}.column-working>h3{color:#2563eb;background:#eff6ff;border-radius:4px;padding:5px}
@@ -619,7 +645,7 @@ section{border:1px solid var(--line);border-radius:9px;margin:0 0 16px;overflow:
 .column-review{border-top:3px solid #7c3aed}.column-review>h3{color:#7c3aed;background:#f5f3ff;border-radius:4px;padding:5px}
 .column-done{border-top:3px solid #16804a}.column-done>h3{color:#16804a;background:#ecfdf3;border-radius:4px;padding:5px}
 @media(max-width:1100px){.board{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:650px){main{padding:8px}.top{padding:8px 12px}.toolbar{margin-bottom:7px}.toolbar,.project-head{align-items:flex-start;flex-direction:column}.board{grid-template-columns:1fr;padding:0 8px 8px;gap:8px}.board-column{padding:9px}.project-head{padding:10px}.card-title{align-items:flex-start}.top span{display:none}}
+@media(max-width:650px){main{padding:8px}.top{padding:8px 12px}.toolbar{margin-bottom:7px}.toolbar,.project-head{align-items:flex-start;flex-direction:column}.board{grid-template-columns:1fr;padding:0 8px 8px;gap:8px}.board-column{padding:9px;max-height:min(65vh,560px)}.project-head{padding:10px}.card-title{align-items:flex-start}.top span{display:none}}
 </style><div class="top"><div class="brand">Delivery Orchestrator <span> / Project activity</span></div><button onclick="location.reload()">Refresh</button></div>
 <main><div class="toolbar"><h1>Current execution horizon</h1><label>Project <select id="project"><option value="">All activity</option>''' + options + '</select></label></div>'
     page += ''.join(cards) or '<p class="empty">No coordinator snapshots published yet.</p>'
