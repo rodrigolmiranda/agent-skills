@@ -43,3 +43,16 @@ Reconcile the workflow state, current attempt outcome, gate result, blocker, exe
 
 Use [verification guidance](verification.md) to select, not multiply, checks. New visual pattern or complex interaction gets design guidance before its UI work. An integrated journey/meaningful feature cluster gets periodic UX + functional navigation review. A milestone exit gets independent end-to-end acceptance. Reusing a simple established pattern needs no new design ceremony. Capture actual screenshots before/after fixes; a mockup or green test is not visual verification.
 
+
+
+## Declared automatic return pipeline
+
+When authorized, declare the post-return pipeline before dispatch. Interchange's runner validates mechanical publication conditions, pushes only the owned branch, creates/updates a draft PR, and starts an independent headless reviewer alongside CI. The independent reviewer decides delivery quality and conformance to the accepted packet. Do not insert a duplicate coordinator quality-review turn between worker return and review startup. The coordinator resolves verdicts/exceptions and performs separately authorized merging.
+
+Read-only jobs need no PR. A known failing required gate goes directly to correction rather than routine quality review; an explicit diagnostic review may still help resolve it. Missing commits/handover, dirty scope or publication failure is an actionable exception, never completion. A script process existing is not reviewer startup proof.
+
+For every unfinished activity retain expected transition, executor, deadline/check and verified receiver. A separately supervised monitor detects returned-without-review, unconsumed verdicts, interrupted workers and lost delivery. The board remains read-only. An overdue alert must identify recovery ownership; no commit count or dashboard refresh substitutes for meaningful progress. See Interchange's execution contract for the runner/monitor configuration.
+
+## Recover uncommitted work
+
+An interrupted worker may leave useful changes; a normal return may deliberately leave publication to its declared pipeline. Preserve the worktree, restricted logs and recovery inventory. Inspect ownership before another writer starts. Prefer worker-authored checkpoint commits; never have the wrapper indiscriminately commit or publish dirty changes. Exclude secrets from portable recovery records. Select checkpoint/deadline thresholds by task class: investigation and tests need not produce commits.

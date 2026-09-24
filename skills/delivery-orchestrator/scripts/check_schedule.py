@@ -27,6 +27,40 @@ READY_EXCLUSIONS = {'conflict-blocked', 'capacity-blocked', 'authority-held'}
 READY_DISPOSITIONS = {'active', 'dispatched'} | READY_EXCLUSIONS
 
 
+def reservation_conflicts(leases):
+    """Compare supplied literal repo paths and shared resource identities.
+
+    Directory reservations end in '/'. Legacy prose surfaces remain compatible
+    but are not mechanically checked; caller must still inspect actual writes.
+    """
+    errors, held = [], []
+    for lease in leases:
+        if not isinstance(lease, dict) or lease.get('state') != 'held':
+            continue
+        paths, resources = lease.get('paths', []), lease.get('resources', [])
+        if not isinstance(paths, list) or any(not isinstance(x, str) or not x or x.startswith('/') or any(part in ('.', '..') for part in x.split('/')) or '//' in x or '\\' in x or any(c in x for c in '*?[') for x in paths):
+            errors.append('reservation paths must be literal relative paths (directory ends in /)')
+            continue
+        if paths and not lease.get('repository'):
+            errors.append('path reservation requires repository identity')
+        if not isinstance(resources, list) or any(not isinstance(x, str) or not x for x in resources):
+            errors.append('reservation resources must be nonempty identities')
+            continue
+        for other in held:
+            if other.get('job') == lease.get('job'):
+                continue
+            shared = set(resources) & set(other.get('resources', []))
+            if lease.get('repository') and lease.get('repository') == other.get('repository'):
+                for a in paths:
+                    for b in other.get('paths', []):
+                        if a.rstrip('/') == b.rstrip('/') or (a.endswith('/') and b.startswith(a)) or (b.endswith('/') and a.startswith(b)):
+                            shared.add(a)
+            if shared:
+                errors.append('overlapping held reservations: ' + str(other.get('id')) + ' / ' + str(lease.get('id')) + ': ' + ', '.join(sorted(shared)))
+        held.append(lease)
+    return errors
+
+
 def nonempty_text(value):
     return isinstance(value, str) and bool(value.strip())
 
@@ -180,6 +214,7 @@ def validate_progress(receipt, before_yield=False):
                 errors.append('held write lease is overdue or lacks recheck_at; verify ownership, never auto-release')
         elif lease.get('state') != 'released':
             errors.append('write lease state must be held or released')
+    errors.extend(reservation_conflicts(leases))
     held_ids = {x.get('id') for x in leases if isinstance(x, dict) and x.get('state') == 'held' and nonempty_text(x.get('id'))}
     for item in receipt.get('items', []) if isinstance(receipt.get('items'), list) else []:
         if not isinstance(item, dict):

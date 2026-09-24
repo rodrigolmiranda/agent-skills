@@ -13,6 +13,8 @@ This skill owns the [delivery workflow](references/workflow.md), [scheduling gat
 
 Load an adopter adapter only when the project governance explicitly selects it. Resolve its configured installed path; core planning does not require any portfolio adapter. The repository adapter catalogue is documented in the root README.
 
+When creating implementation packets, select relevant [risk invariants](references/risk-invariants.md) and their negative proof.
+
 Use [roles](references/roles.md) for semantic assignment selection and [workflow diagrams](references/diagrams.md) to inspect decision paths.
 
 Use [communication](references/communication.md) for durable questions/answers and [observability](references/observability.md) for status, evaluation, board publication and takeover. The board consumes Interchange execution evidence; it does not replace GitHub.

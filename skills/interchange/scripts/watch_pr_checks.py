@@ -17,7 +17,7 @@ that every required check (legacy statuses, late-registered workflows) passed, a
 gate: re-query the live head and required checks before merging.
 
 Exit status: 0 = every PR finished with all registered runs green; 1 = every PR finished and at
-least one run did not succeed; 2 = stopped before every PR finished (--max-polls).
+least one run failed; 2 = incomplete/cancelled or stopped before every PR finished (--max-polls).
 
 Usage: watch_pr_checks.py owner/repo#123 [owner/repo#456 ...] [--interval 60] [--max-polls N]
 """
@@ -77,12 +77,14 @@ def poll_once(target, state, fetch=gh_json, emit=print):
             state['seen'].add((name, conclusion))
             emit(f'{target} {sha[:8]} {name}: {conclusion}')
     if all(status == 'completed' for _, status, _ in runs):
-        failed = [name for name, _, conclusion in runs if conclusion not in ('success', 'skipped', 'neutral')]
+        incomplete = [name for name, _, conclusion in runs if conclusion in ('cancelled', 'stale', None)]
+        failed = [name for name, _, conclusion in runs if conclusion not in ('success', 'skipped', 'neutral', 'cancelled', 'stale', None)]
+        state['incomplete'] = bool(incomplete)
         state['failed'] = bool(failed)
         if state.get('reported') != sha:
             state['reported'] = sha
             emit(f'{target} {sha[:8]} registered runs finished: ' +
-                 ('FAILED ' + ', '.join(failed) if failed else 'all green'))
+                 ('FAILED ' + ', '.join(failed) if failed else 'INCOMPLETE ' + ', '.join(incomplete) if incomplete else 'all green'))
         return True
     return False
 
@@ -105,7 +107,7 @@ def main(argv=None):
         sys.stdout.flush()
         polls += 1
         if len(done) == len(args.targets):
-            return 1 if any(state.get('failed') for state in states.values()) else 0
+            return 1 if any(state.get('failed') for state in states.values()) else 2 if any(state.get('incomplete') for state in states.values()) else 0
         if args.max_polls and polls >= args.max_polls:
             return 2
         time.sleep(args.interval)

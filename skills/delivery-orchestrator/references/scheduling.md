@@ -49,3 +49,12 @@ Declare `source_kind: github` (default) or `files` according to adopted governan
 The checker resolves local evidence against `--artifact-root <machine-local-root>` (default: receipt directory). Relative paths resolve below that root; `artifact://jobs/name/result.md` maps to `<root>/jobs/name/result.md` and cannot escape it. Absolute paths and local `file://` URLs are supported for existing local records. Remote file authorities are rejected. Every supplied local evidence pointer must resolve to an existing regular file, including recovery and supervised-wait evidence. Missing access/file fails the gate; never create empty compliance artifacts. HTTP(S) evidence is not fetched by this checker. File existence does not verify content, freshness, authority or source completeness.
 
 Before classifying a technical choice as an owner wait, apply [supervisor technical decisions](../SKILL.md#supervisor-technical-decisions). Keep supervisor-owned preparation in the executable set.
+
+
+## Shared surfaces and CI lanes
+
+Reserve concrete hotspot files (registration, interceptors, schema snapshots), contracts and shared runtime/test resources. Separate worktrees do not remove logical conflicts. Plan one writer per overlapping surface or sequence its integration. Distinguish incidental branch ancestry from product prerequisites: an isolated reviewed slice may integrate independently while unrelated stacked work remains held; refresh exact-head proof after integration.
+
+Inspect the repository's actual CI concurrency group and cancellation settings. A repo-wide serial lane is a shared resource, not a reason to serialize independent code or review. A cancelled required run is incomplete, neither green nor proof of a code defect. Only re-request a policy-authorized current-head run when its lane is available; bound retries, preserve intentional cancellation and avoid mutual cancellation storms.
+
+For mechanical reservation checks, add `repository` and literal repository-relative `paths` to held write leases (directory prefixes end in `/`), plus exact shared `resources` identities. The checker rejects overlaps across different jobs. Legacy prose-only surfaces remain compatible but require manual conflict inspection; they are not mechanically proved disjoint.

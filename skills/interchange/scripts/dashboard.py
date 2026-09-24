@@ -557,6 +557,27 @@ def session_details(agent):
     return '<details><summary>Session &amp; handover</summary>' + rows + '</details>'
 
 
+def supervision_notice(record):
+    monitor = record.get('supervision')
+    if not isinstance(monitor, dict):
+        return ''
+    alerts = monitor.get('alerts', [])
+    if not isinstance(alerts, list):
+        return '<aside role="alert">Supervision record invalid</aside>'
+    rows = []
+    for alert in alerts[:100]:
+        if not isinstance(alert, dict):
+            continue
+        # Deliberately omit raw messages, paths, commands and worker output.
+        rows.append('<li>' + esc(str(alert.get('code', alert.get('type', 'attention')))[:100])
+                    + ' · ' + esc(str(alert.get('job', ''))[:100])
+                    + ' · owner: ' + esc(str(alert.get('next_owner', 'supervisor'))[:100]) + '</li>')
+    return ('<aside class="supervision" role="alert"><strong>Supervision attention</strong><p>Observed '
+            + esc(readable_time(monitor.get('updated_at'))) + '. Owner notification: '
+            + ('configured; delivery requires evidence' if monitor.get('notification_available') is True else 'not configured')
+            + '</p><ul>' + ''.join(rows) + '</ul></aside>') if rows else ''
+
+
 def render(root):
     records = [json.loads(p.read_text()) for p in sorted((root / 'coordinators').glob('*.json'))]
     cards = []
@@ -570,7 +591,7 @@ def render(root):
                      + '<div class="eyebrow">PROJECT</div><h2>' + esc(project.replace('-', ' ').title())
                      + '</h2><p class="muted">Coordinated by <strong>' + esc(coordinator['agent_id'])
                      + '</strong> · ' + esc(coordinator.get('client')) + '</p></div>' + link + '</header>'
-                     + board(record)
+                     + supervision_notice(record) + board(record)
                      + '<details class="coordination"><summary>Coordination and takeover</summary><p>'
                      + esc(record.get('scheduling')) + '</p><p><strong>Takeover:</strong> '
                      + esc((record.get('transfer') or {}).get('state', 'Not requested').replace('-', ' '))
@@ -585,7 +606,7 @@ def render(root):
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>Delivery Orchestrator · Project activity</title>
 <style>
 :root{--ink:#202c38;--muted:#62707b;--line:#dce1e4;--paper:#f8f9fa;--accent:#245e5a}
-*{box-sizing:border-box}body{font:14px/1.45 system-ui;margin:0;background:var(--paper);color:var(--ink)}
+.supervision{margin:12px;padding:12px;border:2px solid #b42318;background:#fff1f0;color:#7a271a}\n*{box-sizing:border-box}body{font:14px/1.45 system-ui;margin:0;background:var(--paper);color:var(--ink)}
 .top{border-bottom:1px solid var(--line);padding:10px 20px;display:flex;justify-content:space-between;align-items:center}.brand{font-weight:750;letter-spacing:-.5px;font-size:17px}.top span{font-size:12px;color:var(--muted)}
 main{max-width:1400px;margin:auto;padding:12px 20px}h1{font-size:19px;letter-spacing:-.3px;margin:0}h2{font-size:19px;letter-spacing:-.3px;margin:2px 0}h3{font-size:14px;margin:0 0 10px}h4{font-size:13px;margin:24px 0 4px}p{margin:5px 0 8px}.muted,footer{color:var(--muted);font-size:12px}
 .toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}.toolbar p{display:none}select,.button,button{font:inherit;border:1px solid var(--line);border-radius:6px;padding:6px 10px;background:transparent;color:var(--ink)}a{color:var(--accent);overflow-wrap:anywhere}.button{text-decoration:none;font-size:12px;white-space:nowrap}.button:hover,button:hover{background:#edf2f1}button{cursor:pointer}select:focus-visible,a:focus-visible,summary:focus-visible,button:focus-visible{outline:3px solid #71a7a1;outline-offset:3px}

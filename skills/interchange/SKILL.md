@@ -7,6 +7,8 @@ description: Execute authorized assignments through Codex, Claude Code or extern
 
 Execute an authorized assignment supplied by a human or coordinator and return correlated evidence. This skill works independently of any planning skill. It does not decide product scope, priority, review allocation or acceptance. Repository permissions and the supplied authority remain binding.
 
+For an authorized automatic return-to-PR/review pipeline, supervisor takeover or lost-transition recovery, apply [supervised pipeline and ownership](references/supervised-pipeline.md). Execution remains bounded by the supplied contract; no coordinator quality-review turn is required before an independently assigned reviewer starts.
+
 ## Execute and return
 
 1. Read the supplied semantic assignment and its authority, revision, owned surface, acceptance and holds. Missing or contradictory scope returns to its owner; do not invent a plan.
