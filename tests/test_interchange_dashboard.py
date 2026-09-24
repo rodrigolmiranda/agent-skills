@@ -385,6 +385,25 @@ class DashboardTests(unittest.TestCase):
         self.assertIn('Implement local view adapter', card)
         self.assertNotIn('No current action supplied', card)
 
+    def test_later_horizons_remain_discoverable_without_entering_next(self):
+        record = {'project_id': 'scope', 'coordinator': {'agent_id': 'planner'},
+                  'workflow_steps': [], 'later_scope': {
+                      'source_url': 'https://example.test/project/15',
+                      'checked_at': '2026-09-24T13:00:00Z',
+                      'items': [{'horizon': 'Roadmap', 'status': 'Backlog', 'title': 'Future slice',
+                                 'url': 'https://example.test/issues/99'},
+                                {'horizon': 'H3', 'status': 'Done', 'title': '<script>bad</script>',
+                                 'url': 'javascript:alert(1)'}]}}
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            subprocess.run(['git', 'init', '-q', str(repo)], check=True)
+            page = dashboard.publish(repo, record).read_text()
+        self.assertIn('Later horizons (2 Project items)', page)
+        self.assertIn('href="https://example.test/issues/99"', page)
+        self.assertIn('&lt;script&gt;bad&lt;/script&gt;', page)
+        self.assertNotIn('href="javascript:alert(1)"', page)
+        self.assertIn('Next <span class="count">0</span>', page)
+
     def test_long_board_columns_are_bounded_and_keep_keyboard_focus_visible(self):
         steps = [{'id': f'done-{number:02d}', 'order': number,
                   'title': f'Done activity {number:02d}', 'state': 'done',

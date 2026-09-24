@@ -619,6 +619,38 @@ def approved_scope(record):
             + '<div class="scope-grid">' + ''.join(sections) + '</div></details>')
 
 
+def later_scope(record):
+    """Keep out-of-horizon Project items discoverable without putting them in Next."""
+    scope = record.get('later_scope')
+    if not isinstance(scope, dict) or not isinstance(scope.get('items'), list):
+        return ''
+    groups = {}
+    for item in scope['items'][:500]:
+        if not isinstance(item, dict):
+            continue
+        horizon = str(item.get('horizon') or 'Other')[:32]
+        title = str(item.get('title') or item.get('id') or 'Untitled item')[:160]
+        status = str(item.get('status') or 'Unknown')[:40]
+        groups.setdefault(horizon, []).append('<li>' + safe_link(item.get('url'), title)
+                                               + '<small>' + esc(status) + '</small></li>')
+    count = sum(map(len, groups.values()))
+    if not count:
+        return ''
+    sections = []
+    for horizon in ('Roadmap', 'H3', 'H5') + tuple(sorted(set(groups) - {'Roadmap', 'H3', 'H5'})):
+        items = groups.get(horizon, [])
+        if items:
+            sections.append('<section class="scope-front"><h4>' + esc(horizon)
+                            + ' <span class="count">' + str(len(items)) + '</span></h4><ul>'
+                            + ''.join(items) + '</ul></section>')
+    return ('<details class="approved-scope later-scope"><summary>Later horizons (' + str(count)
+            + ' Project items) · outside the current execution queue</summary>'
+            + '<p>Source: ' + safe_link(scope.get('source_url'), 'GitHub project')
+            + ' · Checked ' + esc(readable_time(scope.get('checked_at')))
+            + '. These Roadmap/H3/H5 items remain linked here; they do not enter Next until promoted and assessed.</p>'
+            + '<div class="scope-grid">' + ''.join(sections) + '</div></details>')
+
+
 def session_details(agent):
     access = agent.get('session_access') or {}
     rows = '<p class="muted">Session ' + esc(agent.get('session_id')) + '</p>'
@@ -666,7 +698,7 @@ def render(root):
                      + '<div class="eyebrow">PROJECT</div><h2>' + esc(project.replace('-', ' ').title())
                      + '</h2><p class="muted">Coordinated by <strong>' + esc(coordinator['agent_id'])
                      + '</strong> · ' + esc(coordinator.get('client')) + '</p></div>' + link + '</header>'
-                     + supervision_notice(record) + approved_scope(record) + board(record)
+                     + supervision_notice(record) + approved_scope(record) + later_scope(record) + board(record)
                      + '<details class="coordination"><summary>Coordination and takeover</summary><p>'
                      + esc(record.get('scheduling')) + '</p><p><strong>Takeover:</strong> '
                      + esc((record.get('transfer') or {}).get('state', 'Not requested').replace('-', ' '))
