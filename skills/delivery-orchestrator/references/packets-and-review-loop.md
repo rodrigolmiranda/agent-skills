@@ -73,13 +73,6 @@ Evidence (owner decision 2026-09-24, cheap first):
 
 ## Event-driven coordinators
 
-A coordinator woken by harness notifications (Claude Code background tasks and monitors) gets many wakes that carry no
-decision: a single CI step passing, a monitor line. Those wakes are not "unchanged checks" for repeated-wait recovery.
-Count only coordinator-scheduled or idle reassessments. A material return, verdict, merge or unblock still triggers a
-ready-set reassessment even though it isn't counted as an unchanged check.
-
-Update the one evidence-backed receipt at material events, changing only the facts that changed. Before giving up
-control with no further immediate action, run a **cheap pre-idle check**: executable coordinator work is done or
-recorded, and the next wake is verified. Don't create new evidence documents for it, and don't rewrite the receipt for
-routine progress notifications. This applies to both clients: a Codex turn can also yield for hours without its
-session ending.
+Wake counting, the material-event checkpoint and the cheap pre-idle check are defined in
+[scheduling](scheduling.md#progress-checkpoint-and-repeated-waits); they apply unchanged to coordinators woken by
+harness notifications.
