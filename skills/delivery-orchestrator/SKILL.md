@@ -46,7 +46,7 @@ When the owner enables coordinator acceptance/merge for a session, or an eligibl
 
 Use [the semantic assignment](templates/assignment.md) for what the worker must build; bind it to Interchange’s execution envelope rather than duplicating required fields.
 
-For execution, proportional validation, correction and turn-exit decisions, read [execution checkpoints](references/execution-checkpoints.md). For decision authority, risk-surface routing, what a packet must carry, and the independent review/fix loop, read [packets and the review loop](references/packets-and-review-loop.md).
+For execution, proportional validation, correction and turn-exit decisions, apply [execution checkpoints](references/execution-checkpoints.md), including immediate assignment of missing review/test/acceptance work and board-state reconciliation. For decision authority, risk-surface routing, what a packet must carry, and the independent review/fix loop, read [packets and the review loop](references/packets-and-review-loop.md).
 
 ## Resume and change
 
