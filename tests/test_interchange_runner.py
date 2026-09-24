@@ -109,6 +109,31 @@ class RunnerTests(unittest.TestCase):
         self.assertFalse(result['result']['worker_result_verified'])
         self.assertFalse(result['result']['accepted'])
 
+    def test_worker_stdin_is_closed(self):
+        result=self.execute('import sys;print(repr(sys.stdin.read()))')
+        self.assertEqual(result['result']['exit_code'],0)
+        self.assertIn("''",(self.root/'run/stdout.log').read_text())
+
+    def test_env_map_reaches_the_worker_and_refuses_secret_names(self):
+        result=self.execute('import os;print(os.environ["WORKER_CONFIG"])',env={'WORKER_CONFIG':'{"a":1}'})
+        self.assertEqual(result['result']['exit_code'],0)
+        self.assertIn('{"a":1}',(self.root/'run/stdout.log').read_text())
+        for bad in ({'GH_TOKEN':'x'},{'lower':'x'},{'OK_NAME':1}):
+            with self.assertRaises(ValueError):
+                run_job._manifest_env({'env':bad})
+
+    def test_final_artifact_source_inside_cwd_is_collected_and_proven(self):
+        (self.root/'wt').mkdir()
+        code='open(".interchange-final.md","w").write("DONE")'
+        result=self.execute(code,cwd=str(self.root/'wt'),final_artifact_source='.interchange-final.md')
+        proof=result['result']['final_artifact']
+        self.assertTrue(proof['validated'])
+        self.assertEqual((self.root/'run/final.md').read_text(),'DONE')
+
+    def test_final_artifact_source_cannot_leave_cwd(self):
+        (self.root/'wt').mkdir()
+        with self.assertRaises(ValueError):
+            run_job._final_artifact_source({'final_artifact_source':'../outside.md'},(self.root/'wt').resolve())
     def test_error_exit_is_preserved(self):
         result=self.execute('raise SystemExit(7)')
         self.assertEqual(result['result']['exit_code'],7)

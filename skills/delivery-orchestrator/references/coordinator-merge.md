@@ -12,4 +12,18 @@ Optional session mode, off by default. At session start or later, the owner may 
 6. Merge through the supported GitHub path, binding the request to the reviewed SHA. If a required human-review gate remains, bypass only that review requirement when repository authority explicitly permits it and the available mechanism cannot bypass pending/failed checks or other holds. This mode does not create bypass credentials or authorize changing branch protection. If no compliant path exists, record the exact gate and await the authorized reviewer.
 7. Verify the merge result and record PR URL, reviewed SHA and merge commit. Reconcile GitHub issue/project status and the delivery board; close only issues whose complete acceptance is satisfied. Re-run scheduling for work unblocked by the merge.
 
+## Serial merge lanes
+
+When the base branch requires up-to-date heads and CI runs one job at a time:
+- each merge puts every other ready PR behind, so it needs a rebase and a fresh CI run (~20 min each here);
+- plan the merge order (smallest or least conflicting first), rebase the next PR as soon as a merge lands, and cancel
+  CI runs for heads a fix round is about to replace;
+- count CI-lane minutes as capacity alongside writer slots.
+
+Before merging:
+- read the check runs of the exact head commit (not the PR's latest-looking list after a push), and bind the merge to
+  that commit;
+- re-run a failed check only after showing locally that the failure is unrelated and flaky, and record it as a
+  follow-up.
+
 Without this option, follow the repository's normal acceptance and merge authority. The option changes who may complete an eligible merge; it does not lower proof requirements or authorize publication, deployment, release tags, destructive operations or a held target branch.

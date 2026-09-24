@@ -34,10 +34,13 @@ Read in order before dependent work. Use task-supplied links or paths; include t
 - Assigned worktree/branch and resume instructions: <location, preserve/reuse steps>
 - Owned paths; read-only dependencies; shared/generated paths: <explicit map>
 - Resources/credentials/data allowed: <named resources and limits; never include secrets>
+- Environment already set by the launcher: <variable names only; "don't override">
+- Consumer facts this change depends on: <how the component is mounted, routes, registrations, timeouts; or staged files>
 
 ## Validation and delivery decisions
 
-- Required checks and review/UX/journey checkpoints: <selected proportionately for this assignment>
+- Required checks and review/UX/journey checkpoints: <selected proportionately; the full repository gate set derived from CI and repository instructions, not only a local script>
+- Working rules: pipe build/test output through tail or grep; commit at checkpoints; decide small implementation questions and record them; stop only for a product-behaviour change
 - Stop/escalation conditions and allowed variance: <explicit boundaries>
 - Expected artifact and PR base/readiness/merge authority: <exact contract>
 - Execution: bind this semantic revision to Interchange's execution envelope; do not duplicate it there.
