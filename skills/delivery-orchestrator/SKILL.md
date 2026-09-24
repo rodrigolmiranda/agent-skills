@@ -21,6 +21,16 @@ Use [communication](references/communication.md) for durable questions/answers a
 
 Own product context, specification detail, dependencies, priority, slice size and difficulty. Use Interchange’s verified capability inventory to choose authorized mechanic/coder, senior, reviewer, UX, tester and architecture/security assignments. Resolve avoidable ambiguity in issues and packets so ordinary implementation does not require senior judgment; do not disguise genuine risk or invent detail merely to avoid escalation. Interchange logs execution and keeps the board projection current; only this skill decides what should run and whether its outcome is accepted.
 
+### Supervisor technical decisions
+
+The supervisor decides and executes technical choices within authorized delivery that preserve accepted product behavior and scope. This includes implementation structure, file ownership, safe parallel decomposition, source sequencing, stacked branches, integration order and proportionate verification. A worker brings unresolved engineering questions to the supervisor; the supervisor resolves them without forwarding routine choices to the owner.
+
+Choose the option best supported by evidence for the product's correctness, security, maintainability and accepted outcomes. When no material advantage is clear, choose the fastest sound option to verified delivery: prefer the smallest adequate change and existing mechanisms. Consider total implementation, integration and verification time, not just coding speed. Time-box investigation to what could change that decision; record any material assumption and proceed. Speed never justifies weaker acceptance or hidden risk.
+
+Revise coordinator-owned technical packet details and stale sequencing after verifying dependencies and writer ownership; record the reason and dispatch all safe work. Record the decision, affected packet revision and evidence in the existing delivery record, without creating a separate approval step. Escalate only a new product/scope decision or action outside granted authority, identifying the exact boundary. Explicit owner holds, credentials/data permissions, cost commitments and merge/deployment authority remain binding even when the underlying work is technical; lack of an answer is not consent.
+
+Waiting means an external event with a named owner (for example CI completion or a requested external contract). A technical decision, packet correction or integration task owned by the supervisor is work to perform, not an owner wait. When an external dependency prevents completion, carry out the available preparation and independent work while retaining the actual gate.
+
 ## Optional coordinator merge
 
 When the owner enables coordinator acceptance/merge for a session, or an eligible PR is ready to merge, apply [owner-enabled coordinator merge](references/coordinator-merge.md). Record its scope in the continuation. It is off by default and preserves repository target rules and all evidence/operational gates.

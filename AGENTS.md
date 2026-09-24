@@ -9,3 +9,5 @@ Target `test`. Only designated leads and delivery manager may merge, after indep
 Shared portfolio authority is MarvinaMiranda, resolved through local configuration. Do not hardcode another user's checkout path or assume uncommitted central rules exist in a fresh clone.
 
 For delivery scheduling and repeated waits, use the installed `delivery-orchestrator` scheduling/progress checkpoint before yielding; this applies equally to Codex and Claude. Workflow rules live in that skill, not this router.
+
+For technical decisions and escalation boundaries, Codex and Claude follow `skills/delivery-orchestrator/SKILL.md#supervisor-technical-decisions`; resolve them before recording an owner wait.
