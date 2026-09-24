@@ -16,6 +16,16 @@ Record dispatch, actual startup, questions, answers, model/route changes, exits,
 
 Publish those execution facts into the board supplied by the coordinator after each material event. Update attempt and activity records together: a completed reviewer cannot remain Working because an old attempt says running. Do not turn process exit into accepted delivery, calculate quality scores, infer readiness or overwrite the orchestrator's plan/priority/blocker disposition. An unresolved mismatch is visible as stale/unreconciled, with an owner; never silently present it as live truth. Board publishing failure is an operational error to repair or report, not a reason to stop unrelated product work.
 
+For dashboard snapshots, an activity may explicitly record `last_progress_summary` and
+`last_progress_at`, `next_event` and `next_owner`, and `follow_up_due_at`.
+Waiting age is derived only from `waiting_since` and the snapshot's supplied
+`updated_at`; the renderer never consults the current clock. Missing, invalid,
+offsetless or future timestamps remain `Not recorded`, and a follow-up is marked
+overdue only when its supplied due time is at or before that snapshot. A
+`completion_scope: step` card can be Done at slice scope; when the snapshot
+explicitly says the parent is `OPEN`, the card says that the parent remains
+open. The issue, parent and PR/evidence links remain visible.
+
 ## Communication recovery
 
 Diagnose missing startup, duplicate/late callbacks, bad correlation, stale session handles and failed delivery within the existing exchange authority. Safe idempotent notification retries may reuse the event identity. Reconcile uncertain process/write state before any relaunch; never duplicate a writer or replay product mutations to repair messaging. A new executor, changed provider/effort, scope, privilege or material deadline needs orchestrator disposition and any required owner authority.

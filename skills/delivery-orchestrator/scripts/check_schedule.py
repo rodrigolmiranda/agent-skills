@@ -11,7 +11,7 @@ from datetime import datetime
 import json
 from pathlib import Path
 import sys
-from urllib.parse import urlparse
+from urllib.parse import urlparse, unquote
 
 
 DISPOSITIONS = {
@@ -52,7 +52,147 @@ def evidence_pointer(value):
     return '/' in text or '#' in text
 
 
-def validate_schedule(receipt):
+def validate_local_evidence(receipt, artifact_root):
+    """Resolve local evidence without fetching remote sources or reading contents."""
+    errors = []
+    root = Path(artifact_root).resolve() if artifact_root is not None else None
+    def check(value, field):
+        if not evidence_pointer(value):
+            return  # Structural validators report malformed required pointers.
+        parsed = urlparse(value)
+        if parsed.scheme in ('http', 'https'):
+            return
+        if root is None:
+            errors.append(f'{field}: local evidence requires artifact_root')
+            return
+        if parsed.scheme == 'artifact':
+            path = root / unquote(parsed.netloc + parsed.path)
+        elif parsed.scheme == 'file':
+            if parsed.netloc not in ('', 'localhost'):
+                errors.append(f'{field}: remote file authority is not local evidence')
+                return
+            path = Path(unquote(parsed.path))
+        elif not parsed.scheme:
+            path = root / unquote(parsed.path)
+        else:
+            errors.append(f'{field}: unsupported evidence scheme')
+            return
+        try:
+            resolved = path.resolve()
+            if parsed.scheme == 'artifact' and not resolved.is_relative_to(root):
+                errors.append(f'{field}: artifact path escapes declared root')
+            elif not resolved.is_file():
+                errors.append(f'{field}: local evidence file does not exist: {path}')
+        except (OSError, ValueError, RuntimeError):
+            errors.append(f'{field}: invalid local evidence path')
+    checkpoint = receipt.get('checkpoint')
+    if isinstance(checkpoint, dict):
+        for field in ('assessment_evidence', 'last_progress_evidence', 'source_query', 'hierarchy_evidence'):
+            check(checkpoint.get(field), 'checkpoint.' + field)
+        recovery = checkpoint.get('recovery')
+        if isinstance(recovery, dict):
+            for field in ('blocker_recheck', 'authorized_alternatives', 'independent_work'):
+                check(recovery.get(field), 'checkpoint.recovery.' + field)
+    for collection in ('items', 'write_leases'):
+        rows = receipt.get(collection)
+        if isinstance(rows, list):
+            for index, row in enumerate(rows):
+                if isinstance(row, dict):
+                    for field in ('evidence', 'supervised_wait'):
+                        check(row.get(field), f'{collection}[{index}].{field}')
+    if receipt.get('source_kind', 'github') == 'files':
+        check(receipt.get('scope_url'), 'scope_url')
+    return errors
+
+
+def timestamp(value):
+    try:
+        result = datetime.fromisoformat(value.replace('Z', '+00:00'))
+        return result if result.tzinfo else None
+    except (ValueError, TypeError, AttributeError):
+        return None
+
+
+def validate_progress(receipt, before_yield=False):
+    """Require an auditable checkpoint; facts still need independent verification."""
+    errors = []
+    checkpoint = receipt.get('checkpoint')
+    if not isinstance(checkpoint, dict):
+        return ['checkpoint is required; an unchanged inventory is not a progress assessment']
+    checked = timestamp(receipt.get('checked_at'))
+    for field in ('trigger', 'next_owner', 'next_event'):
+        if not nonempty_text(checkpoint.get(field)):
+            errors.append(f'checkpoint.{field} is required')
+    if not evidence_pointer(checkpoint.get('assessment_evidence')):
+        errors.append('checkpoint.assessment_evidence must link the current full-scope assessment')
+    progress = timestamp(checkpoint.get('last_progress_at'))
+    if progress is None or (checked and progress > checked):
+        errors.append('checkpoint.last_progress_at must be a timestamp no later than checked_at')
+    if not evidence_pointer(checkpoint.get('last_progress_evidence')):
+        errors.append('checkpoint.last_progress_evidence is required; polling is not progress')
+    for field in ('source_query', 'hierarchy_evidence'):
+        if not evidence_pointer(checkpoint.get(field)):
+            errors.append(f'checkpoint.{field} must link the complete adopted backlog inventory')
+    retrieved = timestamp(checkpoint.get('source_retrieved_at'))
+    if retrieved is None or (checked and retrieved > checked):
+        errors.append('checkpoint.source_retrieved_at must be a timestamp no later than checked_at')
+    count = checkpoint.get('unchanged_checks')
+    if type(count) is not int or count < 0:
+        errors.append('checkpoint.unchanged_checks must be a non-negative integer')
+    elif count >= 2:
+        recovery = checkpoint.get('recovery')
+        if not isinstance(recovery, dict):
+            errors.append('checkpoint.recovery is required after two unchanged checks')
+        else:
+            for field in ('blocker_recheck', 'authorized_alternatives', 'independent_work'):
+                if not evidence_pointer(recovery.get(field)):
+                    errors.append(f'checkpoint.recovery.{field} requires evidence')
+            due = timestamp(recovery.get('next_check_at'))
+            if due is None or (checked and due <= checked):
+                errors.append('checkpoint.recovery.next_check_at must be after checked_at')
+    leases = receipt.get('write_leases')
+    if not isinstance(leases, list):
+        errors.append('write_leases must list current reservations, including an empty list')
+        leases = []
+    lease_ids = set()
+    for lease in leases:
+        if not isinstance(lease, dict):
+            errors.append('write lease must be an object')
+            continue
+        lease_id = lease.get('id')
+        if not nonempty_text(lease_id) or lease_id in lease_ids:
+            errors.append('write lease IDs must be non-empty and unique')
+        else:
+            lease_ids.add(lease_id)
+        for field in ('owner', 'job', 'surface'):
+            if not nonempty_text(lease.get(field)):
+                errors.append(f'write lease {field} is required')
+        if not evidence_pointer(lease.get('evidence')):
+            errors.append('write lease evidence is required')
+        if lease.get('state') == 'held':
+            if lease.get('writer_state') not in ('running', 'startup', 'unknown'):
+                errors.append('stopped writer cannot retain a held write lease; reconcile and release')
+            due = timestamp(lease.get('recheck_at'))
+            if due is None or (checked and due <= checked):
+                errors.append('held write lease is overdue or lacks recheck_at; verify ownership, never auto-release')
+        elif lease.get('state') != 'released':
+            errors.append('write lease state must be held or released')
+    held_ids = {x.get('id') for x in leases if isinstance(x, dict) and x.get('state') == 'held' and nonempty_text(x.get('id'))}
+    for item in receipt.get('items', []) if isinstance(receipt.get('items'), list) else []:
+        if not isinstance(item, dict):
+            continue
+        if item.get('disposition') == 'conflict-blocked':
+            if not nonempty_text(item.get('conflict_surface')):
+                errors.append('conflict-blocked item requires the concrete file/contract/runtime conflict_surface')
+            if item.get('write_lease') is not None and (not nonempty_text(item.get('write_lease')) or item.get('write_lease') not in held_ids):
+                errors.append('conflict references a released or absent write lease')
+        if item.get('disposition') == 'coordinator-action' and (before_yield or checkpoint.get('trigger') == 'yield'):
+            if not evidence_pointer(item.get('supervised_wait')):
+                errors.append('yield leaves an executable coordinator-action without supervised wait evidence')
+    return errors
+
+
+def validate_schedule(receipt, before_yield=False, artifact_root=None):
     """Return consistency errors for one scheduling receipt."""
     errors = []
     if not isinstance(receipt, dict):
@@ -63,8 +203,15 @@ def validate_schedule(receipt):
         parsed_scope = urlparse(scope_url) if nonempty_text(scope_url) else None
     except ValueError:
         parsed_scope = None
-    if parsed_scope is None or parsed_scope.scheme not in {'http', 'https'} or not parsed_scope.netloc:
-        errors.append('scope_url must be an absolute HTTP(S) link to the approved source scope')
+    source_kind = receipt.get('source_kind', 'github')
+    if source_kind == 'github':
+        if parsed_scope is None or parsed_scope.scheme not in {'http', 'https'} or not parsed_scope.netloc:
+            errors.append('scope_url must be an absolute HTTP(S) link to the approved source scope')
+    elif source_kind == 'files':
+        if not evidence_pointer(scope_url) or parsed_scope is None or parsed_scope.scheme not in ('', 'file', 'artifact'):
+            errors.append('file backlog scope_url must identify a local inventory file')
+    else:
+        errors.append('source_kind must be github or files')
 
     checked_at = receipt.get('checked_at')
     try:
@@ -154,12 +301,16 @@ def validate_schedule(receipt):
                 f'{prefix} is ready but idle; use active/dispatched or an evidence-backed '
                 'conflict-blocked, capacity-blocked, or authority-held exclusion')
 
+    errors.extend(validate_progress(receipt, before_yield=before_yield))
+    errors.extend(validate_local_evidence(receipt, artifact_root))
     return errors
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('receipt', help='path to a scheduling receipt JSON file')
+    parser.add_argument('--before-yield', action='store_true', help='enforce turn-exit readiness independently of event trigger')
+    parser.add_argument('--artifact-root', help='local artifact root; defaults to receipt directory')
     args = parser.parse_args(argv)
     try:
         receipt = json.loads(Path(args.receipt).read_text(encoding='utf-8'))
@@ -167,7 +318,8 @@ def main(argv=None):
         print(f'invalid schedule receipt: {error}', file=sys.stderr)
         return 2
 
-    errors = validate_schedule(receipt)
+    errors = validate_schedule(receipt, before_yield=args.before_yield,
+                               artifact_root=args.artifact_root or Path(args.receipt).resolve().parent)
     if errors:
         print('invalid schedule receipt:')
         for error in errors:

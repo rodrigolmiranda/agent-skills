@@ -49,6 +49,91 @@ def readable_time(value):
         return 'Unknown'
 
 
+def recorded_time(value):
+    return readable_time(value) if parse_snapshot_time(value) is not None else 'Not recorded'
+
+
+def parse_snapshot_time(value):
+    """Parse a supplied snapshot timestamp without consulting the wall clock."""
+    try:
+        parsed = datetime.fromisoformat(value.replace('Z', '+00:00'))
+        # Relative age is only truthful when both ends carry an offset.  Do
+        # not compare an offsetless historical value with an aware snapshot.
+        if parsed.tzinfo is None:
+            return None
+        return parsed.astimezone(timezone.utc)
+    except (TypeError, ValueError, AttributeError):
+        return None
+
+
+def explicit_value(sources, names):
+    """Return the first supplied value, preserving explicit false/zero values."""
+    for source in sources:
+        if not isinstance(source, dict):
+            continue
+        for name in names:
+            value = source.get(name)
+            if value is not None and value != '':
+                return value
+    return None
+
+
+def progress_details(item, attempt):
+    sources = [item, attempt]
+    progress = explicit_value(sources, ('last_progress_summary',))
+    progress_at = explicit_value(sources, ('last_progress_at',))
+    return progress, progress_at
+
+
+def next_event_details(item, attempt):
+    sources = [item, attempt]
+    event = explicit_value(sources, ('next_event',))
+    owner = explicit_value(sources, ('next_owner',))
+    if owner is None and state_key(item.get('state')) == 'waiting':
+        owner = explicit_value(sources, ('waiting_owner',))
+    return event, owner
+
+
+def follow_up_details(item, attempt):
+    return explicit_value([item, attempt], ('follow_up_due_at',))
+
+
+def waiting_duration(item, attempt, snapshot_at=None):
+    waiting_since = explicit_value([item, attempt], ('waiting_since',))
+    observed = parse_snapshot_time(snapshot_at)
+    started = parse_snapshot_time(waiting_since)
+    if started is None or observed is None:
+        return 'Not recorded'
+    # A future timestamp is evidence of an inconsistent snapshot, not a
+    # negative duration we should present as elapsed waiting time.
+    if started > observed:
+        return 'Not recorded (waiting timestamp is after snapshot)'
+    seconds = int((observed - started).total_seconds())
+    days, remainder = divmod(seconds, 86400)
+    hours, remainder = divmod(remainder, 3600)
+    minutes, _ = divmod(remainder, 60)
+    parts = []
+    if days:
+        parts.append(str(days) + 'd')
+    if hours or days:
+        parts.append(str(hours) + 'h')
+    parts.append(str(minutes) + 'm')
+    return ' '.join(parts)
+
+
+def follow_up_label(item, attempt, snapshot=None):
+    due_at = follow_up_details(item, attempt)
+    if due_at is None:
+        return None
+    observed = parse_snapshot_time(snapshot.get('updated_at') if isinstance(snapshot, dict) else None)
+    due = parse_snapshot_time(due_at)
+    if observed is None or due is None:
+        return 'Follow-up status not recorded'
+    if due <= observed:
+        return 'Overdue follow-up'
+    return 'Follow-up due ' + readable_time(due_at)
+
+
 def status_label(value):
     if value is None or value == '':
         return 'Unknown'
@@ -151,7 +236,7 @@ def status_class(value):
     state = state_key(value)
     if state in {'running', 'in_progress', 'working', 'started', 'completed', 'complete', 'done', 'succeeded'}:
         return 'status-good'
-    if state in {'blocked', 'waiting', 'needs_attention', 'failed', 'error'}:
+    if state in {'blocked', 'waiting', 'needs_attention', 'failed', 'error', 'overdue_follow_up'}:
         return 'status-attention'
     if state in {'stopped', 'rejected', 'canceled', 'cancelled', 'provider_quota', 'quota_exhausted', 'model_rejected'}:
         return 'status-terminal'
@@ -201,8 +286,10 @@ def activity_column(item, attempts):
         return 'working'
     if state in blocked:
         return 'blocked'
+    # A completed slice is a completed delivery at its declared scope.  The
+    # parent issue remains open, which is rendered on the card separately.
     if item.get('completion_scope') == 'step' and state in completed:
-        return 'review'
+        return 'done'
     if outcome in completed:
         return 'done'
     if state in completed:
@@ -294,7 +381,7 @@ def attempt_groups(record, steps):
     return list(zip(steps, attached)), unmatched
 
 
-def task_card(item, attempts):
+def task_card(item, attempts, snapshot=None):
     current = latest_attempt(attempts)
     column = activity_column(item, attempts)
     title = item.get('title') or (current.get('task') if current else None) or 'Untitled activity'
@@ -307,6 +394,10 @@ def task_card(item, attempts):
     outcome = current.get('outcome') if current else None
     action = item.get('next_action') or (current.get('current_action') or current.get('next_action') if current else None)
     blocker = item.get('blocker') or (current.get('blocker') if current else None)
+    progress, progress_at = progress_details(item, current)
+    next_event, next_owner = next_event_details(item, current)
+    follow_up = follow_up_label(item, current, snapshot)
+    snapshot_at = snapshot.get('updated_at') if isinstance(snapshot, dict) else None
     readiness = item.get('readiness')
     if readiness is None:
         readiness_label = 'Not supplied'
@@ -337,7 +428,11 @@ def task_card(item, attempts):
         parallel_label = 'Yes' if parallel else 'No'
     logical_status = {'working': 'Working now', 'blocked': 'Blocked', 'next': 'Next', 'waiting': 'Waiting', 'review': 'Review', 'done': 'Done'}[column]
     if column == 'done' and item.get('completion_scope') == 'step':
-        logical_status = 'Step done · issue ' + str(item.get('github_issue_state', 'not verified')).lower()
+        parent_state = state_key(item.get('github_issue_state'))
+        logical_status = {
+            'open': 'Step done · parent remains open',
+            'closed': 'Step done · parent already closed',
+        }.get(parent_state, 'Step done · slice scope')
     if column == 'blocked':
         summary_detail = blocker or (status_label(outcome) if outcome else 'Needs attention')
     else:
@@ -345,13 +440,15 @@ def task_card(item, attempts):
     show_models = column in {'working', 'done'}
     model_badge = ('<span class="summary-model-badge">' + esc(summary_model_badge(current))
                    + '</span>') if show_models else ''
+    follow_up_badge = ('<span class="summary-follow-up status-attention">' + esc(follow_up)
+                       + '</span>') if follow_up == 'Overdue follow-up' else ''
     attempts_block = ('<details class="attempt-history"><summary>Attempts and retries ('
                       + str(len(attempts)) + ')</summary>'
                       + (''.join(task_attempt_card(attempt) for attempt in sorted(attempts, key=recency_key, reverse=True))
                          or '<p class="empty">No attempts recorded.</p>') + '</details>')
     content = ('<details class="task-card"><summary class="task-summary">'
                + '<span class="summary-top-row"><span class="summary-title">' + esc(title) + '</span>'
-               + model_badge + '</span>'
+               + model_badge + follow_up_badge + '</span>'
                + '<span class="summary-meta"><span class="summary-owner">' + esc(summary_owner)
                + '</span><span aria-hidden="true">·</span><span class="summary-status '
                + status_class(column) + '">' + esc(logical_status) + '</span></span>'
@@ -366,10 +463,27 @@ def task_card(item, attempts):
                + '<p><strong>Owner:</strong> ' + esc(owner_label) + '</p>'
                + '<p><strong>Requested model / effort:</strong> ' + requested + '</p>'
                + '<p><strong>Observed model / effort:</strong> ' + observed + '</p>'
-               + '<p><strong>Current action:</strong> ' + esc(action) + '</p>')
+               + '<p><strong>Current action:</strong> ' + esc(action) + '</p>'
+               + '<p><strong>Last meaningful progress:</strong> ' + esc(progress or 'Not recorded')
+               + ' · <strong>At:</strong> ' + esc(recorded_time(progress_at))
+               + '</p>'
+               + '<p><strong>Next event:</strong> ' + esc(next_event or 'Not recorded')
+               + ' · <strong>Next owner:</strong> ' + esc(next_owner or 'Not recorded') + '</p>')
     if column == 'waiting':
-        for field in ('waiting_for', 'waiting_owner', 'waiting_since', 'next_event'):
-            content += '<p><strong>' + esc(field.replace('_', ' ').title()) + ':</strong> ' + esc(item.get(field) or 'Not supplied') + '</p>'
+        content += '<p><strong>Waiting for:</strong> ' + esc(item.get('waiting_for') or 'Not supplied') + '</p>'
+        content += '<p><strong>Waiting owner:</strong> ' + esc(item.get('waiting_owner') or 'Not supplied') + '</p>'
+        waiting_since = item.get('waiting_since')
+        content += '<p><strong>Waiting since:</strong> ' + esc(recorded_time(waiting_since)) + '</p>'
+        content += '<p><strong>Waiting duration:</strong> ' + esc(waiting_duration(item, current, snapshot_at)) + '</p>'
+    if follow_up:
+        content += '<p><strong>Follow-up:</strong> <span class="status-text ' + status_class(follow_up) + '">' + esc(follow_up) + '</span></p>'
+    if item.get('completion_scope') == 'step' and column == 'done':
+        parent_state = state_key(item.get('github_issue_state'))
+        parent_note = {
+            'open': 'Parent remains open (snapshot says OPEN).',
+            'closed': 'Parent is already closed (snapshot says CLOSED).',
+        }.get(parent_state, 'Parent state not recorded.')
+        content += '<p><strong>Completion scope:</strong> Step slice complete; ' + esc(parent_note) + '</p>'
     if item.get('review_history'):
         content += snapshot_details('Completed checks (not delivery acceptance)', item['review_history'])
     if item.get('manual_observation'):
@@ -398,7 +512,7 @@ def board(record):
     activities, unmatched = attempt_groups(record, steps)
     columns = {'working': [], 'blocked': [], 'next': [], 'waiting': [], 'review': [], 'done': []}
     for position, (item, attempts) in enumerate(activities):
-        content, column = task_card(item, attempts)
+        content, column = task_card(item, attempts, record)
         date = max((recency_key(attempt)[0] for attempt in attempts), default=float('-inf'))
         columns[column].append((content, position, date))
     columns['next'].sort(key=lambda entry: entry[1])

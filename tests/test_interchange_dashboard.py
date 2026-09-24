@@ -359,13 +359,16 @@ class DoneSourceGateTests(unittest.TestCase):
         dashboard.validate_done_sources(record)
 
 class CompletionScopeTests(unittest.TestCase):
-    def test_review_completion_does_not_close_issue(self):
+    def test_step_completion_does_not_close_issue(self):
         step = {'id': 'review', 'state': 'done', 'issue_url': 'https://github.com/o/r/issues/54'}
         with self.assertRaisesRegex(ValueError, 'declare step or issue'):
             dashboard.validate_done_sources({'workflow_steps': [step]})
         step.update(completion_scope='step', github_issue_state='OPEN')
         dashboard.validate_done_sources({'workflow_steps': [step]})
-        self.assertEqual('review', dashboard.task_card(step, [])[1])
+        card, column = dashboard.task_card(step, [])
+        self.assertEqual('done', column)
+        self.assertIn('Step done · parent remains open', card)
+        self.assertIn('Step slice complete; Parent remains open (snapshot says OPEN).', card)
         self.assertEqual('blocked', dashboard.activity_column(step, [{'execution_state': 'failed'}]))
         self.assertEqual('working', dashboard.activity_column(step, [{'execution_state': 'running'}]))
         step['completion_scope'] = 'issue'
@@ -373,3 +376,64 @@ class CompletionScopeTests(unittest.TestCase):
             dashboard.validate_done_sources({'workflow_steps': [step]})
         step.update(github_issue_state='CLOSED', github_checked_at='2026-09-23T13:00:00Z')
         dashboard.validate_done_sources({'workflow_steps': [step]})
+
+
+class SnapshotObservabilityTests(unittest.TestCase):
+    def test_progress_event_and_overdue_follow_up_are_escaped_and_visible(self):
+        item = {
+            'id': 'slice', 'title': 'Publish <slice>', 'state': 'running',
+            'last_progress_summary': 'Returned <PR> & evidence',
+            'last_progress_at': '2026-09-24T11:00:00Z',
+            'next_event': 'Review <PR>', 'next_owner': 'Owner & team',
+            'follow_up_due_at': '2026-09-24T11:30:00Z',
+        }
+        card, column = dashboard.task_card(item, [], {'updated_at': '2026-09-24T12:00:00Z'})
+        self.assertEqual('working', column)
+        self.assertIn('Last meaningful progress:</strong> Returned &lt;PR&gt; &amp; evidence', card)
+        self.assertIn('At:</strong> 24 Sep 2026 · 11:00 UTC', card)
+        self.assertIn('Next event:</strong> Review &lt;PR&gt; · <strong>Next owner:</strong> Owner &amp; team', card)
+        self.assertIn('summary-follow-up status-attention">Overdue follow-up', card)
+        self.assertIn('Follow-up:</strong> <span class="status-text status-attention">Overdue follow-up', card)
+        self.assertNotIn('<PR>', card)
+
+    def test_waiting_duration_is_snapshot_relative_and_future_time_is_not_negative(self):
+        waiting = {
+            'id': 'waiting', 'state': 'waiting', 'waiting_since': '2026-09-24T10:00:00Z',
+            'waiting_owner': 'publisher', 'next_event': 'CI return',
+        }
+        card, _ = dashboard.task_card(waiting, [], {'updated_at': '2026-09-24T12:30:00Z'})
+        self.assertIn('Waiting duration:</strong> 2h 30m', card)
+        future = dict(waiting, waiting_since='2026-09-24T13:00:00Z')
+        card, _ = dashboard.task_card(future, [], {'updated_at': '2026-09-24T12:30:00Z'})
+        self.assertIn('Waiting duration:</strong> Not recorded (waiting timestamp is after snapshot)', card)
+        self.assertNotIn('-', card.split('Waiting duration:</strong>', 1)[1].split('</p>', 1)[0])
+        offsetless = dict(waiting, waiting_since='2026-09-24T10:00:00')
+        card, _ = dashboard.task_card(offsetless, [], {'updated_at': '2026-09-24T12:30:00Z'})
+        self.assertIn('Waiting duration:</strong> Not recorded', card)
+
+    def test_missing_observability_fields_are_not_recorded(self):
+        card, _ = dashboard.task_card({'id': 'unrecorded', 'state': 'waiting'}, [], {})
+        self.assertIn('Last meaningful progress:</strong> Not recorded · <strong>At:</strong> Not recorded', card)
+        self.assertIn('Next event:</strong> Not recorded · <strong>Next owner:</strong> Not recorded', card)
+        self.assertIn('Waiting duration:</strong> Not recorded', card)
+        self.assertNotIn('1970', card)
+
+    def test_completed_pr_slice_keeps_open_parent_and_all_source_links(self):
+        item = {
+            'id': 'slice', 'title': 'Completed PR slice', 'state': 'done',
+            'completion_scope': 'step', 'github_issue_state': 'OPEN',
+            'issue_url': 'https://github.com/o/r/issues/54',
+            'parent_url': 'https://github.com/o/r/issues/10',
+            'pr_url': 'https://github.com/o/r/pull/8',
+        }
+        card, column = dashboard.task_card(item, [])
+        self.assertEqual('done', column)
+        self.assertIn('Step done · parent remains open', card)
+        self.assertIn('Step slice complete; Parent remains open (snapshot says OPEN).', card)
+        for url in ('issues/54', 'issues/10', 'pull/8'):
+            self.assertIn('https://github.com/o/r/' + url, card)
+
+        closed = dict(item, github_issue_state='CLOSED')
+        closed_card, _ = dashboard.task_card(closed, [])
+        self.assertIn('Step done · parent already closed', closed_card)
+        self.assertNotIn('parent remains open', closed_card)
