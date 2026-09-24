@@ -367,13 +367,23 @@ class DashboardTests(unittest.TestCase):
             subprocess.run(['git', 'init', '-q', str(repo)], check=True)
             page = dashboard.publish(repo, record).read_text()
         self.assertIn('Next <span class="count">0</span>', page)
-        self.assertIn('Approved H1 scope (20 open items) · separate from the execution queue', page)
+        self.assertIn('Approved H1 scope (20 open items) · browse all approved issues', page)
+        self.assertIn('<details class="approved-scope" open>', page)
+        self.assertLess(page.index('Approved H1 scope (20 open items)'), page.index('Next <span class="count">0</span>'))
         self.assertIn('<h4>Retail <span class="count">19</span></h4>', page)
         self.assertIn('Retail item 18', page)
         self.assertIn('Unknown front <span class="count">1</span>', page)
         self.assertIn('&lt;script&gt;unsafe&lt;/script&gt;', page)
         self.assertNotIn('href="javascript:alert(1)"', page)
-        self.assertIn('max-height:min(55vh,580px);overflow-y:auto', page)
+        self.assertIn('max-height:min(28vh,280px);overflow-y:auto', page)
+        self.assertIn("new URLSearchParams(location.search).get('project')", page)
+
+    def test_current_action_on_step_is_visible_on_working_card(self):
+        card, column = dashboard.task_card({'id': 'sdk-query', 'title': 'SDK query seam',
+                                            'state': 'running', 'current_action': 'Implement local view adapter'}, [])
+        self.assertEqual('working', column)
+        self.assertIn('Implement local view adapter', card)
+        self.assertNotIn('No current action supplied', card)
 
     def test_long_board_columns_are_bounded_and_keep_keyboard_focus_visible(self):
         steps = [{'id': f'done-{number:02d}', 'order': number,
