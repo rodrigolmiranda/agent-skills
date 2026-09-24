@@ -330,6 +330,51 @@ class DashboardTests(unittest.TestCase):
         for number in range(1, 13):
             self.assertEqual(1, page.count(f'<strong>Activity {number:02d}</strong>'))
 
+    def test_next_column_limit_is_per_front_and_does_not_invent_cards(self):
+        steps = []
+        for front in ('shared', 'mentora', 'b2b', 'retail'):
+            steps += [{'id': f'{front}-{number}', 'order': number,
+                       'title': f'{front} activity {number}', 'front': front,
+                       'state': 'not-started'} for number in range(11, 0, -1)]
+        record = {'workflow_steps': steps}
+        page = dashboard.board(record)
+        self.assertIn('Next <span class="count">44</span>', page)
+        for front in ('Shared', 'Mentora', 'B2B', 'Retail'):
+            self.assertIn(f'<h4>{front} <span class="count">11</span></h4>', page)
+        self.assertEqual(4, page.count('Show all 11 planned activities (1 more)'))
+        for front in ('shared', 'mentora', 'b2b', 'retail'):
+            tenth = page.index(f'<strong>{front} activity 10</strong>')
+            eleventh = page.index(f'<strong>{front} activity 11</strong>')
+            self.assertLess(tenth, eleventh)
+            self.assertEqual(1, page.count(f'<strong>{front} activity 11</strong>'))
+
+        one_front = dashboard.board({'workflow_steps': steps[:11]})
+        self.assertNotIn('<h4>Retail <span', one_front)
+
+    def test_approved_scope_is_visible_without_claiming_ready_activity(self):
+        items = [{'id': f'retail-{number}', 'front': 'retail',
+                  'title': f'Retail item {number}', 'url': f'https://example.test/issues/{number}',
+                  'disposition': 'dependency-blocked', 'reason': 'Published source contract pending'}
+                 for number in range(19)]
+        items.append({'id': 'unsafe', 'front': '<script>x</script>',
+                      'title': '<script>unsafe</script>', 'url': 'javascript:alert(1)'})
+        record = {'project_id': 'scope', 'coordinator': {'agent_id': 'planner'},
+                  'workflow_steps': [], 'approved_scope': {
+                      'source_url': 'https://example.test/project/15',
+                      'checked_at': '2026-09-24T13:00:00Z', 'items': items}}
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            subprocess.run(['git', 'init', '-q', str(repo)], check=True)
+            page = dashboard.publish(repo, record).read_text()
+        self.assertIn('Next <span class="count">0</span>', page)
+        self.assertIn('Approved H1 scope (20 open items) · separate from the execution queue', page)
+        self.assertIn('<h4>Retail <span class="count">19</span></h4>', page)
+        self.assertIn('Retail item 18', page)
+        self.assertIn('Unknown front <span class="count">1</span>', page)
+        self.assertIn('&lt;script&gt;unsafe&lt;/script&gt;', page)
+        self.assertNotIn('href="javascript:alert(1)"', page)
+        self.assertIn('max-height:min(55vh,580px);overflow-y:auto', page)
+
     def test_long_board_columns_are_bounded_and_keep_keyboard_focus_visible(self):
         steps = [{'id': f'done-{number:02d}', 'order': number,
                   'title': f'Done activity {number:02d}', 'state': 'done',
