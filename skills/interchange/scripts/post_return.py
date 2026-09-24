@@ -560,13 +560,23 @@ def main():
     manifest = json.loads(Path(args.manifest).read_text())
     if 'post_return' not in manifest:
         raise SystemExit('manifest has no declared post_return pipeline')
-    receipt = json.loads((Path(args.directory) / 'process-result.json').read_text())
-    if (receipt.get('job'), receipt.get('attempt')) != (manifest.get('job'), manifest.get('attempt')):
-        raise SystemExit('process receipt does not match manifest attempt')
     from relay import connect
-    db = connect(args.state)
+    from run_job import _private_artifact_root, _private_state_path
+    cwd = Path(manifest['cwd']).resolve(strict=True)
+    directory = Path(args.directory).resolve(strict=True)
+    state = Path(args.state).resolve(strict=True)
+    _private_state_path(manifest, state, cwd)
+    db = connect(state)
     try:
-        outcome = execute(manifest['post_return'], manifest, receipt, db, args.state, args.directory)
+        row = db.execute('SELECT * FROM attempts WHERE job=? AND attempt=?',
+                         (manifest['job'], manifest['attempt'])).fetchone()
+        if not row or row['sender'] != manifest['sender'] or not directory.is_relative_to(Path(row['root'])):
+            raise SystemExit('resume directory does not match registered worker attempt')
+        _private_artifact_root(manifest, row, directory, cwd)
+        receipt = json.loads((directory / 'process-result.json').read_text())
+        if (receipt.get('job'), receipt.get('attempt')) != (manifest.get('job'), manifest.get('attempt')):
+            raise SystemExit('process receipt does not match manifest attempt')
+        outcome = execute(manifest['post_return'], manifest, receipt, db, state, directory)
         print(json.dumps(outcome, indent=2))
         if outcome['stage'] == 'exception':
             raise SystemExit(2)

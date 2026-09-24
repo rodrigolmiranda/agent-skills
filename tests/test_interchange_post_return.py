@@ -232,6 +232,20 @@ class PipelineTests(unittest.TestCase):
         self.assertIsNone(db.execute('SELECT 1 FROM launches WHERE job=? AND attempt=?',
                                      ('unsafe', 'one')).fetchone())
 
+    def test_state_alias_is_canonicalized_before_private_path_validation(self):
+        safe = self.root / 'safe-state'
+        safe.mkdir(mode=0o700)
+        alias = self.repo / 'state-link'
+        alias.symlink_to(safe, target_is_directory=True)
+        state = safe / 'state.db'
+        self.assertEqual(run_job._canonical_state(alias / 'state.db'), state.resolve())
+        home = self.root / 'worker-home'
+        home.mkdir()
+        manifest = {'execution_isolation': {'mode': 'distinct_uid', 'uid': 1002,
+                                             'gid': 1002, 'home': str(home)}}
+        # The canonical path is separate from the worker-owned alias.
+        run_job._private_state_path(manifest, run_job._canonical_state(alias / 'state.db'), self.repo)
+
     def test_reviewer_pid_or_error_output_is_not_startup(self):
         review_dir = self.root / 'review'
         review_dir.mkdir()

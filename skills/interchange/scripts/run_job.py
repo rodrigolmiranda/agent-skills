@@ -202,6 +202,10 @@ def _private_state_path(manifest, state, cwd):
             raise ValueError('state file must be supervisor-owned and private')
 
 
+def _canonical_state(state):
+    return Path(state).resolve(strict=False)
+
+
 def _final_artifact_source(manifest, cwd):
     """Resolve an optional worker-written final inside the worker's own cwd.
 
@@ -352,6 +356,9 @@ def run(manifest, state, directory):
     if not 0 < timeout <= 10800 or not 1024 <= limit <= 20_000_000:
         raise ValueError('invalid deadline/output budget')
     directory = Path(directory).resolve()
+    # Use the canonical state path for every DB open and child handoff. A worker
+    # must not be able to swap a symlink in the caller's original path later.
+    state = _canonical_state(state)
     kill_on_output_limit = _output_limit_kill(manifest)
     extra_env = _manifest_env(manifest)
     final_source = _final_artifact_source(manifest, cwd)
