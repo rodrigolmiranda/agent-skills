@@ -50,6 +50,33 @@ OpenCode: pin provider/model and variant; use JSON events. Some transports retur
    Pass it as `OPENCODE_CONFIG_CONTENT` with `--pure`; widen `bash` only with the exact commands the packet needs (build/test tools, `gh pr create` when the worker must open the PR). Permission policy is not an OS sandbox; repository-side protection (e.g. a pre-receive rejection) remains the enforcement for pushes to protected branches.
 4. **Always verify, never trust exit 0:** a DSML string in any text part, zero `tool` parts for a task that requires edits, or an unchanged target file ⇒ classify the attempt **incomplete** and report it; do not retry blindly with the same permissions. A tool-free final can be validated by the wrapper and relayed without worker callback tools. Claude: pin model/effort; observe init metadata; exact allowed shell arguments matter. For a Codex head the tested route may be Claude→wrapper/queue. For a Claude head, use its parent-launched background-task route below. Codex queue is not a Claude API. An independently launched worker still requires a separately verified receiver/watch route or explicit manual retrieval.
 
+### Staging a sandboxed worker (tested 2026-09-24, 30+ attempts, same OpenCode build)
+
+1. **Packet inside the worktree.** Copy the assignment and its sources into `<worktree>/.interchange/`. Ignore that
+   folder through `$(git rev-parse --git-common-dir)/info/exclude`. A linked worktree's own `--git-dir/info/exclude` is
+   not read. Confirm `git status --porcelain` is empty after staging.
+2. **Manifest fields, not shell wrappers.** `run_job.py` always closes stdin. Pass non-secret configuration through
+   `env` (names that look like credentials are refused; secrets stay in the inherited environment). Let the worker
+   write its final inside its worktree and name it with `final_artifact_source`: the runner copies it into the attempt
+   root and proves it after exit.
+3. **Tell the worker what the launcher set.** List those variable names in the packet as "already set; don't
+   override". Allow only the exact gate commands. A worker that can't set a variable inline will otherwise write a
+   wrapper script into the repository.
+4. **Verify startup with a bound.** The first JSON event arrived 20 s to 3 min after launch. Wait until stdout is
+   non-empty with at least one `tool` part and no DSML text, for at most 5 minutes; otherwise classify the attempt
+   stuck.
+5. **Suspect context exhaustion; don't assume it.** A generic `APIError 400 Bad Request` is a diagnosis to investigate.
+   Treat it as likely context exhaustion only when it's corroborated: the last `step_finish` reports `tokens.total`
+   near the model's window (~397k of ~400k here), and ideally a provider context-limit message. The attempt exits
+   non-zero; its worktree changes stay on disk uncommitted. On takeover, preserve the worktree, review the uncommitted
+   diff per file in a fresh attempt, commit, and finish.
+6. **Clean up your own test processes at handover.** A 2-hour hung stdin experiment from the previous coordinator was
+   still running at takeover.
+7. **Watch CI with the shipped watcher.** `scripts/watch_pr_checks.py owner/repo#N ...` is a monitor command. It emits
+   every terminal conclusion, reports a failed fetch as `NO DATA` instead of silence, and follows the PR's current head
+   commit so a green result from an older head is never reported. Hand-rolled shell loops went silently blind twice in
+   this run (zsh doesn't split `set -- $var`, so `gh` was called with the wrong arguments and returned nothing).
+
 ## Supervision without model polling
 
 An OS process/host owns worker timeout, output draining and terminal notification. Register its actual handle and expiry; enforce bounded time independently of LLM progress. The Planner need not remain generating/waiting if the durable supervisor and idle wake are proven. This package does not pretend to install a universal resident supervisor.

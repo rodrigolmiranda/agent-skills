@@ -339,3 +339,10 @@ class LocalEvidenceTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class BareFileNameEvidenceTests(unittest.TestCase):
+    def test_a_bare_file_name_is_a_pointer_but_a_placeholder_word_is_not(self):
+        self.assertTrue(check_schedule.evidence_pointer('HANDOVER.md'))
+        self.assertFalse(check_schedule.evidence_pointer('unknown'))
+        self.assertFalse(check_schedule.evidence_pointer('handover'))

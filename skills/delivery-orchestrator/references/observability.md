@@ -103,6 +103,14 @@ The HTML displays commands, never executes them. An internal child-agent name ma
 
 Treat the initial dashboard and workflow as a trial: record friction and proposed improvements against the existing job, adjust one proven need at a time, and preserve accepted scope, evidence and ownership through a revision. No automatic purge or background refresh is introduced by this feature.
 
+**Give the owner the dashboard link when the plan starts.** Owners asked for it unprompted.
+- A `file://` link to the rendered board is acceptable.
+- Use a loopback server and refresh only when the coordinator (or an installed service) owns its lifecycle.
+- The board shows selected, sanitized execution facts (state, tool-call count, last output time), never raw worker
+  output.
+- If the render fails, surface why. A capture-and-ignore wrapper makes the page silently stale, and one completed step
+  without an http(s) source link was enough to stop the whole render.
+
 ## Waiting and blocked
 
 Board order: Next → Blocked → Working now → Waiting → Review → Done. Waiting means a prerequisite is progressing under a named owner and return event/check; record what is awaited and since when. Blocked means intervention is required, such as a failed route, unresolved decision or stalled prerequisite. Do not leave an overdue or failed dependency Waiting without checking it. Working now requires current execution evidence; coordinator work can be an activity independently of a worker. Done is the caller's accepted disposition, not process exit.

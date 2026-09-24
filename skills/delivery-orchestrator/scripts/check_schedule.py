@@ -9,6 +9,7 @@ import argparse
 from collections import Counter
 from datetime import datetime
 import json
+import re
 from pathlib import Path
 import sys
 from urllib.parse import urlparse, unquote
@@ -49,7 +50,9 @@ def evidence_pointer(value):
         return bool(parsed.netloc or parsed.path.strip('/'))
     if parsed.scheme == 'file':
         return bool(parsed.path)
-    return '/' in text or '#' in text
+    # A bare file name with an extension (e.g. HANDOVER.md) is a local path under the artifact root;
+    # validate_local_evidence still requires it to resolve to an existing file.
+    return '/' in text or '#' in text or bool(re.fullmatch(r'[\w.-]+\.[A-Za-z0-9]{1,8}', text))
 
 
 def validate_local_evidence(receipt, artifact_root):

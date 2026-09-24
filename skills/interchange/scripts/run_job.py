@@ -4,6 +4,8 @@ import argparse
 import hashlib
 import json
 import os
+import re
+import shutil
 from pathlib import Path
 import signal
 import sqlite3
@@ -56,6 +58,85 @@ def _final_artifact_path(manifest, directory):
     if path.name in SUPERVISOR_ARTIFACTS:
         raise ValueError('final_artifact names a supervisor-owned artifact')
     return path
+
+
+ENV_NAME = re.compile(r'^[A-Z_][A-Z0-9_]{0,127}$')
+SECRET_NAME = re.compile(r'(TOKEN|SECRET|PASSWORD|PASSWD|API_?KEY|PRIVATE|CREDENTIAL)')
+
+
+def _manifest_env(manifest):
+    """Validate the optional non-secret environment map a worker needs (e.g. an OpenCode config).
+
+    Credentials stay in the inherited environment; a name that looks like a secret is refused so a
+    manifest can never become the place a token is written down.
+    """
+    configured = manifest.get('env')
+    if configured is None:
+        return {}
+    if not isinstance(configured, dict):
+        raise ValueError('env must be an object of string names to string values')
+    result = {}
+    for name, value in configured.items():
+        if not isinstance(name, str) or not ENV_NAME.match(name):
+            raise ValueError('env names must be upper-case shell identifiers')
+        if SECRET_NAME.search(name):
+            raise ValueError(f'env name {name} looks like a secret; keep credentials in the inherited environment')
+        if not isinstance(value, str) or len(value) > 65536:
+            raise ValueError(f'env value for {name} must be a string of at most 64 KiB')
+        result[name] = value
+    return result
+
+
+def _final_artifact_source(manifest, cwd):
+    """Resolve an optional worker-written final inside the worker's own cwd.
+
+    A sandboxed worker (e.g. OpenCode with external_directory denied) cannot write into the
+    attempt root. It writes its final inside its worktree instead; the runner copies it into the
+    attempt root after exit so the usual integrity proof applies.
+    """
+    configured = manifest.get('final_artifact_source')
+    if configured is None:
+        return None
+    if not isinstance(configured, str) or not configured or Path(configured).is_absolute():
+        raise ValueError('final_artifact_source must be a nonempty path relative to cwd')
+    path = (cwd / configured).resolve()
+    if not path.is_relative_to(cwd):
+        raise ValueError('final_artifact_source must remain inside cwd')
+    if path.exists() or path.is_symlink():
+        raise ValueError('final_artifact_source already exists; use an attempt-specific path so an earlier final is never reused')
+    return path
+
+
+def _collect_final_artifact(source, target, cwd, directory, launched_at):
+    """Copy the worker's in-cwd final into the attempt root without following either side outside.
+
+    The source must resolve inside cwd, be a regular file and have been written after launch (a final
+    left by an earlier attempt is never reused). The destination is created fresh with O_EXCL|O_NOFOLLOW
+    after removing only a plain file this runner owns, so a planted symlink can never redirect the write.
+    """
+    if source is None or target is None:
+        return
+    try:
+        resolved = source.resolve()
+        if not resolved.is_relative_to(cwd) or not resolved.is_file():
+            return
+        info = resolved.stat()
+        if info.st_size > 1_000_000 or info.st_mtime < launched_at:
+            return
+        if not target.parent.resolve().is_relative_to(directory):
+            return
+        if target.is_symlink():
+            return
+        if target.exists():
+            if not target.is_file():
+                return
+            target.unlink()
+        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, 'O_NOFOLLOW', 0)
+        fd = os.open(target, flags, 0o600)
+        with os.fdopen(fd, 'wb') as out, resolved.open('rb') as src:
+            shutil.copyfileobj(src, out)
+    except OSError:
+        return
 
 
 def _final_artifact_proof(path, directory):
@@ -119,6 +200,10 @@ def run(manifest, state, directory):
         raise ValueError('invalid deadline/output budget')
     directory = Path(directory).resolve()
     kill_on_output_limit = _output_limit_kill(manifest)
+    extra_env = _manifest_env(manifest)
+    final_source = _final_artifact_source(manifest, cwd)
+    if final_source is not None and manifest.get('final_artifact') is None:
+        manifest = {**manifest, 'final_artifact': 'final.md'}
     final_artifact_path = _final_artifact_path(manifest, directory)
     db = connect(state)
     row = db.execute('SELECT * FROM attempts WHERE job=? AND attempt=?',
@@ -142,6 +227,7 @@ def run(manifest, state, directory):
         db.close()
         raise
     begun = time.monotonic()
+    launched_wall = time.time() - 1  # mtime granularity margin
     proc = None
     output_truncated = threading.Event()
     output_limit_kill_requested = threading.Event()
@@ -151,9 +237,15 @@ def run(manifest, state, directory):
     logs = []
     try:
         environment = os.environ.copy()
-        if final_artifact_path is not None:
+        environment.update(extra_env)
+        if final_source is not None:
+            # The worker writes where it can: its own cwd. The runner copies it into the attempt root.
+            environment['INTERCHANGE_FINAL_ARTIFACT'] = str(final_source)
+        elif final_artifact_path is not None:
             environment['INTERCHANGE_FINAL_ARTIFACT'] = str(final_artifact_path)
-        proc = subprocess.Popen(argv,cwd=cwd,env=environment,stdout=subprocess.PIPE,
+        # stdin is always closed: an inherited open, non-TTY stdin makes some headless workers
+        # (OpenCode) wait forever and print nothing.
+        proc = subprocess.Popen(argv,cwd=cwd,env=environment,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE,start_new_session=True)
         lease.write_text(json.dumps({'runner_pid':os.getpid(),'worker_pid':proc.pid,'state':'running',
                                     'job':manifest['job'],'attempt':manifest['attempt']}))
@@ -203,6 +295,7 @@ def run(manifest, state, directory):
             outcome='output_limit'
         else:
             outcome='exited'
+        _collect_final_artifact(final_source, final_artifact_path, cwd, directory, launched_wall)
         final_proof = _final_artifact_proof(final_artifact_path, directory)
         result = {'job':manifest['job'],'attempt':manifest['attempt'],'sender':manifest['sender'],
                   'process_outcome':outcome,'exit_code':exit_code,'seconds':round(time.monotonic()-begun,3),
