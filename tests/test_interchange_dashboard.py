@@ -509,7 +509,9 @@ class CompletionScopeTests(unittest.TestCase):
         self.assertIn('Step done · parent remains open', card)
         self.assertIn('Step slice complete; Parent remains open (snapshot says OPEN).', card)
         self.assertEqual('blocked', dashboard.activity_column(step, [{'execution_state': 'failed'}]))
-        self.assertEqual('working', dashboard.activity_column(step, [{'execution_state': 'running'}]))
+        # Native attempt bookkeeping may lag a verified completed step. It
+        # must not leave completed work in the live worker column.
+        self.assertEqual('done', dashboard.activity_column(step, [{'execution_state': 'running'}]))
         step['completion_scope'] = 'issue'
         with self.assertRaisesRegex(ValueError, 'CLOSED'):
             dashboard.validate_done_sources({'workflow_steps': [step]})

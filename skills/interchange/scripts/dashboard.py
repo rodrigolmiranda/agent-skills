@@ -304,14 +304,16 @@ def activity_column(item, attempts):
         return 'review'
     if state == 'waiting':
         return 'waiting'
+    # A verified step completion outranks stale native-attempt bookkeeping.
+    # Keep explicit attempt failures above it so conflicting failures remain visible.
+    if item.get('completion_scope') == 'step' and state in completed:
+        return 'done'
     if execution in active:
         return 'working'
     if state in blocked:
         return 'blocked'
     # A completed slice is a completed delivery at its declared scope.  The
     # parent issue remains open, which is rendered on the card separately.
-    if item.get('completion_scope') == 'step' and state in completed:
-        return 'done'
     if outcome in completed:
         return 'done'
     if state in completed:
