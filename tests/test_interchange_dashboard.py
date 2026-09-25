@@ -306,6 +306,11 @@ class DashboardTests(unittest.TestCase):
         self.assertIn('Current action:</strong> Draft the notes', page)
         self.assertIn('Can run in parallel:</strong> Not supplied', page)
         self.assertIn('Readiness:</strong> Not supplied', page)
+        self.assertIn(
+            'Planned order by front. Readiness is available in expanded workflow cards and may be marked Not supplied;',
+            page,
+        )
+        self.assertNotIn('Each card shows its readiness status or hold', page)
         self.assertIn('Attempts and retries (0)', page)
 
     def test_next_column_limits_initial_cards_but_reveals_all_in_plan_order(self):
@@ -368,6 +373,10 @@ class DashboardTests(unittest.TestCase):
             page = dashboard.publish(repo, record).read_text()
         self.assertIn('Next <span class="count">0</span>', page)
         self.assertIn('Approved H1 scope (20 open items) · browse all approved issues', page)
+        self.assertIn(
+            'Next lists planned items by front; readiness is available in expanded workflow cards and may be marked Not supplied.',
+            page,
+        )
         self.assertIn('<details class="approved-scope" open>', page)
         self.assertLess(page.index('Approved H1 scope (20 open items)'), page.index('Next <span class="count">0</span>'))
         self.assertIn('<h4>Retail <span class="count">19</span></h4>', page)
@@ -420,6 +429,46 @@ class DashboardTests(unittest.TestCase):
         self.assertIn('Published contract needed', rendered)
         self.assertIn('&lt;script&gt;held&lt;/script&gt;', rendered)
         self.assertNotIn('href="javascript:alert(1)"', rendered)
+
+    def test_planned_queue_and_scopes_render_every_item_past_500(self):
+        total = 501
+        queue = [{'front': 'retail', 'title': f'Upcoming item {number}',
+                  'url': f'https://example.test/retail/{number}',
+                  'status': 'Dependency hold past 500' if number == total else 'Planned',
+                  'prerequisite': 'Retail contract pending past 500' if number == total else ''}
+                 for number in range(1, total + 1)]
+        approved = [{'front': 'retail', 'title': f'Approved item {number}',
+                     'url': f'https://example.test/approved/{number}',
+                     'disposition': 'dependency-blocked' if number == total else 'ready',
+                     'reason': 'Approved source contract pending past 500' if number == total else ''}
+                    for number in range(1, total + 1)]
+        later = [{'horizon': 'Roadmap', 'status': 'Owner hold past 500' if number == total else 'Backlog',
+                  'title': f'Later item {number}', 'url': f'https://example.test/later/{number}'}
+                 for number in range(1, total + 1)]
+        record = {'project_id': 'unbounded-planned-work', 'coordinator': {'agent_id': 'planner'},
+                  'workflow_steps': [], 'upcoming_queue': queue,
+                  'approved_scope': {'source_url': 'https://example.test/project/15', 'items': approved},
+                  'later_scope': {'source_url': 'https://example.test/project/15', 'items': later}}
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            subprocess.run(['git', 'init', '-q', str(repo)], check=True)
+            page = dashboard.publish(repo, record).read_text()
+
+        self.assertIn('Next <span class="count">501</span>', page)
+        self.assertIn('<h4>Retail <span class="count">501</span></h4>', page)
+        self.assertIn('Show all 501 planned activities (491 more)', page)
+        self.assertIn('Upcoming item 501', page)
+        self.assertIn('Dependency hold past 500', page)
+        self.assertIn('Retail contract pending past 500', page)
+        self.assertIn('Approved H1 scope (501 open items)', page)
+        self.assertIn('Approved item 501', page)
+        self.assertIn('dependency blocked', page)
+        self.assertIn('Approved source contract pending past 500', page)
+        self.assertIn('Later horizons (501 Project items)', page)
+        self.assertIn('<h4>Roadmap <span class="count">501</span></h4>', page)
+        self.assertIn('Later item 501', page)
+        self.assertIn('Owner hold past 500', page)
+        self.assertIn('current scheduling receipt determines what may start', page)
 
     def test_long_board_columns_are_bounded_and_keep_keyboard_focus_visible(self):
         steps = [{'id': f'done-{number:02d}', 'order': number,

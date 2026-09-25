@@ -544,7 +544,7 @@ def board(record):
         content, column = task_card(item, attempts, record)
         date = max((recency_key(attempt)[0] for attempt in attempts), default=float('-inf'))
         columns[column].append((content, position, date, front_label(item.get('front')) or 'Unassigned'))
-    for position, item in enumerate((record.get('upcoming_queue') or [])[:500]):
+    for position, item in enumerate(record.get('upcoming_queue') or []):
         if not isinstance(item, dict):
             continue
         front = front_label(item.get('front')) or 'Unassigned'
@@ -580,7 +580,9 @@ def board(record):
                               + ''.join(entry[0] for entry in group[10:]) + '</details>')
                 cards += '</div>'
             if cards:
-                cards = '<p class="note">Planned order by front. A prerequisite on a card is not permission to dispatch.</p>' + cards
+                cards = ('<p class="note">Planned order by front. Readiness is available in expanded workflow cards '
+                         'and may be marked Not supplied; '
+                         'the current scheduling receipt determines what may start.</p>') + cards
         else:
             cards = ''.join(entry[0] for entry in entries)
         if not cards:
@@ -602,7 +604,7 @@ def approved_scope(record):
     if not isinstance(scope, dict) or not isinstance(scope.get('items'), list):
         return ''
     groups = {}
-    for item in scope['items'][:500]:
+    for item in scope['items']:
         if not isinstance(item, dict):
             continue
         front = front_label(item.get('front')) or 'Unassigned'
@@ -628,7 +630,8 @@ def approved_scope(record):
             + ' open items) · browse all approved issues</summary>'
             + '<p>Source: ' + safe_link(scope.get('source_url'), 'GitHub project')
             + ' · Checked ' + esc(readable_time(scope.get('checked_at')))
-            + '. These are approved issues; Next contains only work ready to dispatch.</p>'
+            + '. These are approved issues. Next lists planned items by front; readiness is available in expanded workflow '
+            + 'cards and may be marked Not supplied. The current scheduling receipt determines what may start.</p>'
             + '<div class="scope-grid">' + ''.join(sections) + '</div></details>')
 
 
@@ -638,7 +641,7 @@ def later_scope(record):
     if not isinstance(scope, dict) or not isinstance(scope.get('items'), list):
         return ''
     groups = {}
-    for item in scope['items'][:500]:
+    for item in scope['items']:
         if not isinstance(item, dict):
             continue
         horizon = str(item.get('horizon') or 'Other')[:32]
