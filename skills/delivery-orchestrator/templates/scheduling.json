@@ -3,21 +3,92 @@
   "checked_at": "ISO-8601 timestamp",
   "source_complete": true,
   "source_ids": [
-    "REPO#1"
+    "REPO#1",
+    "REPO#2"
   ],
+  "dependency_graph_required": true,
   "items": [
     {
       "id": "REPO#1",
       "ready": true,
       "disposition": "dispatched",
       "job": "context-boundary-name",
-      "evidence": "artifact or GitHub URL",
+      "evidence": "https://github.com/OWNER/REPO/actions/runs/NUMBER",
       "reason": "startup confirmed",
       "next_owner": "worker",
-      "next_event": "correlated return"
+      "next_event": "correlated return",
+      "selected_at": "ISO-8601 timestamp"
+    },
+    {
+      "id": "REPO#2",
+      "ready": false,
+      "disposition": "dependency-blocked",
+      "evidence": "artifact://jobs/context/dependency-evidence.md",
+      "reason": "Waiting for REPO#1 independent review approval",
+      "next_owner": "coordinator",
+      "next_event": "current-head reviewer verdict"
     }
   ],
   "write_leases": [],
+  "dependency_graph": {
+    "complete": true,
+    "nodes": [
+      {
+        "id": "REPO#1",
+        "state": "unfinished",
+        "local_link": "artifact://plans/plan.json#issues/REPO%231",
+        "github_link": "https://github.com/OWNER/REPO/issues/1",
+        "surfaces": ["src/path/owned-by-task-one"],
+        "depends_on": []
+      },
+      {
+        "id": "REPO#2",
+        "state": "unfinished",
+        "local_link": "artifact://plans/plan.json#issues/REPO%232",
+        "github_link": "https://github.com/OWNER/REPO/issues/2",
+        "surfaces": ["src/path/owned-by-task-two"],
+        "depends_on": ["REPO#1"]
+      }
+    ],
+    "edges": [
+      {
+        "id": "REPO#1->REPO#2",
+        "kind": "dependency",
+        "from": "REPO#1",
+        "to": "REPO#2",
+        "blocker_task_id": "REPO#1",
+        "dependent_task_id": "REPO#2",
+        "state": "verified",
+        "satisfied": false,
+        "gate_type": "reviewer-approval",
+        "local_link": "artifact://plans/plan.json#dependency/REPO%231/REPO%232",
+        "github_link": "https://github.com/OWNER/REPO/issues/2",
+        "blocker_notified_evidence": "artifact://coordination/REPO-1-agent-notice.md",
+        "reviewer_handover_evidence": "artifact://coordination/REPO-1-review-handover.md",
+        "reviewer_handover_dependent_ids": ["REPO#2"],
+        "resume_packet": "artifact://jobs/context/assignment.md",
+        "unblock_condition": "Independent current exact-head review is APPROVED and the dependent base is safe."
+      }
+    ],
+    "review": {
+      "event_interval_minutes": 10,
+      "full_audit_interval_minutes": 60,
+      "last_full_audit_at": "ISO-8601 timestamp",
+      "full_audit_evidence": "artifact://graph/full-audit.md",
+      "critical_path_evidence": "artifact://graph/critical-path.md",
+      "incremental_at": "ISO-8601 timestamp",
+      "last_event": {
+        "event_id": "event-id",
+        "kind": "startup | material-return | unblock | ownership-release | scope-change",
+        "occurred_at": "ISO-8601 timestamp",
+        "checked_at": "ISO-8601 timestamp",
+        "affected_ids": ["REPO#1", "REPO#2"],
+        "evidence": "artifact://events/current-event.md"
+      }
+    },
+    "events": [],
+    "validation_pauses": []
+  },
   "checkpoint": {
     "trigger": "material-return",
     "assessment_evidence": "artifact://scheduling/current-assessment",

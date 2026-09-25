@@ -37,6 +37,14 @@ Read in order before dependent work. Use task-supplied links or paths; include t
 - Environment already set by the launcher: <variable names only; "don't override">
 - Consumer facts this change depends on: <how the component is mounted, routes, registrations, timeouts; or staged files>
 
+## Dependency and collision handoff
+
+- Task dependencies: <blocker task IDs, dependent IDs, gate type, current linked evidence, and exact unblock condition>
+- Held packet and notification: <resumable packet for each held dependent; durable notice to the blocker task's agent; dependent IDs carried into the blocker's reviewer handover>
+- Before editing a newly discovered file or shared surface, compare the active write leases. If another task owns it or ownership is unknown, stop work on that surface, record the exact path/contract/resource and blocking task ID, and return the held packet and unblock condition. Continue only non-overlapping assigned work; do not wait by sleeping or polling.
+- On a verified blocker completion, reassess each named dependent once. A reviewer-gated task resumes only after an independent current exact-head `APPROVED` verdict and a fresh safe ownership/base check. A task needing merged or accepted code waits for the integration event. A timeout or PID alone never releases a lease.
+- UX/E2E or milestone validation pause: <affected task IDs and concrete surfaces only; unrelated ready work remains schedulable>
+
 ## Validation and delivery decisions
 
 - Required checks and review/UX/journey checkpoints: <selected proportionately; the full repository gate set derived from CI and repository instructions, not only a local script>
