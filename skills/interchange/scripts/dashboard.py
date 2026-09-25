@@ -580,7 +580,8 @@ def board(record):
                               + ''.join(entry[0] for entry in group[10:]) + '</details>')
                 cards += '</div>'
             if cards:
-                cards = ('<p class="note">Planned order by front. Each card shows its readiness status or hold; '
+                cards = ('<p class="note">Planned order by front. Readiness is available in expanded workflow cards '
+                         'and may be marked Not supplied; '
                          'the current scheduling receipt determines what may start.</p>') + cards
         else:
             cards = ''.join(entry[0] for entry in entries)
@@ -629,8 +630,8 @@ def approved_scope(record):
             + ' open items) · browse all approved issues</summary>'
             + '<p>Source: ' + safe_link(scope.get('source_url'), 'GitHub project')
             + ' · Checked ' + esc(readable_time(scope.get('checked_at')))
-            + '. These are approved issues. Next lists planned items by front with their explicit readiness or hold; '
-            + 'the current scheduling receipt determines what may start.</p>'
+            + '. These are approved issues. Next lists planned items by front; readiness is available in expanded workflow '
+            + 'cards and may be marked Not supplied. The current scheduling receipt determines what may start.</p>'
             + '<div class="scope-grid">' + ''.join(sections) + '</div></details>')
 
 

@@ -306,6 +306,11 @@ class DashboardTests(unittest.TestCase):
         self.assertIn('Current action:</strong> Draft the notes', page)
         self.assertIn('Can run in parallel:</strong> Not supplied', page)
         self.assertIn('Readiness:</strong> Not supplied', page)
+        self.assertIn(
+            'Planned order by front. Readiness is available in expanded workflow cards and may be marked Not supplied;',
+            page,
+        )
+        self.assertNotIn('Each card shows its readiness status or hold', page)
         self.assertIn('Attempts and retries (0)', page)
 
     def test_next_column_limits_initial_cards_but_reveals_all_in_plan_order(self):
@@ -368,6 +373,10 @@ class DashboardTests(unittest.TestCase):
             page = dashboard.publish(repo, record).read_text()
         self.assertIn('Next <span class="count">0</span>', page)
         self.assertIn('Approved H1 scope (20 open items) · browse all approved issues', page)
+        self.assertIn(
+            'Next lists planned items by front; readiness is available in expanded workflow cards and may be marked Not supplied.',
+            page,
+        )
         self.assertIn('<details class="approved-scope" open>', page)
         self.assertLess(page.index('Approved H1 scope (20 open items)'), page.index('Next <span class="count">0</span>'))
         self.assertIn('<h4>Retail <span class="count">19</span></h4>', page)
