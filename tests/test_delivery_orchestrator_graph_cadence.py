@@ -119,6 +119,13 @@ class DependencyGraphCadenceTests(unittest.TestCase):
     def test_complete_graph_requires_local_and_github_links_for_every_node_and_edge(self):
         record = receipt()
         record['dependency_graph']['nodes'][1]['depends_on'] = ['PROJECT#1']
+        record['dependency_graph']['nodes'][0]['state'] = 'complete'
+        record['dependency_graph']['nodes'][0].update({
+            'completed_at': '2026-09-25T09:00:00Z',
+            'completion_evidence': local_link('completed-prerequisite'),
+        })
+        record['source_ids'] = ['PROJECT#2']
+        record['items'] = [record['items'][1]]
         record['dependency_graph']['nodes'].append(graph_node('PROJECT#3', surface='src/extra.cs'))
         record['source_ids'].append('PROJECT#3')
         record['items'].append(active_item('PROJECT#3'))
@@ -402,6 +409,22 @@ class DependencyGraphCadenceTests(unittest.TestCase):
 
         self.assertEqual([], self.validate(record))
 
+        later_event = copy.deepcopy(record)
+        later_event['checked_at'] = '2026-09-25T09:12:00Z'
+        later_event['dependency_graph']['review']['incremental_at'] = '2026-09-25T09:12:00Z'
+        later_event['dependency_graph']['events'].append({
+            'event_id': 'review-2', 'kind': 'review-verdict', 'blocking_task_id': 'PROJECT#2',
+            'held_dependent_task_ids': [], 'review_verdict': 'CHANGES_NEEDED',
+            'reviewed_head': 'abc123', 'expected_head': 'abc123', 'head_current': True,
+            'observed_at': '2026-09-25T09:11:00Z', 'evidence': local_link('later-review'),
+        })
+        later_event['dependency_graph']['review']['last_event'].update({
+            'event_id': 'review-2', 'kind': 'review-verdict',
+            'occurred_at': '2026-09-25T09:11:00Z', 'checked_at': '2026-09-25T09:12:00Z',
+            'affected_ids': ['PROJECT#2'], 'evidence': local_link('later-review'),
+        })
+        self.assertEqual([], self.validate(later_event))
+
         incomplete_writer = copy.deepcopy(record)
         incomplete_writer['dependency_graph']['nodes'][0]['state'] = 'unfinished'
         self.assertTrue(any('cannot release until its blocking writer task is complete'
@@ -452,6 +475,30 @@ class DependencyGraphCadenceTests(unittest.TestCase):
         dependent['selected_at'] = '2026-09-25T09:10:00Z'
 
         self.assertEqual([], self.validate(record))
+
+        later_event = copy.deepcopy(record)
+        later_event['checked_at'] = '2026-09-25T09:12:00Z'
+        later_event['dependency_graph']['review']['incremental_at'] = '2026-09-25T09:12:00Z'
+        later_event['dependency_graph']['events'].append({
+            'event_id': 'review-2', 'kind': 'review-verdict', 'blocking_task_id': 'PROJECT#1',
+            'held_dependent_task_ids': [], 'review_verdict': 'CHANGES_NEEDED',
+            'reviewed_head': 'abc123', 'expected_head': 'abc123', 'head_current': True,
+            'observed_at': '2026-09-25T09:11:00Z', 'evidence': local_link('later-review'),
+        })
+        later_event['dependency_graph']['review']['last_event'].update({
+            'event_id': 'review-2', 'kind': 'review-verdict',
+            'occurred_at': '2026-09-25T09:11:00Z', 'checked_at': '2026-09-25T09:12:00Z',
+            'affected_ids': ['PROJECT#1'], 'evidence': local_link('later-review'),
+        })
+        self.assertEqual([], self.validate(later_event))
+
+        missing_provenance = copy.deepcopy(record)
+        missing_provenance['dependency_graph']['edges'][0].pop('gate_type')
+        missing_provenance['dependency_graph']['edges'][0].pop('blocker_notified_evidence')
+        errors = self.validate(missing_provenance)
+        self.assertTrue(any('.gate_type must be reviewer-approval or accepted-integration' in error
+                            for error in errors))
+        self.assertTrue(any('.blocker_notified_evidence must link' in error for error in errors))
 
         repeated = copy.deepcopy(record['dependency_graph']['events'][-1])
         repeated['event_id'] = 'reactivation-2'
@@ -529,27 +576,22 @@ class DependencyGraphCadenceTests(unittest.TestCase):
 
     def test_ux_e2e_pause_holds_only_affected_surface(self):
         record = receipt()
-        affected = record['items'][0]
-        affected.update({
-            'ready': False,
-            'disposition': 'coordinator-action',
-            'reason': 'UX/E2E proof failed for src/PROJECT-1.cs',
-            'next_owner': 'coordinator',
-            'next_event': 'correct and revalidate the affected journey',
-            'evidence': local_link('ux-e2e-finding'),
-        })
         record['dependency_graph']['validation_pauses'] = [{
             'id': 'pause-ux-1', 'kind': 'ux-e2e', 'state': 'active',
-            'affected_ids': ['PROJECT#1'], 'surfaces': ['src/PROJECT-1.cs'],
+            'affected_ids': ['PROJECT#2'], 'surfaces': ['src/'],
             'evidence': local_link('ux-e2e-finding'),
         }]
 
-        self.assertEqual([], self.validate(record))
-
-        affected['ready'] = True
-        affected['disposition'] = 'dispatched'
         errors = self.validate(record)
-        self.assertTrue(any('affected surface has an active UX/E2E validation pause' in error for error in errors))
+        self.assertTrue(any('PROJECT#1 is dispatchable while its affected surface has an active UX/E2E validation pause'
+                            in error for error in errors))
+
+        record['dependency_graph']['validation_pauses'][0]['surfaces'] = ['docs/']
+        errors = self.validate(record)
+        self.assertFalse(any('PROJECT#1 is dispatchable while its affected surface has an active UX/E2E validation pause'
+                             in error for error in errors))
+        self.assertTrue(any('PROJECT#2 is dispatchable while its affected surface has an active UX/E2E validation pause'
+                            in error for error in errors))
 
 
 if __name__ == '__main__':

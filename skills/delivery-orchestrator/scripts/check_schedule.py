@@ -391,13 +391,16 @@ def validate_dependency_graph(receipt):
         kind = edge.get('kind')
         if kind == 'dependency':
             endpoints_valid = all(nonempty_text(edge.get(field)) and edge.get(field) in node_by_id for field in ('from', 'to'))
+            blocker_unfinished = (endpoints_valid and
+                                  node_by_id[edge.get('from')].get('state') == 'unfinished')
+            requires_release_contract = edge.get('satisfied') is False or blocker_unfinished
             if edge.get('blocker_task_id') != edge.get('from') or edge.get('dependent_task_id') != edge.get('to'):
                 errors.append(f'{prefix} must name its blocker_task_id and dependent_task_id consistently')
             if endpoints_valid:
                 incoming_dependencies.setdefault(edge.get('to'), set()).add(edge.get('from'))
             if type(edge.get('satisfied')) is not bool:
                 errors.append(f'{prefix}.satisfied must be true or false')
-            if not edge.get('satisfied'):
+            if requires_release_contract:
                 if not nonempty_text(edge.get('gate_type')) or edge.get('gate_type') not in DEPENDENCY_GATES:
                     errors.append(f'{prefix}.gate_type must be reviewer-approval or accepted-integration')
                 for field in ('blocker_notified_evidence', 'reviewer_handover_evidence', 'resume_packet', 'unblock_condition'):
@@ -448,12 +451,19 @@ def validate_dependency_graph(receipt):
         if declared != actual:
             errors.append(f'node {node_id} local depends_on links do not match graph edges')
     for edge in edges:
-        if not isinstance(edge, dict) or edge.get('kind') != 'dependency' or edge.get('satisfied') is not False:
+        if not isinstance(edge, dict) or edge.get('kind') != 'dependency':
+            continue
+        blocker = node_by_id.get(edge.get('from')) if nonempty_text(edge.get('from')) else None
+        requires_release_contract = (edge.get('satisfied') is False or
+                                    (isinstance(blocker, dict) and blocker.get('state') == 'unfinished'))
+        if not requires_release_contract:
             continue
         if edge.get('gate_type') == 'reviewer-approval':
             expected = {candidate.get('to') for candidate in edges if isinstance(candidate, dict) and nonempty_text(candidate.get('to')) and
                         candidate.get('kind') == 'dependency' and candidate.get('from') == edge.get('from') and
-                        candidate.get('gate_type') == 'reviewer-approval' and candidate.get('satisfied') is False}
+                        candidate.get('gate_type') == 'reviewer-approval' and
+                        (candidate.get('satisfied') is False or
+                         node_by_id.get(candidate.get('from'), {}).get('state') == 'unfinished')}
             handover_ids = edge.get('reviewer_handover_dependent_ids', [])
             handover_set = set(task_id for task_id in handover_ids if nonempty_text(task_id)) if isinstance(handover_ids, list) else set()
             if handover_set != expected:
@@ -674,9 +684,6 @@ def validate_dependency_graph(receipt):
                     errors.append(f'dependency edge {edge_id} requires its exact-head APPROVED blocker event')
                 if edge.get('gate_type') == 'reviewer-approval' and (not isinstance(source_event, dict) or source_event.get('reviewed_head') != source_event.get('expected_head') or source_event.get('head_current') is not True):
                     errors.append(f'dependency edge {edge_id} requires a current exact-head APPROVED blocker event')
-                last_event = review.get('last_event') if isinstance(review, dict) else None
-                if isinstance(last_event, dict) and isinstance(source_event, dict) and last_event.get('event_id') != source_event.get('event_id'):
-                    errors.append(f'dependency edge {edge_id} must be reassessed from the current event')
                 if not isinstance(assessment, dict) or assessment.get('kind') != 'resume-assessment' or assessment.get('task_id') != dependent_id:
                     errors.append(f'dependency edge {edge_id} requires a fresh ownership/base resume assessment')
                 if isinstance(assessment, dict) and (assessment.get('ownership_verified') is not True or assessment.get('base_safe') is not True):
@@ -707,9 +714,6 @@ def validate_dependency_graph(receipt):
                 errors.append(f'conflict edge {edge_id} requires exactly one successor reassessment after verified release')
             elif reassessment.get('result_disposition') != items.get(dependent_id, {}).get('disposition'):
                 errors.append(f'conflict edge {edge_id} successor reassessment must match the current disposition')
-            last_event = review.get('last_event') if isinstance(review, dict) else None
-            if isinstance(last_event, dict) and last_event.get('event_id') != release_id:
-                errors.append(f'conflict edge {edge_id} must be reassessed from its current release event')
             release_event = event_by_id.get(release_id) if nonempty_text(release_id) else None
             if isinstance(reassessment, dict) and isinstance(release_event, dict):
                 reassessment_at = timestamp(reassessment.get('observed_at'))
@@ -811,7 +815,9 @@ def validate_graph_dispatch(receipt):
                 continue
             affected_ids = pause.get('affected_ids') if isinstance(pause.get('affected_ids'), list) else []
             pause_surfaces = {surface for surface in pause.get('surfaces', []) if nonempty_text(surface)} if isinstance(pause.get('surfaces'), list) else set()
-            if item_id in affected_ids or node_surfaces.intersection(pause_surfaces):
+            if (item_id in affected_ids or
+                    any(_surfaces_overlap(task_surface, pause_surface)
+                        for task_surface in node_surfaces for pause_surface in pause_surfaces)):
                 errors.append(f'{item_id} is dispatchable while its affected surface has an active UX/E2E validation pause')
         review = graph.get('review') if isinstance(graph.get('review'), dict) else {}
         selected_at = timestamp(item.get('selected_at'))
