@@ -16,6 +16,7 @@
   ],
   "milestone_policy": "Add a milestone only for a real delivery boundary; otherwise keep milestones empty.",
   "milestones": [],
+  "dependency_policy": "Each issue depends_on entry is a local planning edge. After an authorized GitHub write, create the matching native GitHub issue dependency and record local and GitHub links in the strict scheduling receipt. Verify both sides agree before dispatch.",
   "issues": [
     {
       "planning_id": "ISSUE-EXAMPLE-01",
@@ -32,15 +33,32 @@
           "proof": "Link a reproducible check or source/runtime evidence artifact."
         }
       ]
+    },
+    {
+      "planning_id": "ISSUE-EXAMPLE-02",
+      "title": "Complete the dependent step",
+      "body": "Deliver this outcome after the first step meets its declared gate.",
+      "labels": ["feature"],
+      "status_id": "STATUS-TODO",
+      "milestone_id": null,
+      "depends_on": ["ISSUE-EXAMPLE-01"],
+      "acceptance": [
+        {
+          "id": "A1",
+          "expected": "The named actor completes the dependent outcome using the accepted prerequisite.",
+          "proof": "Link a reproducible check or source/runtime evidence artifact."
+        }
+      ]
     }
   ],
   "mapping_receipt": {
-    "purpose": "Idempotent create/update mapping; fill only after an authorized live write.",
+    "purpose": "Idempotent create/update mapping; fill only after an authorized live write. Record dependency edge mappings after verifying local and GitHub parity.",
     "project": null,
     "views": {},
     "statuses": {},
     "milestones": {},
     "issues": {},
+    "dependency_edges": {},
     "last_reconciled_at": null
   },
   "write_policy": "Example manifest only. No remote objects were created or updated."
