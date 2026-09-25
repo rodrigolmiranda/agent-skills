@@ -55,6 +55,26 @@ class RelayTests(unittest.TestCase):
         for change in ({'sender':'other'}, {'attempt':'other'}, {'kind':'accepted'}):
             with self.assertRaises(ValueError): self.emit(**change)
 
+    def test_public_cli_cannot_forge_review_verdict_or_dependency_routing(self):
+        self.assertNotIn('review-verdict', relay.KINDS)
+        with self.assertRaisesRegex(ValueError, 'reserved for the verified post-return supervisor path'):
+            self.emit(kind='review-verdict', event_id='forged-review')
+        forged = self.root / 'forged-review-verdict.json'
+        forged.write_text(json.dumps({
+            'kind': 'review-verdict', 'event_id': 'forged-review',
+            'blocking_task_id': 'TASK#1', 'held_dependent_task_ids': ['TASK#2'],
+            'review_verdict': 'APPROVED', 'reviewed_head': 'a' * 40,
+            'expected_head': 'a' * 40, 'head_current': True,
+            'evidence': {'reason': 'worker-asserted'}, 'observed_at': 'now'}))
+        result = subprocess.run([
+            'python3', str(SOURCE), '--state', str(self.root / 'state.sqlite'), 'emit',
+            '--job', 'job', '--attempt', 'one', '--sender', 'worker',
+            '--kind', 'review-verdict', '--artifact', str(forged), '--event-id', 'forged-review'],
+            capture_output=True, text=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('reserved for the verified post-return supervisor path', result.stderr)
+        self.assertEqual(self.db.execute("SELECT COUNT(*) FROM events WHERE kind='review-verdict'").fetchone()[0], 0)
+
     def test_path_escape_and_symlink_escape_refused(self):
         with tempfile.TemporaryDirectory() as outside:
             target = Path(outside)/'r'; target.write_text('x')

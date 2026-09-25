@@ -14,7 +14,8 @@ import uuid
 
 IDENTIFIER = re.compile(r'[A-Za-z0-9._-]{1,100}\Z')
 PROJECT_IDENTIFIER = re.compile(r'[A-Za-z0-9_-]{1,100}\Z')
-KINDS = {'started', 'result', 'question', 'failed', 'exited', 'native-completed', 'review-verdict'}
+KINDS = {'started', 'result', 'question', 'failed', 'exited', 'native-completed'}
+_VERIFIED_SUPERVISOR_KINDS = KINDS | {'review-verdict'}
 
 
 def now():
@@ -717,8 +718,19 @@ def register(db, job, attempt, sender, root, coordinator=None, route=None, recei
 
 
 def emit(db, job, attempt, sender, kind, artifact, event_id):
+    if kind == 'review-verdict':
+        raise ValueError('review-verdict is reserved for the verified post-return supervisor path')
+    return _record_event(db, job, attempt, sender, kind, artifact, event_id)
+
+
+def _emit_verified_review_verdict(db, job, attempt, sender, artifact, event_id):
+    """Internal event writer; only the exact-head post-return verifier may call this path."""
+    return _record_event(db, job, attempt, sender, 'review-verdict', artifact, event_id)
+
+
+def _record_event(db, job, attempt, sender, kind, artifact, event_id):
     identifier(event_id)
-    if kind not in KINDS:
+    if kind not in _VERIFIED_SUPERVISOR_KINDS:
         raise ValueError('unsupported event; callbacks cannot declare acceptance')
     row = db.execute('SELECT * FROM attempts WHERE job=? AND attempt=?', (job, attempt)).fetchone()
     if not row or row['sender'] != sender:

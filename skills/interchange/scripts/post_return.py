@@ -19,7 +19,8 @@ import tempfile
 import threading
 import time
 
-from relay import (acquire_managed_action, bind_attempt, emit, now, notify, register,
+from relay import (acquire_managed_action, bind_attempt, _emit_verified_review_verdict,
+                   now, notify, register,
                    release_managed_action, require_current_generation)
 
 BRANCH = re.compile(r'^(?!/)(?!.*\.\.)(?!.*//)[A-Za-z0-9][A-Za-z0-9._/-]{0,199}$')
@@ -780,7 +781,7 @@ def record_terminal_reviewer_verdict(db, manifest, directory):
             }
             _save(verdict_path, record)
 
-        emit(db, job, attempt, sender, 'review-verdict', verdict_path, event_id)
+        _emit_verified_review_verdict(db, job, attempt, sender, verdict_path, event_id)
         delivery = notify(db, event_id)
         outcome = {'event_id': event_id, 'review_verdict': record['review_verdict'],
                    'head_current': record['head_current'], 'delivery': delivery}
