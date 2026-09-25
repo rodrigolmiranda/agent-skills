@@ -82,6 +82,37 @@ def _finding(key, kind, owner, detail, recovery, job=None, attempt=None, project
             'project': project}
 
 
+def _recover_terminal_reviewer_events(db, project, findings):
+    """Finish the verdict event if a reviewer runner stopped after its receipt."""
+    from post_return import record_terminal_reviewer_verdict
+
+    launches = db.execute('''SELECT l.job,l.attempt,l.directory,ap.project
+      FROM launches l LEFT JOIN attempt_projects ap USING(job,attempt)''').fetchall()
+    for launch in launches:
+        if project is not None and launch['project'] != project:
+            continue
+        directory = Path(launch['directory'])
+        manifest_path = directory / 'reviewer-manifest.json'
+        receipt_path = directory / 'process-result.json'
+        try:
+            if (manifest_path.is_symlink() or receipt_path.is_symlink()
+                    or not manifest_path.is_file() or not receipt_path.is_file()):
+                continue
+            manifest = json.loads(manifest_path.read_text())
+            contract = manifest.get('review_verdict_contract')
+            if not isinstance(contract, dict):
+                continue
+            if (manifest.get('job'), manifest.get('attempt')) != (launch['job'], launch['attempt']):
+                continue
+            record_terminal_reviewer_verdict(db, manifest, directory)
+        except Exception as exc:
+            findings.append(_finding('review-verdict:'+launch['job']+':'+launch['attempt'],
+                                     'review_verdict_unrecorded', 'supervisor',
+                                     f"{launch['job']}/{launch['attempt']}: {type(exc).__name__}",
+                                     'reconcile the terminal reviewer receipt and restore its durable event',
+                                     launch['job'], launch['attempt'], launch['project']))
+
+
 def scan(db, *, project=None, activities=None, now_seconds=None, overdue_seconds=300, retry_delivery=False):
     """Reconcile all attempts/events; retry only definite failed sends with a bound."""
     now_seconds = time.time() if now_seconds is None else now_seconds
@@ -97,6 +128,7 @@ def scan(db, *, project=None, activities=None, now_seconds=None, overdue_seconds
         db.execute('ALTER TABLE monitor_findings ADD COLUMN project TEXT')
     findings = []
     routes = {r['project']: dict(r) for r in db.execute('SELECT * FROM project_routes')}
+    _recover_terminal_reviewer_events(db, project, findings)
     for event in db.execute('SELECT * FROM events WHERE acknowledged IS NULL ORDER BY created').fetchall():
         bound = db.execute('SELECT project FROM attempt_projects WHERE job=? AND attempt=?',
                            (event['job'], event['attempt'])).fetchone()

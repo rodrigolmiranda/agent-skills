@@ -579,6 +579,7 @@ def run(manifest, state, directory):
     captured_bytes = 0
     logs = []
     publication_preflight = None
+    reviewer_publication_preflight = None
     worker_adapter_receipt = None
     try:
         environment = os.environ.copy()
@@ -590,6 +591,10 @@ def run(manifest, state, directory):
         privilege_drop = _isolated_worker(manifest, environment)
         worker_adapter_receipt = _worker_adapter(manifest, environment)
         _verify_worker_adapter(manifest, environment, privilege_drop)
+        if manifest.get('review_verdict_contract') is not None:
+            import post_return
+            reviewer_publication_preflight = post_return.reviewer_preflight(
+                manifest['review_verdict_contract'], manifest, environment, privilege_drop, cwd)
         if worker_adapter_receipt is not None:
             # Caller-supplied --dir is forbidden by _worker_adapter. This
             # runner-owned absolute argument pins OpenCode's session directory.
@@ -686,6 +691,7 @@ def run(manifest, state, directory):
                   'final_artifact':final_proof,
                   'final_artifact_validated':final_proof['validated'],
                   'publication_preflight':publication_preflight,
+                  'reviewer_publication_preflight':reviewer_publication_preflight,
                   'worker_adapter':worker_adapter_receipt,
                   'accepted':False,'worker_result_verified':False,
                   'ownership_check_required':outcome!='exited' or exit_code!=0 or
@@ -700,6 +706,7 @@ def run(manifest, state, directory):
                 'output_limit_action':'kill' if kill_on_output_limit else 'drain',
                 'final_artifact':_final_artifact_proof(final_artifact_path, directory),
                 'publication_preflight':publication_preflight,
+                'reviewer_publication_preflight':reviewer_publication_preflight,
                 'worker_adapter':worker_adapter_receipt,
                 'accepted':False,'worker_result_verified':False,'ownership_check_required':True}
     artifact=directory/'process-result.json'
@@ -714,8 +721,21 @@ def run(manifest, state, directory):
     artifact_fd = os.open(artifact, os.O_CREAT | os.O_EXCL | os.O_WRONLY | getattr(os, 'O_NOFOLLOW', 0), 0o600)
     with os.fdopen(artifact_fd, 'w') as stream:
         stream.write(json.dumps(result, indent=2) + '\n')
-    _write_existing_regular(lease, {'runner_pid':os.getpid(),'state':'terminal','artifact':str(artifact),
-                                    'timeout_seconds':timeout,'deadline_at':deadline_wall})
+    terminal_lease = {'runner_pid':os.getpid(),'state':'terminal','artifact':str(artifact),
+                      'timeout_seconds':timeout,'deadline_at':deadline_wall}
+    _write_existing_regular(lease, terminal_lease)
+    if manifest.get('review_verdict_contract') is not None:
+        try:
+            import post_return
+            verdict_event = post_return.record_terminal_reviewer_verdict(db, manifest, directory)
+            terminal_lease['review_verdict_event_id'] = verdict_event['event_id']
+            terminal_lease['review_verdict'] = verdict_event['review_verdict']
+            terminal_lease['review_verdict_delivery'] = verdict_event['delivery'].get('delivery')
+        except Exception as exc:
+            # The scheduled monitor retries this exact terminal receipt. A malformed
+            # or stale reviewer result remains unassessable; it never becomes accepted.
+            terminal_lease['review_verdict_error'] = type(exc).__name__
+        _write_existing_regular(lease, terminal_lease)
     event_id='exit-'+hashlib.sha256(json.dumps([manifest['job'],manifest['attempt']],separators=(',',':')).encode()).hexdigest()
     emit(db,manifest['job'],manifest['attempt'],manifest['sender'],'exited',artifact,event_id)
     delivery=notify(db,event_id)
