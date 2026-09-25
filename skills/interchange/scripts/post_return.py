@@ -19,10 +19,28 @@ import tempfile
 import threading
 import time
 
-from relay import (acquire_managed_action, bind_attempt, register,
+from relay import (acquire_managed_action, bind_attempt, emit, now, notify, register,
                    release_managed_action, require_current_generation)
 
 BRANCH = re.compile(r'^(?!/)(?!.*\.\.)(?!.*//)[A-Za-z0-9][A-Za-z0-9._/-]{0,199}$')
+TASK_ID = re.compile(r'[A-Za-z0-9][A-Za-z0-9._#:/-]{0,199}\Z')
+REVIEWER_BASH_ALLOW = frozenset({
+    'Bash(git status:*)',
+    'Bash(git diff:*)',
+    'Bash(git show:*)',
+    'Bash(git log:*)',
+    'Bash(python3 -m unittest:*)',
+    'Bash(dotnet test --no-restore:*)',
+})
+REVIEWER_BASH_DENY = frozenset({
+    'Bash(gh:*)', 'Bash(git push:*)', 'Bash(git send-pack:*)',
+    'Bash(curl:*)', 'Bash(wget:*)', 'Bash(ssh:*)', 'Bash(scp:*)',
+    'Bash(sftp:*)', 'Bash(nc:*)', 'Bash(ncat:*)', 'Bash(telnet:*)',
+    'Bash(ftp:*)', 'Bash(open:*)',
+})
+REVIEWER_READ_TOOLS = frozenset({'Read', 'Glob', 'Grep'})
+REVIEWER_DENY_TOOLS = frozenset({'Browser*', 'Chrome*', 'Playwright*', 'Computer*', 'mcp__*',
+                                 'Edit', 'Write', 'NotebookEdit'})
 
 
 class PipelineException(Exception):
@@ -135,7 +153,7 @@ def _permission_denial(output):
     return any(marker in denial for marker in markers)
 
 
-def _worker_credential_boundary(spec, manifest, environment, privilege_drop, cwd):
+def _worker_credential_boundary(spec, manifest, environment, privilege_drop, cwd, *, role='worker'):
     """Reject known on-disk publication credentials and probe gh under the actual child UID.
 
     This does not claim to discover every possible secret. It binds the supported
@@ -149,7 +167,7 @@ def _worker_credential_boundary(spec, manifest, environment, privilege_drop, cwd
     for relative in forbidden:
         path = home / relative
         if path.exists() or path.is_symlink():
-            raise PipelineException('worker home contains a GitHub/Git/SSH credential path')
+            raise PipelineException(f'{role} home contains a GitHub/Git/SSH credential path')
     probe_env = dict(environment)
     probe_env['GH_PROMPT_DISABLED'] = '1'
     probe_env['GIT_TERMINAL_PROMPT'] = '0'
@@ -161,13 +179,144 @@ def _worker_credential_boundary(spec, manifest, environment, privilege_drop, cwd
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise PipelineException('worker GitHub credential probe did not complete') from exc
     if check.returncode == 0:
-        raise PipelineException('worker identity has GitHub CLI credentials')
+        raise PipelineException(f'{role} identity has GitHub CLI credentials')
     # gh auth token is a local credential lookup. Unknown errors or unsupported
     # CLI behavior are not evidence that the identity lacks a publication route.
     detail = check.stderr.decode(errors='replace').lower()
     if not any(marker in detail for marker in ('not logged in', 'not logged into',
                                                'no oauth token', 'no authentication')):
-        raise PipelineException('worker GitHub credential probe inconclusive')
+        raise PipelineException(f'{role} GitHub credential probe inconclusive')
+
+
+def _claude_reviewer_policy(argv, isolation_mode):
+    """Require CLI-enforced exact tool scopes; executable tests require a credentialless UID."""
+    qualified = ('--safe-mode', '--restricted', '--strict-mcp-config', '--mcp-config',
+                 '--tools', '--output-format', '--no-chrome',
+                 '--disallowedTools')
+    if any(argv.count(flag) != 1 for flag in qualified):
+        raise PipelineException('Claude reviewer requires one isolated tool/MCP policy')
+    if (argv[argv.index('--output-format') + 1:argv.index('--output-format') + 2]
+            != ['stream-json']):
+        raise PipelineException('Claude reviewer requires stream-json execution evidence')
+    if any(arg.startswith(flag + '=') for flag in qualified for arg in argv):
+        raise PipelineException('Claude reviewer may not use alternate tool-policy flag syntax')
+    if any(argv.count(flag) > 1 for flag in ('--model', '--effort')) or any(
+            arg.startswith(flag + '=') for flag in ('--model', '--effort') for arg in argv):
+        raise PipelineException('Claude reviewer may not use duplicate or alternate model flags')
+    try:
+        mcp = json.loads(argv[argv.index('--mcp-config') + 1])
+        tools = set(argv[argv.index('--tools') + 1].split(','))
+        deny_index = argv.index('--disallowedTools')
+        deny_arg = argv[deny_index + 1]
+    except (IndexError, ValueError) as exc:
+        raise PipelineException('invalid Claude reviewer tool/MCP configuration') from exc
+    if mcp != {'mcpServers': {}}:
+        raise PipelineException('Claude reviewer MCP configuration must be empty')
+    expected_tools = set(REVIEWER_READ_TOOLS)
+    if isolation_mode == 'distinct_uid':
+        expected_tools.add('Bash')
+    if tools != expected_tools:
+        raise PipelineException('Claude reviewer has an unqualified tool allowlist')
+    if deny_index + 2 < len(argv) and not argv[deny_index + 2].startswith('-'):
+        raise PipelineException('Claude reviewer deny rules must use one bounded list argument')
+    denied = set(deny_arg.split(','))
+    if not REVIEWER_DENY_TOOLS <= denied:
+        raise PipelineException('reviewer browser, MCP or mutation tool deny list missing')
+    if isolation_mode == 'distinct_uid':
+        if argv.count('--allowedTools') != 1:
+            raise PipelineException('distinct-UID Claude reviewer needs an explicit Bash prefix allowlist')
+        allow_index = argv.index('--allowedTools')
+        allowed = []
+        for value in argv[allow_index + 1:]:
+            if value.startswith('-'):
+                break
+            allowed.extend(value.split(','))
+        if set(allowed) != REVIEWER_BASH_ALLOW or len(allowed) != len(REVIEWER_BASH_ALLOW):
+            raise PipelineException('reviewer Bash allowlist must match the qualified safe-test prefixes')
+        if not REVIEWER_BASH_DENY <= denied:
+            raise PipelineException('reviewer Bash deny list must block publication and network commands')
+    elif '--allowedTools' in argv or '--allowed-tools' in argv:
+        raise PipelineException('same-user reviewer may not enable Bash command exceptions')
+    override_flags = ('--settings', '--setting-sources', '--plugin-dir', '--plugin-url',
+                      '--allowed-tools', '--disallowed-tools', '--chrome', '--resume', '--continue',
+                      '--session-id', '--teleport', '--dangerously-skip-permissions', '--add-dir',
+                      '--agents', '--worktree', '--tmux', '--permission-mode', '--fallback-model',
+                      '--no-safe-mode', '--no-restricted', '--no-strict-mcp-config')
+    if any(arg == flag or arg.startswith(flag + '=') for arg in argv for flag in override_flags):
+        raise PipelineException('Claude reviewer may not override isolated tool settings')
+    if any(arg.startswith(short) for arg in argv[1:] for short in ('-c', '-r', '-w')):
+        raise PipelineException('Claude reviewer may not resume or configure a custom session')
+
+
+def reviewer_preflight(contract, manifest, environment, privilege_drop, cwd):
+    """Prove the reviewer process has no route to publish or merge the declared branch."""
+    mode = (manifest.get('execution_isolation') or {}).get('mode', 'same_user')
+    argv = manifest.get('argv')
+    if not isinstance(argv, list) or not argv:
+        raise PipelineException('reviewer command is missing from its supervised manifest')
+    adapter = Path(argv[0]).name
+    if mode == 'same_user':
+        if adapter != 'claude':
+            raise PipelineException('same-user reviewer requires the supported Claude read-only adapter')
+        _claude_reviewer_policy(argv, mode)
+        return {'reviewer_publication_boundary': 'read-only-cli-tools'}
+    if mode != 'distinct_uid' or privilege_drop is None:
+        raise PipelineException('reviewer requires a qualified no-publication boundary')
+    if adapter == 'claude':
+        _claude_reviewer_policy(argv, mode)
+    elif (adapter != 'codex' or len(argv) < 4 or argv[1] != 'exec'
+          or '--sandbox' not in argv or argv[argv.index('--sandbox') + 1:argv.index('--sandbox') + 2]
+          != ['read-only'] or '--json' not in argv):
+        raise PipelineException('distinct-UID reviewer requires a supported read-only CLI adapter')
+    for key in ('gh_executable', 'github_host', 'remote_url', 'branch', 'repository'):
+        if not isinstance(contract.get(key), str) or not contract[key]:
+            raise PipelineException('reviewer publication-denial contract incomplete')
+    _worker_credential_boundary(contract, manifest, environment, privilege_drop, cwd, role='reviewer')
+    read_only = _reviewer_checkout_read_only(cwd, environment, privilege_drop)
+    if not read_only:
+        raise PipelineException('distinct-UID reviewer can write within the worker checkout')
+    probe_env = dict(environment)
+    probe_env['GIT_TERMINAL_PROMPT'] = '0'
+    probe_env['GIT_SSH_COMMAND'] = 'ssh -o BatchMode=yes -o IdentitiesOnly=yes'
+    options = [*GIT_OPTIONS, '-c', f'safe.directory={cwd}']
+    try:
+        denied = subprocess.run(['git', *options, 'push', '--dry-run', contract['remote_url'],
+                                 f"HEAD:refs/heads/{contract['branch']}"],
+                                cwd=cwd, env=probe_env, preexec_fn=privilege_drop,
+                                stdin=subprocess.DEVNULL, capture_output=True, timeout=30)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise PipelineException('reviewer publication-denial probe did not complete') from exc
+    if denied.returncode == 0:
+        raise PipelineException('reviewer identity can publish the owned branch')
+    if not _permission_denial(denied.stderr + denied.stdout):
+        raise PipelineException('reviewer push probe failed for an unclassified reason; publication denial unproved')
+    return {'reviewer_publication_boundary': 'distinct-uid-without-publication-credentials',
+            'checkout_read_only': True, 'push_dry_run_denied': True}
+
+
+def _reviewer_checkout_read_only(cwd, environment, privilege_drop):
+    """Check effective UID write access to every checkout entry without executing repo code."""
+    script = ("import os,sys\n"
+              "def fail(error): raise SystemExit(4)\n"
+              "root=sys.argv[1]\n"
+              "count=0\n"
+              "for base,dirs,files in os.walk(root,topdown=True,onerror=fail,followlinks=False):\n"
+              "  for name in ['.']+dirs+files:\n"
+              "    path=base if name=='.' else os.path.join(base,name)\n"
+              "    count+=1\n"
+              "    if count>200000 or os.path.islink(path) or os.access(path,os.W_OK):\n"
+              "      raise SystemExit(2)\n")
+    try:
+        checked = subprocess.run([sys.executable, '-c', script, str(cwd)], cwd='/',
+                                 env=environment, preexec_fn=privilege_drop,
+                                 stdin=subprocess.DEVNULL, capture_output=True, timeout=30)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise PipelineException('reviewer checkout write-denial probe did not complete') from exc
+    if checked.returncode == 0:
+        return True
+    if checked.returncode == 2:
+        return False
+    raise PipelineException('reviewer checkout write-denial probe was inconclusive')
 
 
 def _save(path, data):
@@ -203,13 +352,22 @@ def _managed(db, spec, action, callback):
 
 
 def _validate_spec(spec, manifest, cwd):
-    if spec.get('version') != 1 or spec.get('kind') != 'implementation':
-        raise PipelineException('post_return requires version 1 implementation contract')
+    if spec.get('version') != 2 or spec.get('kind') != 'implementation':
+        raise PipelineException('post_return requires version 2 graph-linked implementation contract')
     if not all(isinstance(spec.get(k), str) and spec[k] for k in
                ('project', 'packet_revision', 'start_head', 'branch', 'base', 'remote', 'remote_url', 'title')):
         raise PipelineException('incomplete declared publication contract')
     if not isinstance(spec.get('generation'), int) or spec['generation'] < 1:
         raise PipelineException('missing current ownership generation')
+    blocker = spec.get('blocking_task_id')
+    dependents = spec.get('held_dependent_task_ids')
+    if not isinstance(blocker, str) or not TASK_ID.fullmatch(blocker):
+        raise PipelineException('blocking_task_id must identify the declared graph blocker')
+    if (not isinstance(dependents, list) or len(dependents) > 100
+            or any(not isinstance(value, str) or not TASK_ID.fullmatch(value) or value == blocker
+                   for value in dependents)
+            or len(set(dependents)) != len(dependents)):
+        raise PipelineException('held_dependent_task_ids must be a unique bounded task-ID array')
     if not isinstance(spec.get('allowed_paths'), list) or not spec['allowed_paths']:
         raise PipelineException('allowed_paths must declare owned change surface')
     if not all(isinstance(p, str) and p and not p.startswith('/') and '..' not in Path(p).parts
@@ -229,50 +387,20 @@ def _validate_spec(spec, manifest, cwd):
     isolation = reviewer.get('execution_isolation') or {'mode': 'same_user'}
     if isolation.get('mode') not in ('same_user', 'distinct_uid'):
         raise PipelineException('unsupported reviewer execution isolation')
-    if isolation['mode'] == 'distinct_uid' and isolation.get('uid') == (manifest.get('execution_isolation') or {}).get('uid'):
-        raise PipelineException('distinct reviewer must use a separate identity from the worker')
+    if isolation['mode'] == 'distinct_uid':
+        uid, gid, home = isolation.get('uid'), isolation.get('gid'), isolation.get('home')
+        if (not isinstance(uid, int) or isinstance(uid, bool) or uid <= 0
+                or not isinstance(gid, int) or isinstance(gid, bool) or gid <= 0
+                or not isinstance(home, str) or not Path(home).is_absolute()):
+            raise PipelineException('distinct reviewer requires a UID, GID and absolute private home')
+        if uid == (manifest.get('execution_isolation') or {}).get('uid'):
+            raise PipelineException('distinct reviewer must use a separate identity from the worker')
     if reviewer['adapter'] == 'claude-headless':
         if Path(argv[0]).name != 'claude' or '--no-chrome' not in argv or '--disallowedTools' not in argv:
             raise PipelineException('Claude reviewer requires --no-chrome and --disallowedTools')
         if argv.count('--output-format') != 1 or argv[argv.index('--output-format') + 1:argv.index('--output-format') + 2] != ['stream-json']:
             raise PipelineException('Claude reviewer requires stream-json execution evidence')
-        if argv.count('--disallowedTools') != 1:
-            raise PipelineException('Claude reviewer requires one explicit tool deny list')
-        deny = argv[argv.index('--disallowedTools') + 1] if argv.index('--disallowedTools') + 1 < len(argv) else ''
-        if not {'Browser*', 'Chrome*', 'Playwright*', 'Computer*', 'mcp__*'} <= set(deny.split(',')):
-            raise PipelineException('reviewer browser tool deny list missing')
-        if isolation['mode'] == 'same_user':
-            # This supported Claude route drops inherited user/project settings,
-            # plugins and MCP servers while retaining account authentication.
-            # A broad Browser* deny alone does not cover mcp__playwright tools.
-            if any(argv.count(flag) != 1 for flag in ('--safe-mode', '--restricted',
-                                                      '--strict-mcp-config', '--mcp-config', '--tools',
-                                                      '--model', '--effort')):
-                raise PipelineException('same-user Claude reviewer requires clean tool/MCP configuration')
-            try:
-                mcp = json.loads(argv[argv.index('--mcp-config') + 1])
-                tools = set(argv[argv.index('--tools') + 1].split(','))
-            except (IndexError, ValueError) as exc:
-                raise PipelineException('invalid same-user Claude reviewer tool/MCP configuration') from exc
-            if mcp != {'mcpServers': {}} or tools != {'Bash', 'Read', 'Glob', 'Grep'}:
-                raise PipelineException('same-user Claude reviewer has an unqualified tool/MCP configuration')
-            override_flags = ('--settings', '--setting-sources', '--plugin-dir',
-                              '--plugin-url', '--allowedTools', '--allowed-tools',
-                              '--disallowed-tools',
-                              '--chrome', '--resume', '--continue', '--session-id',
-                              '--teleport', '--dangerously-skip-permissions',
-                              '--add-dir', '--agents', '--worktree', '--tmux',
-                              '--permission-mode', '--fallback-model',
-                              '--no-safe-mode', '--no-restricted', '--no-strict-mcp-config')
-            qualified_flags = ('--safe-mode', '--restricted', '--strict-mcp-config',
-                               '--mcp-config', '--tools', '--model', '--effort',
-                               '--output-format', '--no-chrome', '--disallowedTools')
-            if any(arg == flag or arg.startswith(flag + '=') for arg in argv
-                   for flag in override_flags) or any(arg.startswith(flag + '=') for arg in argv
-                                                    for flag in qualified_flags) or any(
-                                                        arg.startswith(short) for arg in argv[1:]
-                                                        for short in ('-c', '-r', '-w')):
-                raise PipelineException('same-user Claude reviewer may not override isolated tool settings')
+        _claude_reviewer_policy(argv, isolation['mode'])
     else:
         if (Path(argv[0]).name != 'codex' or 'exec' not in argv or '--sandbox' not in argv
                 or argv[argv.index('--sandbox') + 1:argv.index('--sandbox') + 2] != ['read-only']):
@@ -466,6 +594,232 @@ def _reviewer_identity(reviewer):
             'model_observation': 'unavailable'}
 
 
+def reviewer_verdict_event_id(job, attempt, expected_head):
+    """Stable event identity for one reviewer attempt and declared source head."""
+    identity = json.dumps([job, attempt, expected_head], separators=(',', ':'))
+    return 'review-' + hashlib.sha256(identity.encode()).hexdigest()
+
+
+def _regular_json(path, maximum=1_000_000):
+    path = Path(path)
+    if path.is_symlink() or not path.is_file() or path.stat().st_size > maximum:
+        raise ValueError('missing, unsafe or oversized reviewer artifact')
+    raw = path.read_bytes()
+    return json.loads(raw), hashlib.sha256(raw).hexdigest()
+
+
+def _reviewer_contract(manifest, directory):
+    contract = manifest.get('review_verdict_contract')
+    if not isinstance(contract, dict):
+        raise ValueError('reviewer verdict contract missing')
+    job, attempt, sender = manifest.get('job'), manifest.get('attempt'), manifest.get('sender')
+    project, generation = contract.get('project'), contract.get('generation')
+    head, blocker = contract.get('expected_head'), contract.get('blocking_task_id')
+    dependents = contract.get('held_dependent_task_ids')
+    if not all(isinstance(value, str) and value for value in (job, attempt, sender, project, blocker)):
+        raise ValueError('reviewer verdict contract identity missing')
+    if not isinstance(generation, int) or generation < 1:
+        raise ValueError('reviewer verdict generation invalid')
+    if not isinstance(head, str) or not re.fullmatch(r'[0-9a-fA-F]{40,64}', head):
+        raise ValueError('reviewer expected head invalid')
+    if not TASK_ID.fullmatch(blocker):
+        raise ValueError('reviewer blocker task ID invalid')
+    if (not isinstance(dependents, list) or len(dependents) > 100
+            or any(not isinstance(value, str) or not TASK_ID.fullmatch(value) or value == blocker
+                   for value in dependents)
+            or len(set(dependents)) != len(dependents)):
+        raise ValueError('reviewer dependent task IDs invalid')
+    if Path(directory).resolve(strict=True) != Path(contract.get('reviewer_directory', '')).resolve(strict=True):
+        raise ValueError('reviewer attempt directory differs from its trusted contract')
+    if Path(manifest.get('cwd', '')).resolve(strict=True) != Path(contract.get('cwd', '')).resolve(strict=True):
+        raise ValueError('reviewer checkout differs from its trusted contract')
+    if contract.get('reviewer_job') != job or contract.get('reviewer_attempt') != attempt:
+        raise ValueError('reviewer attempt differs from its trusted contract')
+    if not all(isinstance(contract.get(key), str) and contract[key]
+               for key in ('repository', 'branch', 'base', 'pr_url', 'gh_executable', 'pipeline_directory')):
+        raise ValueError('reviewer pull request contract incomplete')
+    return contract
+
+
+def record_terminal_reviewer_verdict(db, manifest, directory):
+    """Record and notify one terminal reviewer fact; never declare delivery acceptance.
+
+    The contract is generated by the supervisor from the declared packet/graph. The
+    worker's final is used only as evidence after process, digest, head and live-PR checks.
+    """
+    directory = Path(directory).resolve(strict=True)
+    contract = _reviewer_contract(manifest, directory)
+    job, attempt, sender = manifest['job'], manifest['attempt'], manifest['sender']
+    event_id = reviewer_verdict_event_id(job, attempt, contract['expected_head'])
+    lock_path = directory / '.review-verdict.lock'
+    lock_fd = os.open(lock_path, os.O_CREAT | os.O_RDWR, 0o600)
+    try:
+        fcntl.flock(lock_fd, fcntl.LOCK_EX)
+        row = db.execute('SELECT * FROM attempts WHERE job=? AND attempt=?', (job, attempt)).fetchone()
+        if not row or row['sender'] != sender or not directory.is_relative_to(Path(row['root']).resolve()):
+            raise ValueError('reviewer is not the registered owner of this artifact root')
+        bound = db.execute('SELECT project,registered_generation FROM attempt_projects WHERE job=? AND attempt=?',
+                           (job, attempt)).fetchone()
+        if not bound or (bound['project'], bound['registered_generation']) != (
+                contract['project'], contract['generation']):
+            raise ValueError('reviewer project/generation differs from its trusted contract')
+        launch = db.execute('SELECT directory FROM launches WHERE job=? AND attempt=?',
+                            (job, attempt)).fetchone()
+        if not launch or Path(launch['directory']).resolve() != directory:
+            raise ValueError('reviewer terminal result has no matching launch')
+
+        verdict_path = directory / 'review-verdict.json'
+        if verdict_path.exists() or verdict_path.is_symlink():
+            record, _ = _regular_json(verdict_path)
+            if (record.get('event_id'), record.get('expected_head'), record.get('blocking_task_id'),
+                    record.get('held_dependent_task_ids')) != (
+                    event_id, contract['expected_head'], contract['blocking_task_id'],
+                    contract['held_dependent_task_ids']):
+                raise ValueError('review verdict record conflicts with its immutable contract')
+        else:
+            receipt_path = directory / 'process-result.json'
+            receipt, receipt_digest = _regular_json(receipt_path)
+            if not isinstance(receipt, dict):
+                receipt = {}
+            review_path = directory / 'review.json'
+            observed_head = None
+            submitted_verdict = None
+            review_digest = None
+            reason = 'reviewer_process_not_successful'
+            review_payload = None
+            try:
+                review_payload, review_digest = _regular_json(review_path)
+                if isinstance(review_payload, dict):
+                    candidate_head = review_payload.get('reviewed_head')
+                    if isinstance(candidate_head, str):
+                        observed_head = candidate_head
+                    candidate_verdict = review_payload.get('verdict')
+                    if candidate_verdict in ('passed', 'changes_needed'):
+                        submitted_verdict = candidate_verdict
+            except (OSError, ValueError, TypeError):
+                pass
+
+            isolation_mode = (manifest.get('execution_isolation') or {}).get('mode', 'same_user')
+            reviewer_boundary = receipt.get('reviewer_publication_preflight') or {}
+            if isolation_mode == 'same_user':
+                boundary_verified = (reviewer_boundary.get('reviewer_publication_boundary')
+                                     == 'read-only-cli-tools')
+            else:
+                boundary_verified = (isolation_mode == 'distinct_uid'
+                                     and reviewer_boundary.get('reviewer_publication_boundary')
+                                     == 'distinct-uid-without-publication-credentials'
+                                     and reviewer_boundary.get('checkout_read_only') is True
+                                     and reviewer_boundary.get('push_dry_run_denied') is True)
+            valid_terminal = (boundary_verified
+                              and receipt.get('job') == job and receipt.get('attempt') == attempt
+                              and receipt.get('sender') == sender
+                              and receipt.get('process_outcome') == 'exited'
+                              and receipt.get('exit_code') == 0
+                              and receipt.get('output_truncated') is False)
+            proof = receipt.get('final_artifact')
+            if not isinstance(proof, dict):
+                proof = {}
+            try:
+                proof_path_matches = (isinstance(proof.get('path'), str)
+                                      and Path(proof['path']).resolve() == review_path.resolve())
+            except (OSError, RuntimeError, ValueError):
+                proof_path_matches = False
+            valid_artifact = (receipt.get('final_artifact_validated') is True
+                              and proof.get('validated') is True and review_digest is not None
+                              and proof.get('sha256') == review_digest
+                              and proof_path_matches)
+            current_head = False
+            current_pr_head = None
+            review_status = 'NOT_ASSESSABLE'
+            if valid_terminal and valid_artifact and submitted_verdict and observed_head:
+                if observed_head != contract['expected_head']:
+                    reason = 'reviewed_head_mismatch'
+                else:
+                    try:
+                        pr = _existing_pr(contract, Path(manifest['cwd']).resolve(strict=True))
+                        current_pr_head = pr.get('headRefOid') if isinstance(pr, dict) else None
+                        _check_pr(pr, contract, contract['expected_head'])
+                        if (pr.get('url') != contract['pr_url']
+                                or str(pr.get('number')) != str(contract.get('pr_number'))):
+                            reason = 'pull_request_identity_changed'
+                        else:
+                            current_head = True
+                            review_status = 'APPROVED' if submitted_verdict == 'passed' else 'CHANGES_NEEDED'
+                            reason = 'exact_head_terminal_verdict'
+                    except Exception as exc:
+                        reason = ('pull_request_unavailable' if isinstance(exc, (OSError, subprocess.TimeoutExpired))
+                                  else 'pull_request_head_or_identity_mismatch')
+            elif not valid_terminal:
+                reason = ('reviewer_publication_boundary_unproved' if not boundary_verified
+                          else 'reviewer_process_not_successful')
+            elif not valid_artifact:
+                reason = 'reviewer_artifact_integrity_invalid'
+            elif not submitted_verdict or not observed_head:
+                reason = 'reviewer_verdict_invalid'
+
+            record = {
+                'kind': 'review-verdict',
+                'event_id': event_id,
+                'blocking_task_id': contract['blocking_task_id'],
+                'held_dependent_task_ids': contract['held_dependent_task_ids'],
+                'review_verdict': review_status,
+                'reviewed_head': observed_head,
+                'expected_head': contract['expected_head'],
+                'head_current': current_head,
+                'evidence': {
+                    'reviewer_job': job,
+                    'reviewer_attempt': attempt,
+                    'reviewer_submitted_verdict': submitted_verdict,
+                    'current_pr_head': current_pr_head,
+                    'process_result_sha256': receipt_digest,
+                    'review_artifact_sha256': review_digest,
+                    'reviewer_publication_boundary': reviewer_boundary.get('reviewer_publication_boundary'),
+                    'reason': reason,
+                },
+                'observed_at': now(),
+            }
+            _save(verdict_path, record)
+
+        emit(db, job, attempt, sender, 'review-verdict', verdict_path, event_id)
+        delivery = notify(db, event_id)
+        outcome = {'event_id': event_id, 'review_verdict': record['review_verdict'],
+                   'head_current': record['head_current'], 'delivery': delivery}
+    finally:
+        fcntl.flock(lock_fd, fcntl.LOCK_UN)
+        os.close(lock_fd)
+    _record_pipeline_verdict(contract, record)
+    return outcome
+
+
+def _record_pipeline_verdict(contract, record):
+    """Advance only the local pipeline journal after the durable relay event exists."""
+    pipeline = Path(contract['pipeline_directory']).resolve(strict=True)
+    journal_path = pipeline / 'post-return.json'
+    lock_path = pipeline / 'post-return.lock'
+    if not journal_path.is_file() or journal_path.is_symlink():
+        return
+    lock_fd = os.open(lock_path, os.O_CREAT | os.O_RDWR, 0o600)
+    try:
+        fcntl.flock(lock_fd, fcntl.LOCK_EX)
+        journal = json.loads(journal_path.read_text())
+        if (journal.get('head') != record['expected_head']
+                or journal.get('reviewer_job') != record['evidence']['reviewer_job']
+                or journal.get('reviewer_attempt') != record['evidence']['reviewer_attempt']):
+            return
+        if journal.get('stage') == 'review_verdict_recorded':
+            if journal.get('review_verdict_event_id') != record['event_id']:
+                raise ValueError('pipeline journal contains a different reviewer event')
+            return
+        if journal.get('stage') != 'review_started':
+            return
+        _stage(journal, journal_path, 'review_verdict_recorded',
+               review_verdict=record['review_verdict'], head_current=record['head_current'],
+               review_verdict_event_id=record['event_id'])
+    finally:
+        fcntl.flock(lock_fd, fcntl.LOCK_UN)
+        os.close(lock_fd)
+
+
 def _reviewer_stage(db, spec, head, cwd, directory, state, journal, journal_path):
     reviewer = spec['reviewer']
     reviewer_attempt = f"review-{head[:12]}"
@@ -498,6 +852,26 @@ def _reviewer_stage(db, spec, head, cwd, directory, state, journal, journal_path
                 'max_output_bytes': reviewer.get('max_output_bytes', 2_000_000),
                 'final_artifact': str(final_path),
                 'final_artifact_from_stdout': True,
+                'review_verdict_contract': {
+                    'project': spec['project'],
+                    'generation': spec['generation'],
+                    'blocking_task_id': spec['blocking_task_id'],
+                    'held_dependent_task_ids': spec['held_dependent_task_ids'],
+                    'expected_head': head,
+                    'reviewer_job': spec['reviewer_job'],
+                    'reviewer_attempt': reviewer_attempt,
+                    'reviewer_directory': str(review_dir.resolve()),
+                    'pipeline_directory': str(directory.resolve()),
+                    'cwd': str(cwd),
+                    'repository': spec['repository'],
+                    'branch': spec['branch'],
+                    'base': spec['base'],
+                    'remote_url': spec['remote_url'],
+                    'github_host': spec.get('github_host', 'github.com'),
+                    'gh_executable': spec['gh_executable'],
+                    'pr_number': journal['pr_number'],
+                    'pr_url': journal['pr_url'],
+                },
                 'execution_isolation': reviewer.get('execution_isolation', {'mode': 'same_user'}),
                 'launch_generation': {'project': spec['project'], 'generation': spec['generation']}}
     manifest_path = review_dir / 'reviewer-manifest.json'
@@ -550,7 +924,7 @@ def execute(spec, manifest, result, db, state, directory):
                 raise PipelineException('worker head changed after return; old review cannot apply')
             _stage(journal, journal_path, journal['stage'], head=head, changed_paths=paths,
                    project=spec['project'], job=result['job'], attempt=result['attempt'])
-            if journal['stage'] == 'review_started':
+            if journal['stage'] in ('review_started', 'review_verdict_recorded'):
                 return journal
             _fence(db, spec)
             remote_head = _remote_git(spec, cwd, 'ls-remote', '--heads', spec['remote_url'], spec['branch']).split('\t')[0]

@@ -16,11 +16,21 @@ sys.path.insert(0, str(SCRIPTS))
 import post_return
 import relay
 import run_job
+import monitor
 
+CLAUDE_DENY = ('Browser*,Chrome*,Playwright*,Computer*,mcp__*,Edit,Write,NotebookEdit')
+CLAUDE_READ_ONLY_ARGS = ['--safe-mode', '--restricted', '--strict-mcp-config',
+                         '--mcp-config', '{"mcpServers":{}}', '--tools', 'Read,Glob,Grep',
+                         '--no-chrome', '--disallowedTools', CLAUDE_DENY]
 CLAUDE_SAFE_ARGS = ['--safe-mode', '--restricted', '--strict-mcp-config',
-                    '--mcp-config', '{"mcpServers":{}}', '--tools', 'Bash,Read,Glob,Grep',
-                    '--no-chrome', '--disallowedTools',
-                    'Browser*,Chrome*,Playwright*,Computer*,mcp__*']
+                    '--mcp-config', '{"mcpServers":{}}', '--allowedTools',
+                    'Bash(git status:*)', 'Bash(git diff:*)', 'Bash(git show:*)',
+                    'Bash(git log:*)', 'Bash(python3 -m unittest:*)',
+                    'Bash(dotnet test --no-restore:*)',
+                    '--tools', 'Bash,Read,Glob,Grep', '--no-chrome', '--disallowedTools',
+                    CLAUDE_DENY + ',Bash(gh:*),Bash(git push:*),Bash(git send-pack:*),'
+                    'Bash(curl:*),Bash(wget:*),Bash(ssh:*),Bash(scp:*),Bash(sftp:*),'
+                    'Bash(nc:*),Bash(ncat:*),Bash(telnet:*),Bash(ftp:*),Bash(open:*)']
 
 
 def git(cwd, *args):
@@ -62,7 +72,8 @@ class PipelineTests(unittest.TestCase):
                                           'sha256': hashlib.sha256(self.handover.read_bytes()).hexdigest()},
                        'publication_preflight': {'git_control_digest': post_return._control_digest(self.repo)}}
         self.manifest = {'cwd': str(self.repo), 'execution_isolation': {'mode': 'distinct_uid', 'uid': 1002}}
-        self.spec = {'version': 1, 'kind': 'implementation', 'project': 'project', 'generation': 1,
+        self.spec = {'version': 2, 'kind': 'implementation', 'project': 'project', 'generation': 1,
+                     'blocking_task_id': 'SALES#41', 'held_dependent_task_ids': ['SALES#42'],
                      'packet_revision': 'r1', 'start_head': self.start, 'branch': 'feature/one',
                      'base': 'test', 'remote': 'origin', 'remote_url': str(self.remote),
                      'repository': 'fixture/repo', 'title': 'Implement one',
@@ -72,7 +83,9 @@ class PipelineTests(unittest.TestCase):
                                   'argv': ['claude', *CLAUDE_SAFE_ARGS,
                                            '--output-format', 'stream-json', '-p', 'review'],
                                   'timeout_seconds': 60,
-                                  'execution_isolation': {'mode': 'distinct_uid', 'uid': 1003}}}
+                                  'execution_isolation': {'mode': 'distinct_uid', 'uid': 1003,
+                                                          'gid': 1003,
+                                                          'home': str(self.root / 'review-home')}}}
         self.state = self.root / 'state.db'
         self.db = relay.connect(self.state)
         relay.register_project(self.db, 'project')
@@ -117,9 +130,18 @@ class PipelineTests(unittest.TestCase):
         second = self.execute()
         self.assertEqual(first['stage'], 'review_started')
         self.assertEqual(second['stage'], 'review_started')
+        self.assertEqual(self.db.execute("SELECT COUNT(*) FROM events WHERE kind='review-verdict'").fetchone()[0], 0)
         self.assertEqual(git(self.repo, 'ls-remote', '--heads', str(self.remote), 'feature/one').split()[0], self.head)
         self.assertEqual((self.creates, self.reviews), (1, 1))
         self.assertEqual(first['head'], self.head)
+
+    def test_legacy_v1_contract_stops_before_publication(self):
+        self.spec['version'] = 1
+        failed = self.execute()
+        self.assertEqual(failed['stage'], 'exception')
+        self.assertIn('version 2 graph-linked', failed['error'])
+        self.assertEqual((self.creates, self.reviews), (0, 0))
+        self.assertFalse(git(self.repo, 'ls-remote', '--heads', str(self.remote), 'feature/one'))
 
     def test_pr_failure_resumes_without_worker_rerun_or_duplicate_push(self):
         self.fail_create = True
@@ -195,14 +217,16 @@ class PipelineTests(unittest.TestCase):
         fixture_claude.write_text('#!/bin/sh\nexit 0\n')
         fixture_claude.chmod(0o755)
         self.spec['reviewer']['execution_isolation'] = {'mode': 'same_user'}
-        self.spec['reviewer']['argv'] = [str(fixture_claude), '--no-chrome', '--disallowedTools',
-                                        'Browser*', '--output-format', 'stream-json', '-p', 'review']
+        self.spec['reviewer']['argv'] = [str(fixture_claude), *CLAUDE_READ_ONLY_ARGS,
+                                         '--output-format', 'stream-json', '--model', 'fixture-claude',
+                                         '--effort', 'medium', '-p', 'review']
         with mock.patch.dict(os.environ, {'HOME': str(owner_home)}):
-            with self.assertRaisesRegex(post_return.PipelineException, 'browser tool deny'):
+            deny_index = self.spec['reviewer']['argv'].index('--disallowedTools') + 1
+            safe_deny = self.spec['reviewer']['argv'][deny_index]
+            self.spec['reviewer']['argv'][deny_index] = 'Browser*'
+            with self.assertRaisesRegex(post_return.PipelineException, 'browser, MCP or mutation tool deny'):
                 post_return._validate_spec(self.spec, self.manifest, self.repo.resolve())
-            self.spec['reviewer']['argv'] = [str(fixture_claude), *CLAUDE_SAFE_ARGS,
-                                             '--output-format', 'stream-json', '--model', 'fixture-claude',
-                                             '--effort', 'medium', '-p', 'review']
+            self.spec['reviewer']['argv'][deny_index] = safe_deny
             post_return._validate_spec(self.spec, self.manifest, self.repo.resolve())
             for extra in (['--mcp-config', '{"mcpServers":{"owner-browser":{}}}'],
                           ['--tools=default'], ['--plugin-dir=owner-tools'],
@@ -217,6 +241,52 @@ class PipelineTests(unittest.TestCase):
             self.spec['reviewer']['argv'][0] = str(self.root / 'missing' / 'claude')
             with self.assertRaisesRegex(post_return.PipelineException, 'reviewer CLI unavailable'):
                 post_return._validate_spec(self.spec, self.manifest, self.repo.resolve())
+
+    def test_reviewer_bash_requires_exact_allowlist_and_distinct_uid_probes(self):
+        with mock.patch.object(post_return.shutil, 'which', return_value='/usr/bin/true'):
+            post_return._validate_spec(self.spec, self.manifest, self.repo.resolve())
+            argv = self.spec['reviewer']['argv']
+            argv[argv.index('Bash(python3 -m unittest:*)')] = 'Bash(*)'
+            with self.assertRaisesRegex(post_return.PipelineException, 'safe-test prefixes'):
+                post_return._validate_spec(self.spec, self.manifest, self.repo.resolve())
+            argv[argv.index('Bash(*)')] = 'Bash(python3 -m unittest:*)'
+            deny_index = argv.index('--disallowedTools') + 1
+            argv[deny_index] = argv[deny_index].replace(',Bash(gh:*)', '')
+            with self.assertRaisesRegex(post_return.PipelineException, 'deny list must block'):
+                post_return._validate_spec(self.spec, self.manifest, self.repo.resolve())
+
+            self.spec['reviewer']['execution_isolation'] = {'mode': 'same_user'}
+            self.spec['reviewer']['argv'] = ['claude', *CLAUDE_READ_ONLY_ARGS,
+                                             '--output-format', 'stream-json',
+                                             '--model', 'fixture', '--effort', 'medium', '-p', 'review']
+            post_return._validate_spec(self.spec, self.manifest, self.repo.resolve())
+            self.spec['reviewer']['argv'][self.spec['reviewer']['argv'].index('--tools') + 1] = \
+                'Bash,Read,Glob,Grep'
+            with self.assertRaisesRegex(post_return.PipelineException, 'unqualified tool allowlist'):
+                post_return._validate_spec(self.spec, self.manifest, self.repo.resolve())
+
+    def test_distinct_uid_reviewer_launch_preflight_requires_denied_push(self):
+        contract = {'gh_executable': '/trusted/gh', 'github_host': 'github.com',
+                    'remote_url': 'https://github.com/example/repo.git',
+                    'branch': 'feature/one', 'repository': 'example/repo'}
+        manifest = {'execution_isolation': {'mode': 'distinct_uid'},
+                    'argv': ['claude', *CLAUDE_SAFE_ARGS, '--output-format', 'stream-json',
+                             '-p', 'review']}
+        denied = subprocess.CompletedProcess([], 128, stdout=b'', stderr=b'Permission denied')
+        with mock.patch.object(post_return, '_worker_credential_boundary') as credentials, \
+             mock.patch.object(post_return, '_reviewer_checkout_read_only', return_value=True), \
+             mock.patch.object(post_return.subprocess, 'run', return_value=denied):
+            outcome = post_return.reviewer_preflight(contract, manifest, {}, lambda: None, self.repo)
+        credentials.assert_called_once()
+        self.assertTrue(outcome['checkout_read_only'])
+        self.assertTrue(outcome['push_dry_run_denied'])
+
+        allowed = subprocess.CompletedProcess([], 0, stdout=b'', stderr=b'')
+        with mock.patch.object(post_return, '_worker_credential_boundary'), \
+             mock.patch.object(post_return, '_reviewer_checkout_read_only', return_value=True), \
+             mock.patch.object(post_return.subprocess, 'run', return_value=allowed), \
+             self.assertRaisesRegex(post_return.PipelineException, 'can publish'):
+            post_return.reviewer_preflight(contract, manifest, {}, lambda: None, self.repo)
 
     def test_same_user_default_and_invalid_distinct_uid(self):
         env = os.environ.copy()
@@ -433,7 +503,7 @@ print(json.dumps({'type':'tool','part':{'type':'tool','name':'bash'}}),flush=Tru
         spec = dict(self.spec)
         spec['gh_executable'] = str(gh)
         spec['reviewer'] = {'adapter': 'claude-headless',
-                            'argv': [str(claude), *CLAUDE_SAFE_ARGS,
+                            'argv': [str(claude), *CLAUDE_READ_ONLY_ARGS,
                                      '--output-format', 'stream-json', '--model', 'fixture-claude',
                                      '--effort', 'medium', '-p', 'Review {head} at {pr_url}'],
                             'timeout_seconds': 15, 'startup_seconds': 10, 'route': 'manual'}
@@ -461,7 +531,29 @@ print(json.dumps({'type':'tool','part':{'type':'tool','name':'bash'}}),flush=Tru
         while not (review_dir / 'process-result.json').exists() and time.monotonic() < deadline:
             time.sleep(.1)
         self.assertTrue((review_dir / 'process-result.json').exists())
+        deadline = time.monotonic() + 10
+        while not (review_dir / 'review-verdict.json').exists() and time.monotonic() < deadline:
+            time.sleep(.1)
+        self.assertTrue((review_dir / 'review-verdict.json').exists())
         self.assertEqual(json.loads((review_dir / 'review.json').read_text())['reviewed_head'], published_head)
+        verdict_event = json.loads((review_dir / 'review-verdict.json').read_text())
+        self.assertEqual(verdict_event['review_verdict'], 'APPROVED')
+        self.assertTrue(verdict_event['head_current'])
+        self.assertEqual(verdict_event['blocking_task_id'], 'SALES#41')
+        self.assertEqual(verdict_event['held_dependent_task_ids'], ['SALES#42'])
+        self.assertEqual(verdict_event['reviewed_head'], published_head)
+        self.assertEqual(verdict_event['expected_head'], published_head)
+        self.assertNotIn('accepted', verdict_event)
+        event_row = self.db.execute("SELECT * FROM events WHERE kind='review-verdict'").fetchone()
+        self.assertEqual(event_row['id'], verdict_event['event_id'])
+        self.assertEqual(self.db.execute("SELECT COUNT(*) FROM events WHERE kind='review-verdict'").fetchone()[0], 1)
+        deadline = time.monotonic() + 10
+        while (json.loads((attempt / 'post-return.json').read_text()).get('stage') != 'review_verdict_recorded'
+               and time.monotonic() < deadline):
+            time.sleep(.1)
+        pipeline_journal = json.loads((attempt / 'post-return.json').read_text())
+        self.assertEqual(pipeline_journal['stage'], 'review_verdict_recorded')
+        self.assertEqual(pipeline_journal['review_verdict_event_id'], event_row['id'])
         self.assertEqual(review_count.read_text(), '1')
         with mock.patch.object(post_return, '_verify_publication_url', return_value=None):
             db = relay.connect(self.state)
@@ -469,8 +561,79 @@ print(json.dumps({'type':'tool','part':{'type':'tool','name':'bash'}}),flush=Tru
                 again = post_return.execute(spec, manifest, receipt['result'], db, self.state, attempt)
             finally:
                 db.close()
-        self.assertEqual(again['stage'], 'review_started')
+        self.assertEqual(again['stage'], 'review_verdict_recorded')
         self.assertEqual((pr_count.read_text(), review_count.read_text()), ('1', '1'))
+
+    def _completed_reviewer_fixture(self, *, reviewed_head=None, current_head=None):
+        job, attempt = 'reviewjob', 'review-fixture'
+        review_dir = self.root / 'review-fixture'
+        review_dir.mkdir()
+        relay.register(self.db, job, attempt, 'reviewer', review_dir)
+        relay.bind_attempt(self.db, 'project', job, attempt, 1)
+        self.db.execute('INSERT INTO launches VALUES (?,?,?,?)', (job, attempt, str(review_dir), str(time.time())))
+        self.db.commit()
+        final = review_dir / 'review.json'
+        final.write_text(json.dumps({'reviewed_head': reviewed_head or self.head, 'verdict': 'passed'}))
+        final_digest = hashlib.sha256(final.read_bytes()).hexdigest()
+        (review_dir / 'process-result.json').write_text(json.dumps({
+            'job': job, 'attempt': attempt, 'sender': 'reviewer', 'process_outcome': 'exited',
+            'exit_code': 0, 'output_truncated': False, 'final_artifact_validated': True,
+            'reviewer_publication_preflight': {'reviewer_publication_boundary': 'read-only-cli-tools'},
+            'final_artifact': {'path': str(final), 'validated': True, 'sha256': final_digest}}))
+        contract = {'project': 'project', 'generation': 1,
+                    'blocking_task_id': 'SALES#41', 'held_dependent_task_ids': ['SALES#42'],
+                    'expected_head': self.head, 'reviewer_job': job, 'reviewer_attempt': attempt,
+                    'reviewer_directory': str(review_dir.resolve()),
+                    'pipeline_directory': str(self.attempt.resolve()), 'cwd': str(self.repo.resolve()),
+                    'repository': 'fixture/repo', 'branch': 'feature/one', 'base': 'test',
+                    'gh_executable': '/usr/bin/true', 'pr_number': 7,
+                    'pr_url': 'https://example.test/pr/7'}
+        reviewer_manifest = {'job': job, 'attempt': attempt, 'sender': 'reviewer',
+                             'cwd': str(self.repo.resolve()),
+                             'execution_isolation': {'mode': 'same_user'},
+                             'review_verdict_contract': contract}
+        (review_dir / 'reviewer-manifest.json').write_text(json.dumps(reviewer_manifest))
+        pr = {'number': 7, 'url': 'https://example.test/pr/7', 'headRefName': 'feature/one',
+              'baseRefName': 'test', 'isDraft': True, 'headRefOid': current_head or self.head}
+        return reviewer_manifest, review_dir, pr
+
+    def test_stale_remote_pr_head_becomes_not_assessable_and_event_is_idempotent(self):
+        stale_head = 'f' * 40
+        reviewer_manifest, review_dir, pr = self._completed_reviewer_fixture(current_head=stale_head)
+        with mock.patch.object(post_return, '_existing_pr', return_value=pr):
+            first = post_return.record_terminal_reviewer_verdict(self.db, reviewer_manifest, review_dir)
+            second = post_return.record_terminal_reviewer_verdict(self.db, reviewer_manifest, review_dir)
+        event = json.loads((review_dir / 'review-verdict.json').read_text())
+        self.assertEqual(first['event_id'], second['event_id'])
+        self.assertEqual(first['review_verdict'], 'NOT_ASSESSABLE')
+        self.assertEqual(event['review_verdict'], 'NOT_ASSESSABLE')
+        self.assertFalse(event['head_current'])
+        self.assertEqual(event['reviewed_head'], self.head)
+        self.assertEqual(event['evidence']['current_pr_head'], stale_head)
+        self.assertEqual(self.db.execute("SELECT COUNT(*) FROM events WHERE kind='review-verdict'").fetchone()[0], 1)
+
+    def test_terminal_result_without_route_proof_cannot_be_approved(self):
+        reviewer_manifest, review_dir, pr = self._completed_reviewer_fixture()
+        receipt_path = review_dir / 'process-result.json'
+        receipt = json.loads(receipt_path.read_text())
+        receipt.pop('reviewer_publication_preflight')
+        receipt_path.write_text(json.dumps(receipt))
+        with mock.patch.object(post_return, '_existing_pr', return_value=pr):
+            verdict = post_return.record_terminal_reviewer_verdict(self.db, reviewer_manifest, review_dir)
+        event = json.loads((review_dir / 'review-verdict.json').read_text())
+        self.assertEqual(verdict['review_verdict'], 'NOT_ASSESSABLE')
+        self.assertFalse(event['head_current'])
+        self.assertEqual(event['evidence']['reason'], 'reviewer_publication_boundary_unproved')
+
+    def test_monitor_recovers_terminal_review_event_after_runner_gap(self):
+        reviewer_manifest, review_dir, pr = self._completed_reviewer_fixture()
+        (review_dir / 'runner.json').write_text(json.dumps({'state': 'terminal'}))
+        with mock.patch.object(post_return, '_existing_pr', return_value=pr):
+            monitor.scan(self.db, project='project')
+        event = self.db.execute("SELECT * FROM events WHERE kind='review-verdict'").fetchone()
+        self.assertIsNotNone(event)
+        self.assertEqual(json.loads(Path(event['artifact']).read_text())['review_verdict'], 'APPROVED')
+        self.assertEqual(self.db.execute("SELECT COUNT(*) FROM events WHERE kind='review-verdict'").fetchone()[0], 1)
 
 
 @unittest.skipUnless(hasattr(os, 'geteuid') and os.geteuid() == 0,
@@ -522,6 +685,15 @@ class RootIsolationTests(unittest.TestCase):
         fake_bin = self.root / 'bin'
         fake_bin.mkdir(mode=0o755)
         fake = fake_bin / 'claude'
+        fake_gh = fake_bin / 'gh'
+        fake_gh.write_text('#!/usr/bin/env python3\n'
+                           'import sys\n'
+                           'if sys.argv[1:3]==["auth","token"]:\n'
+                           '    print("not logged in",file=sys.stderr); sys.exit(1)\n'
+                           'if sys.argv[1:3]==["pr","list"]:\n'
+                           '    print("[]"); sys.exit(0)\n'
+                           'sys.exit(2)\n')
+        fake_gh.chmod(0o755)
         fake.write_text('#!/usr/bin/env python3\n'
                         'import json,os\n'
                         'from pathlib import Path\n'
@@ -542,8 +714,9 @@ class RootIsolationTests(unittest.TestCase):
         self.spec['reviewer']['execution_isolation'] = {
             'mode': 'distinct_uid', 'uid': reviewer_uid, 'gid': reviewer_uid,
             'home': str(self.root / 'review-home')}
+        self.spec['gh_executable'] = str(fake_gh)
         self.spec['reviewer']['startup_seconds'] = 10
-        journal = {'stage': 'pr_created', 'pr_url': 'https://example.test/pr/7'}
+        journal = {'stage': 'pr_created', 'pr_url': 'https://example.test/pr/7', 'pr_number': 7}
         journal_path = self.attempt / 'post-return.json'
         post_return._save(journal_path, journal)
         post_return._reviewer_stage(db, self.spec, self.head, self.repo, self.attempt,

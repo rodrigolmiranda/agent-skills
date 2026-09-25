@@ -21,10 +21,12 @@
     ]
   },
   "post_return": {
-    "version": 1,
+    "version": 2,
     "kind": "implementation",
     "project": "<registered-project-id>",
     "generation": 1,
+    "blocking_task_id": "<blocker-id-from-declared-packet-and-graph>",
+    "held_dependent_task_ids": ["<approval-gated-dependent-id>"],
     "packet_revision": "<accepted-revision>",
     "start_head": "<40-character-start-sha>",
     "branch": "feature/<owned-branch>",
@@ -44,8 +46,9 @@
       "adapter": "claude-headless",
       "argv": [
         "<absolute-claude-cli>", "--safe-mode", "--restricted", "--strict-mcp-config",
-        "--mcp-config", "{\"mcpServers\":{}}", "--tools", "Bash,Read,Glob,Grep",
-        "--no-chrome", "--disallowedTools", "Browser*,Chrome*,Playwright*,Computer*,mcp__*",
+        "--mcp-config", "{\"mcpServers\":{}}", "--tools", "Read,Glob,Grep",
+        "--no-chrome", "--disallowedTools",
+        "Browser*,Chrome*,Playwright*,Computer*,mcp__*,Edit,Write,NotebookEdit",
         "--output-format", "stream-json", "--verbose",
         "--model", "<verified-model>", "--effort", "<verified-effort>",
         "-p", "<review-prompt-with-{head}-and-{pr_url}; final output is JSON verdict>"
